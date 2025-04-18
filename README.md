@@ -1,3 +1,6 @@
+# Project
+Inspired by Philip Kohen's BLEU score matrix in [this paper](https://aclanthology.org/2005.mtsummit-papers.11/), we try to recreate a similar matrix by evaluating modern MT systems, namely DeepL and GPT4.1. This requires us to set some rules for ourselves, choose the respective datasets and define configurations for the respective systems and set them in stone before the translation process; so no change of translation or pre-processing or data management related code mid-translation. Mainly because translation costs money. 
+
 # Requirements
 ## Packages 
 **General/Data Management**:
