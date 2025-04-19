@@ -93,18 +93,15 @@ class FloresPlusManager:
             assert num_of_sents < 1025, 'Size exceeds max size of devtest split'
 
         data = self._get_data(lang, num_sents=num_of_sents)
-        sents = []
-        for i, item in enumerate(data):
-            if i == num_of_sents:
-                return sents
-            sents.append(item['text'])
+        sents = [o['text'] for o in data]
+        return sents
 
     def get_sentences(self, *langs, num_of_sents=300):
         lang_sents = {}
         for lang in langs:
             assert lang in self.langs, 'Only the 11 European languages should be supported by the FloresManager'
             lang_sents[lang] = self._load_sentences_for_one_lang(
-                lang, size=num_of_sents)
+                lang, num_of_sents=num_of_sents)
         return lang_sents
 
     def get_sentence_pairs(self, lang1, lang2, num_of_sents=300) -> tuple[list[str], list[str]]:
