@@ -9,31 +9,6 @@ from sentence_splitter import SentenceSplitter
 from dotenv import load_dotenv
 load_dotenv()
 
-# Based on https://www.geeksforgeeks.org/delete-a-directory-or-file-using-python/
-
-
-def delete_files_in_folder(folder_path):
-    for filename in os.listdir(folder_path):
-        file_path = join(folder_path, filename)
-        if isfile(file_path):
-            os.remove(file_path)
-
-# Utitlity file that has several function useful for different cases
-# Should be data independent but expects only European languages for now
-# Adheres to fixed JSON format for alignments
-
-
-def get_env_variables(*args):
-    # Avoid caching in Jupyter Notebook
-    for arg in args:
-        os.environ.pop(arg, None)
-    load_dotenv()
-    if len(args) == 1:
-        return os.getenv(args[0])
-
-    return (os.getenv(arg) for arg in args)
-
-
 # Shortened version of the same splitter used in bertalign
 LANG_ISO = {
     'da': 'Danish',
@@ -50,7 +25,25 @@ LANG_ISO = {
 }
 
 
+def delete_files_in_folder(folder_path):
+    # Based on https://www.geeksforgeeks.org/delete-a-directory-or-file-using-python/
+    for filename in os.listdir(folder_path):
+        file_path = join(folder_path, filename)
+        if isfile(file_path):
+            os.remove(file_path)
+
+
+def get_env_variables(*args):
+    # Use override=True: https://docs.smith.langchain.com/observability/how_to_guides/toubleshooting_variable_caching
+    # Important when dealing with older API keys in JuypterNotebook
+    load_dotenv(override=True)
+    if len(args) == 1:
+        return os.getenv(args[0])
+    return (os.getenv(arg) for arg in args)
+
+
 def split_sents(text, lang):
+    # One-to-one implementation of split_sents in bertalign
     if lang in LANG_ISO:
         splitter = SentenceSplitter(language=lang)
         sents = splitter.split(text=text)
@@ -74,78 +67,6 @@ def load_sents(folder_path, src_lang, tgt_lang):
     with open(filename, 'r') as f:
         data = [s.strip() for s in f.readlines()]
     return data
-
-
-def triplet_align_sents(mt_sents: list[str], tgt_sents: list[str], src_sents: list[str], src_lang: str, tgt_lang: str, folder_path):
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-
-    with open(join(folder_path, f'{src_lang}-{tgt_lang}.jsonl'), 'a') as f:
-        for mt, ref, src in zip(mt_sents, tgt_sents, src_sents):
-            obj = dict()
-            obj['mt'] = mt
-            obj['ref'] = ref
-            obj['src'] = src
-            print(json.dumps(obj), file=f)
-
-
-def align_src_mt_sents(src_sents, mt_sents, src_lang, mt_lang, folder_path):
-    if not exists(folder_path):
-        os.makedirs(folder_path)
-
-    mt_filename = f'{src_lang}-{mt_lang}.{mt_lang}'
-    src_filename = f'{src_lang}-{mt_lang}.{src_lang}'
-
-    mt_file = join(folder_path, mt_filename)
-    src_file = join(folder_path, src_filename)
-    if exists(mt_file) and exists(src_file):
-        print(f'{src_lang} and {mt_lang} already aligned!')
-        return
-
-    from bertalign import Bertalign
-    mt_text = '\n'.join(mt_sents)
-    src_text = '\n'.join(src_sents)
-    aligner = Bertalign(
-        src=src_text,
-        tgt=mt_text,
-        src_lang=src_lang,
-        tgt_lang=mt_lang,
-        model='paraphrase-multilingual-MiniLM-L12-v2'
-    )
-    aligner.align_sents()
-    src_sents_a, mt_sents_a = aligner.get_sents()
-
-    with open(join(folder_path, src_filename), 'w') as f:
-        for sent in src_sents_a:
-            print(sent, file=f)
-
-    with open(join(folder_path, mt_filename), 'w') as f:
-        for sent in mt_sents_a:
-            print(sent, file=f)
-
-    return src_sents_a, mt_sents_a
-
-
-def post_triplet_alignment(src_sents_org, src_sents_ali, ref_sents_org, mt_sents_ali, src_lang, ref_lang, folder_path):
-    if not exists(folder_path):
-        os.makedirs(folder_path)
-
-    aligned_cnt = 0
-    out_file = f'{src_lang}-{ref_lang}.jsonl'
-    with open(join(folder_path, out_file), 'w') as f:
-        for x, sent in enumerate(src_sents_org):
-            for y, src_sent in enumerate(src_sents_ali):
-                if sent.strip() == src_sent.strip():
-                    obj = dict()
-                    obj['src'] = sent.strip()
-                    obj['ref'] = ref_sents_org[x].strip()
-                    obj['mt'] = mt_sents_ali[y].strip()
-                    if obj['src'] != '' and obj['ref'] != '' and obj['mt'] != '':
-                        print(json.dumps(obj), file=f)
-                        aligned_cnt += 1
-                else:
-                    continue
-    print(f"{aligned_cnt} sents aligned for {src_lang} and {ref_lang}")
 
 
 class MyLogger:

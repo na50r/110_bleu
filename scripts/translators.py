@@ -152,7 +152,7 @@ def translate_document(text: list[str], src_lang: str, tgt_lang: str, mt_folder:
     
     if translator == 'deepl':
         client = DeepLClient(logger=logger)
-    elif translator == 'gpt4':
+    elif translator == 'gpt-4.1':
         client = GPT4Client(logger=logger)
     out_file = join(mt_folder, f'{src_lang}-{tgt_lang}.txt')
 

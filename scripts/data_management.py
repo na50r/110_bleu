@@ -5,6 +5,7 @@ from os.path import join
 
 
 class FloresPlusManager:
+    # NOTE: Every sentence is aligned with every other sentence, less data overall
     EURO_LANGS = {
         'de': 'deu_Latn',
         'fr': 'fra_Latn',
@@ -19,7 +20,7 @@ class FloresPlusManager:
         'fi': 'fin_Latn',
     }
 
-    def __init__(self, split='dev'):
+    def __init__(self, split: str = 'dev'):
         self.store = get_env_variables('FLORES_STORE')
         self.split = split
         self.langs = FloresPlusManager.EURO_LANGS
@@ -51,8 +52,6 @@ class FloresPlusManager:
 
     def _store_data(self, lang: str):
         data = self._download_data(lang=lang)
-        if data is None:
-            return
         file_path = join(self.store, f'{lang}.jsonl')
         with open(file_path, 'w') as f:
             for item in data:
@@ -62,7 +61,7 @@ class FloresPlusManager:
             print(self.split, file=f)
         print(f'FLORES+ data for {lang} has been stored.')
 
-    def _get_data(self, lang, num_sents=None):
+    def _get_data(self, lang: str, num_of_sents: int = 300):
         if not self._same_split():
             delete_files_in_folder(self.store)
             self._store_data(lang=lang)
@@ -74,45 +73,36 @@ class FloresPlusManager:
             self._store_data(lang=lang)
 
         file_path = join(self.store, f'{lang}.jsonl')
-        if num_sents is not None:
-            with open(file_path, 'r') as f:
-                data = []
-                for i, ln in enumerate(f):
-                    if i >= num_sents:
-                        return data
-                    data.append(json.loads(ln))
-
         with open(file_path, 'r') as f:
-            data = [json.loads(ln) for ln in f]
-        return data
+            data = []
+            for i, ln in enumerate(f):
+                if i >= num_of_sents:
+                    return data
+                data.append(json.loads(ln))
 
-    def _load_sentences_for_one_lang(self, lang, num_of_sents=300):
-        if self.split == 'dev':
-            assert num_of_sents < 998, 'Size exceeds max size of dev split'
-        if self.split == 'devtest':
-            assert num_of_sents < 1025, 'Size exceeds max size of devtest split'
-
-        data = self._get_data(lang, num_sents=num_of_sents)
+    def _load_sents_for_lang(self, lang: str, num_of_sents: int = 300):
+        data = self._get_data(lang, num_of_sents=num_of_sents)
         sents = [o['text'] for o in data]
         return sents
 
-    def get_sentences(self, *langs, num_of_sents=300):
+    def get_sentences(self, *langs, num_of_sents: int = 300):
         lang_sents = {}
         for lang in langs:
             assert lang in self.langs, 'Only the 11 European languages should be supported by the FloresManager'
-            lang_sents[lang] = self._load_sentences_for_one_lang(
+            lang_sents[lang] = self._load_sents_for_lang(
                 lang, num_of_sents=num_of_sents)
         return lang_sents
 
-    def get_sentence_pairs(self, lang1, lang2, num_of_sents=300) -> tuple[list[str], list[str]]:
+    def get_sentence_pairs(self, src_lang: str, tgt_lang: str, num_of_sents: int = 300) -> tuple[list[str], list[str]]:
         '''
         Returns sentences specified language pair
         '''
-        out = self.get_sentences(lang1, lang2, num_of_sents=num_of_sents)
-        return out[lang1], out[lang2]
+        out = self.get_sentences(src_lang, tgt_lang, num_of_sents=num_of_sents)
+        return out[src_lang], out[tgt_lang]
 
 
 class Opus100Manager:
+    # NOTE: OPUS100 is English-centric
     EURO_LANGS = {
         'de': 'de-en',
         'da': 'da-en',
@@ -126,7 +116,7 @@ class Opus100Manager:
         'nl': 'en-nl'
     }
 
-    def __init__(self, split='test'):
+    def __init__(self, split: str = 'test'):
         self.store = get_env_variables('OPUS_100_STORE')
         self.langs = Opus100Manager.EURO_LANGS
         self.split = split
@@ -162,7 +152,7 @@ class Opus100Manager:
             print(self.split, file=f)
         print(f'OPUS-100 data for {lang} has been stored.')
 
-    def _get_data(self, lang, num_sents=None):
+    def _get_data(self, lang, num_of_sents: int = 300):
         if not self._same_split():
             delete_files_in_folder(self.store)
             self._store_data(lang=lang)
@@ -175,19 +165,14 @@ class Opus100Manager:
 
         file_path = join(self.store, f'{lang}.jsonl')
 
-        if num_sents is not None:
-            with open(file_path, 'r') as f:
-                data = []
-                for i, ln in enumerate(f):
-                    if i >= num_sents:
-                        return data
-                    data.append(json.loads(ln))
-
         with open(file_path, 'r') as f:
-            data = [json.loads(ln) for ln in f]
-        return data
+            data = []
+            for i, ln in enumerate(f):
+                if i >= num_of_sents:
+                    return data
+                data.append(json.loads(ln))
 
-    def get_sentence_pairs(self, src_lang, tgt_lang='en', num_of_sents=300):
+    def get_sentence_pairs(self, src_lang: str, tgt_lang: str = 'en', num_of_sents: str = 300):
         '''
         Returns sentences of specified language-English pair
         '''
@@ -195,11 +180,11 @@ class Opus100Manager:
         assert 'en' in check, 'This corpus only provides language pairs aligned to English, either src_lang or tgt_lang must be English!'
 
         if tgt_lang == 'en':
-            data = self._get_data(src_lang, num_sents=num_of_sents)
+            data = self._get_data(src_lang, num_of_sents=num_of_sents)
             src_sents = [o[src_lang] for o in data]
             tgt_sents = [o['en'] for o in data]
         else:
-            data = self._get_data(tgt_lang, num_sents=num_of_sents)
+            data = self._get_data(tgt_lang, num_of_sents=num_of_sents)
             tgt_sents = [o[tgt_lang] for o in data]
             src_sents = [o['en'] for o in data]
         return src_sents[:num_of_sents], tgt_sents[:num_of_sents]
@@ -209,6 +194,7 @@ class EPManager:
     EURO_LANGS = set(['de', 'da', 'el', 'es',
                       'pt', 'nl', 'fi', 'sv', 'fr', 'it', 'en'])
 
+    # NOTE: Different from FLORES+, 55 different language pairs, thus 55 different alignments, much more data
     EP_HELSINKI_PAIRS = set(['da-de',
                             'da-el',
                              'da-en',
@@ -270,7 +256,7 @@ class EPManager:
         self.langs = EPManager.EURO_LANGS
         self.store = get_env_variables('EUROPARL_STORE')
 
-    def get_pair(self, lang1, lang2):
+    def _get_pair(self, lang1: str, lang2: str):
         assert lang1 in self.langs and lang2 in self.langs, 'Language pair not supported by corpus'
         pair1 = f'{lang1}-{lang2}'
         pair2 = f'{lang2}-{lang1}'
@@ -296,7 +282,7 @@ class EPManager:
             for item in data:
                 print(json.dumps(item), file=f)
 
-    def _get_data(self, pair, num_of_sents=None):
+    def _get_data(self, pair: str, num_of_sents: int = 300):
         stored_langs = [f for f in os.listdir(
             self.store) if f.endswith('.jsonl')]
 
@@ -304,22 +290,17 @@ class EPManager:
             self._store_data(pair)
 
         file_path = join(self.store, f'{pair}.jsonl')
-
-        if num_of_sents is not None:
-            with open(file_path, 'r') as f:
-                data = []
-                for i, ln in enumerate(f):
-                    if i >= num_of_sents:
-                        return data
-                    data.append(json.loads(ln))
-
         with open(file_path, 'r') as f:
-            data = [json.loads(ln) for ln in f]
+            data = []
+            for i, ln in enumerate(f):
+                if i >= num_of_sents:
+                    return data
+                data.append(json.loads(ln))
         return data
 
-    def get_sentence_pairs(self, lang1, lang2, num_of_sents=300):
-        pair = self.get_pair(lang1, lang2)
+    def get_sentence_pairs(self, src_lang: str, tgt_lang: str, num_of_sents: int = 300):
+        pair = self._get_pair(src_lang, tgt_lang)
         data = self._get_data(pair, num_of_sents=num_of_sents)
-        src_sents = [o[lang1] for o in data]
-        tgt_sents = [o[lang2] for o in data]
+        src_sents = [o[src_lang] for o in data]
+        tgt_sents = [o[tgt_lang] for o in data]
         return src_sents[:num_of_sents], tgt_sents[:num_of_sents]
