@@ -3,6 +3,7 @@ import json
 from scripts.util import get_env_variables, delete_files_in_folder
 from os.path import join
 
+
 class FloresPlusManager:
     EURO_LANGS = {
         'de': 'deu_Latn',
@@ -44,26 +45,24 @@ class FloresPlusManager:
 
         self._hugging_face_login()
         from datasets import load_dataset
-        euro_dict = dict()
         dataset = load_dataset(
             "openlanguagedata/flores_plus", missing, split=self.split)
-        euro_dict[lang] = dataset
-        return euro_dict
+        return dataset
 
     def _store_data(self, lang: str):
-        euro_dict = self._download_data(lang=lang)
-        if euro_dict == None:
+        data = self._download_data(lang=lang)
+        if data is None:
             return
         file_path = join(self.store, f'{lang}.jsonl')
         with open(file_path, 'w') as f:
-            for item in euro_dict[lang]:
+            for item in data:
                 print(json.dumps(item), file=f)
 
         with open(join(self.store, 'split'), 'w') as f:
             print(self.split, file=f)
         print(f'FLORES+ data for {lang} has been stored.')
 
-    def _get_data(self, lang):
+    def _get_data(self, lang, num_sents=None):
         if not self._same_split():
             delete_files_in_folder(self.store)
             self._store_data(lang=lang)
@@ -75,21 +74,28 @@ class FloresPlusManager:
             self._store_data(lang=lang)
 
         file_path = join(self.store, f'{lang}.jsonl')
-        with open(file_path) as f:
-            data = [json.loads(ln) for ln in f]
+        if num_sents is not None:
+            with open(file_path, 'r') as f:
+                data = []
+                for i, ln in enumerate(f):
+                    if i >= num_sents:
+                        return data
+                    data.append(json.loads(ln))
 
+        with open(file_path, 'r') as f:
+            data = [json.loads(ln) for ln in f]
         return data
 
-    def _load_sentences_for_one_lang(self, lang, size=300):
+    def _load_sentences_for_one_lang(self, lang, num_of_sents=300):
         if self.split == 'dev':
-            assert size < 998, 'Size exceeds max size of dev split'
+            assert num_of_sents < 998, 'Size exceeds max size of dev split'
         if self.split == 'devtest':
-            assert size < 1025, 'Size exceeds max size of devtest split'
+            assert num_of_sents < 1025, 'Size exceeds max size of devtest split'
 
-        data = self._get_data(lang)
+        data = self._get_data(lang, num_sents=num_of_sents)
         sents = []
         for i, item in enumerate(data):
-            if i == size:
+            if i == num_of_sents:
                 return sents
             sents.append(item['text'])
 
@@ -148,7 +154,7 @@ class Opus100Manager:
 
     def _store_data(self, lang: str):
         data = self._download_data(lang=lang)
-        if data == None:
+        if data is None:
             return
         file_path = join(self.store, f'{lang}.jsonl')
         with open(file_path, 'w') as f:
@@ -190,8 +196,8 @@ class Opus100Manager:
         '''
         check = [src_lang, tgt_lang]
         assert 'en' in check, 'This corpus only provides language pairs aligned to English, either src_lang or tgt_lang must be English!'
-        
-        if tgt_lang=='en':
+
+        if tgt_lang == 'en':
             data = self._get_data(src_lang, num_sents=num_of_sents)
             src_sents = [o[src_lang] for o in data]
             tgt_sents = [o['en'] for o in data]
@@ -286,7 +292,7 @@ class EPManager:
 
     def _store_data(self, pair: str):
         data = self._download_data(pair)
-        if data == None:
+        if data is None:
             return
         file_path = join(self.store, f'{pair}.jsonl')
         with open(file_path, 'w') as f:
