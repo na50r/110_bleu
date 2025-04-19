@@ -1,2 +1,6 @@
 .env
 tmp/
+__pycache__/
+*.txt
+*.jsonl
+*.pyc
