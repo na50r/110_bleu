@@ -5,6 +5,7 @@ Inspired by Philip Kohen's BLEU score matrix in [this paper](https://aclantholog
 If you want to install it directly, you may use Conda:
 ```sh
 conda env create -f environment.yml
+conda activate thesis
 pip install -r requirements.txt
 ```
 * If you want to use Bertalign, resp. `align_src_mt_sents`, then clone [this fork](https://github.com/na50r/bertalign) and run:
