@@ -20,9 +20,9 @@ class FloresPlusManager:
         'fi': 'fin_Latn',
     }
 
-    def __init__(self, split: str = "dev"):
+    def __init__(self, split: str = "dev", size=500):
         self.store = get_env_variables('FLORES_STORE')
-        self.split = split
+        self.split = f'{split}[:{size}]'
         self.langs = FloresPlusManager.EURO_LANGS
 
     def _same_split(self):
@@ -116,10 +116,10 @@ class Opus100Manager:
         'nl': 'en-nl'
     }
 
-    def __init__(self, split: str = 'test'):
+    def __init__(self, split: str = 'test', size=500):
         self.store = get_env_variables('OPUS_100_STORE')
         self.langs = Opus100Manager.EURO_LANGS
-        self.split = split
+        self.split = f'{split}[:{size}]'
 
     def _same_split(self):
         split_file = join(self.store, 'split')
@@ -251,10 +251,22 @@ class EPManager:
                              'nl-sv',
                              'pt-sv'])
 
-    def __init__(self):
+    def __init__(self, size=500):
         self.pairs = EPManager.EP_HELSINKI_PAIRS
         self.langs = EPManager.EURO_LANGS
         self.store = get_env_variables('EUROPARL_STORE')
+        # This dataset has only train split
+        # Too avoid downloading everything, we shrink the size to the first 5%
+        self.split = f'train[:{size}]'
+
+    def _same_split(self):
+        split_file = join(self.store, 'split')
+        try:
+            with open(split_file, 'r') as f:
+                split = f.readline()
+        except FileNotFoundError:
+            return False
+        return split.strip() == self.split
 
     def _get_pair(self, lang1: str, lang2: str):
         assert lang1 in self.langs and lang2 in self.langs, 'Language pair not supported by corpus'
@@ -270,19 +282,25 @@ class EPManager:
         print(f'Files for {pair} must be downloaded.')
 
         from datasets import load_dataset
-        dataset = load_dataset("Helsinki-NLP/europarl", pair)
-        return dataset['train']['translation']
+        dataset = load_dataset("Helsinki-NLP/europarl", pair, split=self.split)
+        return dataset['translation']
 
     def _store_data(self, pair: str):
         data = self._download_data(pair)
-        if data is None:
-            return
         file_path = join(self.store, f'{pair}.jsonl')
         with open(file_path, 'w') as f:
             for item in data:
                 print(json.dumps(item), file=f)
 
+        with open(join(self.store, 'split'), 'w') as f:
+            print(self.split, file=f)
+        print(f'EuroParl data for {pair} has been stored')
+
     def _get_data(self, pair: str, num_of_sents: int = 300):
+        if not self._same_split():
+            delete_files_in_folder(self.store)
+            self._store_data(pair)
+        
         stored_langs = [f for f in os.listdir(
             self.store) if f.endswith('.jsonl')]
 
