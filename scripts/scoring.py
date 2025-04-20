@@ -120,13 +120,13 @@ def pre_compute_bert(data, mapping):
 
 
 class ResultProducer:
-    def __init__(self, BLEU_func=compute_bleu, chrF_func=compute_chrf, lang2files=None, use_bert=False, use_comet=False, use_comet_kiwi=False):
+    def __init__(self, BLEU_func=compute_bleu, chrF_func=compute_chrf, label2files=None, use_bert=False, use_comet=False, use_comet_kiwi=False):
         self.BLEU = BLEU_func
         self.chrF = chrF_func
         self.BERT = use_bert
         self.COMET = use_comet
         self.COMET_KIWI = use_comet_kiwi
-        self.lang2files = lang2files
+        self.label2files = label2files
         self.data_set_sizes = {}
         self.comet_mapping = {}
         self.bert_mapping = {}
@@ -160,8 +160,8 @@ class ResultProducer:
         self.chrf_scores = []
         self.comet_kiwi_scores = []
 
-        for lang in self.lang2files:
-            file = self.lang2files[lang]
+        for lang in self.label2files:
+            file = self.label2files[lang]
             with open(file, 'r') as f:
                 data = [json.loads(ln) for ln in f]
 
@@ -220,7 +220,7 @@ class ResultProducer:
 
     def _get_scores(self):
         SCORES = {
-            'Src': self.lang2files.keys(),
+            'Label': self.label2files.keys(),
             'BLEU': self.bleu_scores,
             'chrF': self.chrf_scores,
         }
@@ -235,7 +235,7 @@ class ResultProducer:
 
         return SCORES
 
-    def display_results(self, tgt='Unknown', latex=False):
+    def display_results(self, latex=False):
         SCORES = self._get_scores()
         if len(self.bert_scores) != 0:
             SCORES.update({'BERT-F1': self.bert_scores})
@@ -302,9 +302,10 @@ class ResultProducer:
             f"Loaded COMET KIWI mappings for languages: {list(self.comet_kiwi_mapper.keys())}"
         )
 
-# Code produced with the help of ChatGPT4o
 
-
+# Matrix Computation
+# Code produced with the help of ChatGPTo1
+# TODO: Work in progress
 def create_matrix_from_csv(csv_folder, metric):
     csv_files = [join(csv_folder, f) for f in os.listdir(csv_folder)]
 
@@ -317,7 +318,7 @@ def create_matrix_from_csv(csv_folder, metric):
 
         for _, row in df.iterrows():
             records.append({
-                'Src': row['Src'],
+                'Src': row['Label'],
                 'Tgt': tgt,
                 metric: row[metric]
             })
