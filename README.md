@@ -5,14 +5,14 @@ Inspired by Philip Kohen's BLEU score matrix in [this paper](https://aclantholog
 If you want to install it directly, you may use Conda:
 ```sh
 conda env create -f environment.yml
-```
-Or you just install it with pip, this code was run on Python 3.12.6
-```sh
 pip install -r requirements.txt
 ```
-
-**Bertalign:**
-* Install the fork from [here](https://github.com/na50r/bertalign)
+* If you want to use Bertalign, resp. `align_src_mt_sents`, then clone [this fork](https://github.com/na50r/bertalign) and run:
+```sh
+pip install bertalign/
+```
+* Note, if you follow this installation process, you should have everything at the same state I have. However, if you only want to inspect parts of the code, you can also selectively install packages yourself. 
+* `unbabel-comet` and `bert-score` are present in this code but not used on local machines, instead I would just uploud `scoring.py` to Google Colab and run it there. Hence not part of `requirements.txt`
 
 ## Environment Variables
 * Create a `.env` file within the cloned repository and specify values for the following environment variables:
