@@ -302,48 +302,37 @@ class ResultProducer:
             f"Loaded COMET KIWI mappings for languages: {list(self.comet_kiwi_mapper.keys())}"
         )
 
-
-# Matrix Computation
-# Code produced with the help of ChatGPTo1
-# TODO: Work in progress
-def create_matrix_from_csv(csv_folder, metric):
-    csv_files = [join(csv_folder, f) for f in os.listdir(csv_folder)]
-
-    # Store all rows here
-    records = []
-    for file in csv_files:
-        # Get target lang from filename, e.g. de2en.csv -> 'en'
-        tgt = re.search(r'(\w\w).csv$', file).group(1)
-        df = pd.read_csv(file)
-
-        for _, row in df.iterrows():
-            records.append({
-                'Src': row['Label'],
-                'Tgt': tgt,
-                metric: row[metric]
-            })
-
-    all_scores = pd.DataFrame(records)
-
-    # Pivot into matrix: rows=Src, columns=Tgt, values=metric
-    score_matrix = all_scores.pivot(
-        index='Src', columns='Tgt', values=metric).round(2)
-
-    # Optionally sort rows and columns
-    score_matrix = score_matrix.sort_index().sort_index(axis=1)
-    return score_matrix
-
-
-def score_matrix_to_latex(matrix):
-    latext_table = matrix.round(2).to_latex(
-        index=True,
-        na_rep='--',           # How to display missing values
-        # left-align row names, center columns
-        column_format='l' + 'c' * len(matrix.columns),
-        bold_rows=True,
-        escape=False,
-        multicolumn=True,
-        multicolumn_format='c',
-        float_format="%.2f"
-    )
-    print(latext_table)
+# https://stackoverflow.com/questions/72827153/how-to-extract-specific-key-and-value-from-a-dataframe-python
+def create_matrix_from_csv(path_to_csv, metric='BLEU'):
+    '''
+    Assume CSV of format:
+    Label   Metric
+    src-tgt value
+    
+    I.e.
+    Label   BLEU
+    de-en   31.04
+    en-de   28.89
+    ...
+    '''
+    df = pd.read_csv(path_to_csv)
+    all_langs = []
+    for l in df.Label:
+        src, tgt = l.split('-')
+        all_langs.append(src)
+        all_langs.append(tgt)
+    all_langs = sorted(list(set(all_langs)))
+    
+    df.set_index('Label', inplace=True)
+    label2metric = df[metric].to_dict()
+    
+    lang2metric = {l:[] for l in all_langs}
+    for src in all_langs:
+        for tgt in all_langs:
+            pair = f'{src}-{tgt}'
+            value = label2metric.get(pair, None)
+            lang2metric[src].append(value)
+    
+    df_tgt_src = pd.DataFrame(data=lang2metric, index=all_langs)
+    df_src_tgt = df_tgt_src.T
+    return df_src_tgt
