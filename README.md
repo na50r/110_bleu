@@ -1,29 +1,16 @@
 # Project
 Inspired by Philip Kohen's BLEU score matrix in [this paper](https://aclanthology.org/2005.mtsummit-papers.11/), we try to recreate a similar matrix by evaluating modern MT systems, namely DeepL and GPT4.1. This requires us to set some rules for ourselves, choose the respective datasets and define configurations for the respective systems and set them in stone before the translation process; so no change of translation or pre-processing or data management related code mid-translation. Mainly because translation costs money. 
 
-# Requirements
-## Packages 
-**General/Data Management**:
+# Installation
+If you want to install it directly, you may use Conda:
 ```sh
-dotenv==1.0.1
-pandas==2.2.3
-datasets==3.1.0
-tiktoken==0.8.0
-sentence_splitter==1.4
+conda env create -f environment.yml
 ```
-**Scoring/Alignment**:
+Or you just install it with pip, this code was run on Python 3.12.6
 ```sh
-sentence_transformers==4.1.0
-torch==2.4.1
-unbabel-comet==2.2.4
-sacrebleu==2.4.3
-bert-score==0.3.13
+pip install -r requirements.txt
 ```
-**Translation:**
-```sh
-openai==1.75.0
-deepl==1.21.0
-```
+
 **Bertalign:**
 * Install the fork from [here](https://github.com/na50r/bertalign)
 

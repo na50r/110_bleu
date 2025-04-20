@@ -20,7 +20,7 @@ class FloresPlusManager:
         'fi': 'fin_Latn',
     }
 
-    def __init__(self, split: str = 'dev'):
+    def __init__(self, split: str = "dev"):
         self.store = get_env_variables('FLORES_STORE')
         self.split = split
         self.langs = FloresPlusManager.EURO_LANGS
@@ -38,7 +38,7 @@ class FloresPlusManager:
     def _hugging_face_login():
         from huggingface_hub import login
         hug_key = get_env_variables('HUGGING_FACE_KEY')
-        login(token=hug_key)
+        login(token=hug_key, add_to_git_credential=True)
 
     def _download_data(self, lang: str):
         missing = self.langs[lang]
