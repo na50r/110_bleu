@@ -63,6 +63,22 @@ OPUS-100 data for de has been stored.
 ```
 * If files have been already stored, nothing will be downloaded.
 
+## Local Storage
+* Data is downloaded if it is not stored locally. The default size is set to 500, so only the first 500 entries are stored locally. If you want to first download everything and then play with the methods, run:
+```py
+from scripts.data_management import EPManager
+langs = EPManager.EURO_LANGS
+pairs = []
+for x in langs:
+    for y in langs:
+        if x!=y:
+            pairs.append((x, y))
+
+dm = EPManager()
+for pair in pairs:
+    dm.get_sentence_pairs(pair[0], pair[1], num_of_sents=10)
+```
+
 # Translators
 * Functions that are used for translation tasks
 
