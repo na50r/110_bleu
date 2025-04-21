@@ -76,7 +76,7 @@ class DeepLClient:
                 tgt_text=out_text,
             )
 
-        out_sents = [s.strip() for s in out_text.splitlines()]
+        out_sents = out_text.splitlines()
         return out_sents
 
 
