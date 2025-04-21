@@ -48,10 +48,9 @@ class DeepLClient:
     # Document is artificially created as an IO Object
     def translate_document(self, text: list[str], src_lang: str, tgt_lang: str) -> list[str]:
         out_buffer = BytesIO()
-        out_buffer.name = 'out_text.txt'
         in_text = '\n'.join(text)
-        in_buffer = BytesIO(in_text.encode('utf-8'))
-        in_buffer.name = 'in_text.txt'
+        in_bytes = in_text.encode('utf-8')
+        in_filename = 'in_text.txt'
         
         if self.logger:
             self.logger.start(
@@ -62,10 +61,11 @@ class DeepLClient:
             )
 
         self.client.translate_document(
-            input_document=in_buffer,
+            input_document=in_bytes,
             output_document=out_buffer,
             source_lang=src_lang.upper(),
             target_lang=get_deepl_code(tgt_lang),
+            filename=in_filename
         )
 
         out = out_buffer.getvalue()
