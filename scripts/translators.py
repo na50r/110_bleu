@@ -50,7 +50,7 @@ class DeepLClient:
         out_buffer = BytesIO()
         in_text = '\n'.join(text)
         in_bytes = in_text.encode('utf-8')
-        in_filename = 'in_text.txt'
+        in_filename = 'infile.txt'
         
         if self.logger:
             self.logger.start(
