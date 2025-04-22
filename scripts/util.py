@@ -25,7 +25,7 @@ LANG_ISO = {
 }
 
 
-def delete_files_in_folder(folder_path):
+def delete_files_in_folder(folder_path: str):
     # Based on https://www.geeksforgeeks.org/delete-a-directory-or-file-using-python/
     for filename in os.listdir(folder_path):
         file_path = join(folder_path, filename)
@@ -33,7 +33,7 @@ def delete_files_in_folder(folder_path):
             os.remove(file_path)
 
 
-def get_env_variables(*args):
+def get_env_variables(*args: tuple[str]) -> str | tuple[str]:
     # Use override=True: https://docs.smith.langchain.com/observability/how_to_guides/toubleshooting_variable_caching
     # Important when dealing with older API keys in JuypterNotebook
     load_dotenv(override=True)
@@ -42,7 +42,7 @@ def get_env_variables(*args):
     return (os.getenv(arg) for arg in args)
 
 
-def split_sents(text, lang):
+def split_sents(text: str, lang: str) -> list[str]:
     # One-to-one implementation of split_sents in bertalign
     if lang in LANG_ISO:
         splitter = SentenceSplitter(language=lang)
@@ -53,7 +53,7 @@ def split_sents(text, lang):
         raise Exception(f'The language {LANG_ISO[lang]} is not suppored yet.')
 
 
-def store_sents(sents, folder_path, src_lang, tgt_lang):
+def store_sents(sents: list[str], folder_path: str, src_lang: str, tgt_lang: str):
     filename = f'{src_lang}-{tgt_lang}.txt'
     if not exists(folder_path):
         os.makedirs(folder_path)
@@ -62,7 +62,7 @@ def store_sents(sents, folder_path, src_lang, tgt_lang):
             print(sent.strip(), file=f)
 
 
-def load_sents(folder_path, src_lang, tgt_lang):
+def load_sents(folder_path: str, src_lang: str, tgt_lang: str) -> list[str]:
     filename = join(folder_path, f'{src_lang}-{tgt_lang}.txt')
     with open(filename, 'r') as f:
         data = [s.strip() for s in f.readlines()]
@@ -70,12 +70,12 @@ def load_sents(folder_path, src_lang, tgt_lang):
 
 
 class MyLogger:
-    def __init__(self, logfile):
+    def __init__(self, logfile: str):
         self.logfile = logfile
         self.dataset = None
         self.current = None
 
-    def add_dataset_info(self, name, num_of_sents, start_idx=0, **kwargs):
+    def add_dataset_info(self, name: str, num_of_sents: int, start_idx: int = 0, **kwargs: str):
         self.dataset = {
             'name': name,
             'num_of_sents': num_of_sents,
@@ -83,22 +83,22 @@ class MyLogger:
         }
         self.dataset.update(kwargs)
 
-    def start(self, src_lang, tgt_lang, src_text, translator):
+    def start(self, src_lang: str, tgt_lang: str, src_text: str, translator: str):
         self.current = Log(src_lang, tgt_lang, src_text,
                            translator, dataset=self.dataset)
         return self.current
 
-    def finish(self, tgt_text, out_tokens=None, in_tokens=None):
+    def finish(self, tgt_text: str, out_tokens: int | None = None, in_tokens: int | None = None):
         if self.current:
             self.current.finish(tgt_text, out_tokens, in_tokens)
             self._write_log(self.current.to_dict())
             self.current = None
 
-    def _write_log(self, log_dict):
+    def _write_log(self, log_dict: dict[str, str]):
         with open(self.logfile, 'a') as f:
             print(json.dumps(log_dict), file=f)
 
-    def log_error(self, error, src_lang, tgt_lang, translator):
+    def log_error(self, error: Exception, src_lang: str, tgt_lang: str, translator: str):
         log = self.start(src_lang, tgt_lang, src_text=None,
                          translator=translator)
         log.error_msg = f"Translation {src_lang} to {tgt_lang} failed"
@@ -108,7 +108,7 @@ class MyLogger:
 
 
 class Log:
-    def __init__(self, src_lang, tgt_lang, src_text, translator, dataset):
+    def __init__(self, src_lang: str, tgt_lang: str, src_text, translator: str, dataset: dict[str, str]):
         self.enc = tiktoken.encoding_for_model("gpt-4o")
 
         self.translator = translator
@@ -134,7 +134,7 @@ class Log:
         self.error = None
         self.error_msg = None
 
-    def finish(self, tgt_text, out_tokens=None, in_tokens=None):
+    def finish(self, tgt_text: str, out_tokens: int | None = None, in_tokens: int | None = None):
         self.end = time.time()
         self.time = self.end - self.start
         self.out_chars = len(tgt_text)
@@ -144,7 +144,7 @@ class Log:
         self.out_toks = out_tokens
         self.in_toks = in_tokens
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, str]:
         out = vars(self)
         del out['enc']
         return out

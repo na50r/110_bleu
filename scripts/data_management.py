@@ -20,7 +20,7 @@ class FloresPlusManager:
         'fi': 'fin_Latn',
     }
 
-    def __init__(self, split: str = "dev", size=500):
+    def __init__(self, split: str = "dev", size: int = 500):
         self.store = get_env_variables('FLORES_STORE')
         self.split = f'{split}[:{size}]'
         self.langs = FloresPlusManager.EURO_LANGS
@@ -61,7 +61,7 @@ class FloresPlusManager:
             print(self.split, file=f)
         print(f'FLORES+ data for {lang} has been stored.')
 
-    def _get_data(self, lang: str, num_of_sents: int = 300):
+    def _get_data(self, lang: str, num_of_sents: int = 300) -> list[dict[str, str]]:
         if not self._same_split():
             delete_files_in_folder(self.store)
             self._store_data(lang=lang)
@@ -80,12 +80,12 @@ class FloresPlusManager:
                     return data
                 data.append(json.loads(ln))
 
-    def _load_sents_for_lang(self, lang: str, num_of_sents: int = 300):
+    def _load_sents_for_lang(self, lang: str, num_of_sents: int = 300) -> list[str]:
         data = self._get_data(lang, num_of_sents=num_of_sents)
         sents = [o['text'] for o in data]
         return sents
 
-    def get_sentences(self, *langs, num_of_sents: int = 300):
+    def get_sentences(self, *langs: tuple[str], num_of_sents: int = 300) -> dict[str, list[str]]:
         lang_sents = {}
         for lang in langs:
             assert lang in self.langs, 'Only the 11 European languages should be supported by the FloresManager'
@@ -116,12 +116,12 @@ class Opus100Manager:
         'nl': 'en-nl'
     }
 
-    def __init__(self, split: str = 'test', size=500):
+    def __init__(self, split: str = 'test', size: int = 500):
         self.store = get_env_variables('OPUS_100_STORE')
         self.langs = Opus100Manager.EURO_LANGS
         self.split = f'{split}[:{size}]'
 
-    def _same_split(self):
+    def _same_split(self) -> bool:
         split_file = join(self.store, 'split')
         try:
             with open(split_file, 'r') as f:
@@ -152,7 +152,7 @@ class Opus100Manager:
             print(self.split, file=f)
         print(f'OPUS-100 data for {lang} has been stored.')
 
-    def _get_data(self, lang, num_of_sents: int = 300):
+    def _get_data(self, lang, num_of_sents: int = 300) -> list[dict[str, str]]:
         if not self._same_split():
             delete_files_in_folder(self.store)
             self._store_data(lang=lang)
@@ -172,7 +172,7 @@ class Opus100Manager:
                     return data
                 data.append(json.loads(ln))
 
-    def get_sentence_pairs(self, src_lang: str, tgt_lang: str = 'en', num_of_sents: str = 300):
+    def get_sentence_pairs(self, src_lang: str, tgt_lang: str = 'en', num_of_sents: int = 300) -> tuple[list[str], list[str]]:
         '''
         Returns sentences of specified language-English pair
         '''
@@ -251,7 +251,7 @@ class EPManager:
                              'nl-sv',
                              'pt-sv'])
 
-    def __init__(self, size=500):
+    def __init__(self, size: int = 500):
         self.pairs = EPManager.EP_HELSINKI_PAIRS
         self.langs = EPManager.EURO_LANGS
         self.store = get_env_variables('EUROPARL_STORE')
@@ -268,7 +268,7 @@ class EPManager:
             return False
         return split.strip() == self.split
 
-    def _get_pair(self, lang1: str, lang2: str):
+    def _get_pair(self, lang1: str, lang2: str) -> str:
         assert lang1 in self.langs and lang2 in self.langs, 'Language pair not supported by corpus'
         pair1 = f'{lang1}-{lang2}'
         pair2 = f'{lang2}-{lang1}'
@@ -296,11 +296,11 @@ class EPManager:
             print(self.split, file=f)
         print(f'EuroParl data for {pair} has been stored')
 
-    def _get_data(self, pair: str, num_of_sents: int = 300):
+    def _get_data(self, pair: str, num_of_sents: int = 300) -> list[dict[str, str]]:
         if not self._same_split():
             delete_files_in_folder(self.store)
             self._store_data(pair)
-        
+
         stored_langs = [f for f in os.listdir(
             self.store) if f.endswith('.jsonl')]
 
@@ -316,7 +316,7 @@ class EPManager:
                 data.append(json.loads(ln))
         return data
 
-    def get_sentence_pairs(self, src_lang: str, tgt_lang: str, num_of_sents: int = 300):
+    def get_sentence_pairs(self, src_lang: str, tgt_lang: str, num_of_sents: int = 300) -> tuple[list[str], list[str]]:
         pair = self._get_pair(src_lang, tgt_lang)
         data = self._get_data(pair, num_of_sents=num_of_sents)
         src_sents = [o[src_lang] for o in data]

@@ -1,6 +1,7 @@
 from os.path import exists, join
-from scripts.util import get_env_variables, store_sents, LANG_ISO
+from scripts.util import get_env_variables, store_sents, MyLogger, LANG_ISO
 from io import BytesIO
+
 
 def get_deepl_client():
     '''
@@ -14,7 +15,7 @@ def get_deepl_client():
     deepl_client = deepl.DeepLClient(api_key)
     return deepl_client
 
-# Only considers exceptional 'en' and 'pt'
+
 def get_deepl_code(lang):
     '''
     Accounts for the edge cases where expected LANG ISO code differs from the one used
@@ -40,18 +41,30 @@ def get_openai_client():
 
 
 class DeepLClient:
-    def __init__(self, logger=None):
+    def __init__(self,  logger: MyLogger | None = None):
         self.client = get_deepl_client()
         self.logger = logger
 
-    # Dataset is assumed to be a collection of sentences
-    # Document is artificially created as an IO Object
+    # Input is a list of sentences
+    # Input for translate_document requires a 'document', in this case, 'bytes'
     def translate_document(self, text: list[str], src_lang: str, tgt_lang: str) -> list[str]:
+        '''
+        DeepL document translation function
+        Built on top of DeepL's actual translate_document function
+
+        Args:
+            text: A list of sentences/strings
+            src_lang: ISO code for source language
+            tgt_lang: ISO code for target language
+
+        Returns:
+            A list of translated sentences, ideally the same number as input
+        '''
         out_buffer = BytesIO()
         in_text = '\n'.join(text)
         in_bytes = in_text.encode('utf-8')
         in_filename = 'infile.txt'
-        
+
         if self.logger:
             self.logger.start(
                 src_lang=src_lang,
@@ -80,26 +93,25 @@ class DeepLClient:
         return out_sents
 
 
-# System prompt based on https://github.com/jb41/translate-book/blob/main/main.py
-# User prompt added after discussion with Phillip Fischer
 class GPT4Client:
-    def __init__(self, model='gpt-4.1', logger=None):
+    # System prompt based on https://github.com/jb41/translate-book/blob/main/main.py
+    # User prompt added after discussion with Phillip Fischer
+    def __init__(self, model: str = 'gpt-4.1', logger: MyLogger | None = None):
         self.client = get_openai_client()
         self.logger = logger
         self.model = model
 
-    def sys_prompt(self, src_lang, tgt_lang):
+    def sys_prompt(self, src_lang: str, tgt_lang: str):
         p = f"You are a {LANG_ISO[src_lang]}-to-{LANG_ISO[tgt_lang]} translator."
         return p
 
-    def user_prompt(self, src_lang, tgt_lang, text):
+    def user_prompt(self, src_lang: str, tgt_lang: str, text: str):
         p1 = f"Translate the following {LANG_ISO[src_lang]} sentences into {LANG_ISO[tgt_lang]}."
         p2 = f"Please make sure to keep the same formatting, do not add more newlines."
         p3 = f"Here is the text:"
         return '\n'.join([p1, p2, p3, text])
 
-
-    def chat_complete(self, sys_prompt, user_prompt):
+    def chat_complete(self, sys_prompt: str, user_prompt: str):
         resp = self.client.chat.completions.create(
             model=self.model,
             temperature=0,
@@ -117,27 +129,40 @@ class GPT4Client:
         return resp.choices[0].message.content
 
     def translate_document(self, text: list[str], src_lang: str, tgt_lang: str):
+        '''
+        GPT document translation function
+
+        Args:
+            text: A list of sentences/strings
+            src_lang: ISO code for source language
+            tgt_lang: ISO code for target language
+
+        Returns:
+            A list of translated sentences, ideally the same number as input
+        '''
+        # Input is a list of sentences
+        # Input for GPT4.1 are system and user prompts
         text = '\n'.join(text)
-        # TikToken count will be smaller than real tokens since system & user prompt excluded
+        # TikToken count will be smaller than real since system & user prompt excluded
         if self.logger:
             self.logger.start(
                 src_text=text,
                 src_lang=src_lang,
                 tgt_lang=tgt_lang,
                 translator=self.model)
-            
+
         sys_prompt = self.sys_prompt(src_lang, tgt_lang)
         user_prompt = self.user_prompt(src_lang, tgt_lang, text)
         trans_text = self.chat_complete(sys_prompt, user_prompt)
         return trans_text.splitlines()
 
 
-def translate_document(text: list[str], src_lang: str, tgt_lang: str, mt_folder: str, translator: str, logger=None) -> list[str]:
+def translate_document(text: list[str], src_lang: str, tgt_lang: str, mt_folder: str, translator: str, logger: MyLogger | None = None) -> list[str]:
     '''
     Main translation function
     This function returns translations but also stores them in the specified folder
     If run again by accident, will not call API if translation is detected in the specified folder
-    
+
     Args:
         text: A list of sentences/strings
         src_lang: ISO code for source language
@@ -145,11 +170,11 @@ def translate_document(text: list[str], src_lang: str, tgt_lang: str, mt_folder:
         mt_folder: Path to folder where translations should be stored
         translator: Translator of choice, i.e. 'deepl' or 'gpt4'
         logger: An instance of the MyLogger class found in scripts.util
-    
+
     Returns:
         A list of translated sentences, will ideally contain the same number of strings as input
     '''
-    
+
     if translator == 'deepl':
         client = DeepLClient(logger=logger)
     elif translator == 'gpt-4.1':
