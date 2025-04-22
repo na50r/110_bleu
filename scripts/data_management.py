@@ -2,6 +2,7 @@ import os
 import json
 from scripts.util import get_env_variables, delete_files_in_folder
 from os.path import join
+from datasets import load_dataset, Dataset
 
 
 class FloresPlusManager:
@@ -40,12 +41,11 @@ class FloresPlusManager:
         hug_key = get_env_variables('HUGGING_FACE_KEY')
         login(token=hug_key, add_to_git_credential=True)
 
-    def _download_data(self, lang: str):
+    def _download_data(self, lang: str) -> Dataset:
         missing = self.langs[lang]
         print(f'Files for {lang} must be downloaded.')
 
         self._hugging_face_login()
-        from datasets import load_dataset
         dataset = load_dataset(
             "openlanguagedata/flores_plus", missing, split=self.split)
         return dataset
@@ -130,11 +130,10 @@ class Opus100Manager:
             return False
         return split.strip() == self.split
 
-    def _download_data(self, lang: str):
+    def _download_data(self, lang: str) -> Dataset:
         missing = self.langs[lang]
         print(f'Files for {lang} must be downloaded.')
 
-        from datasets import load_dataset
         dataset = load_dataset("Helsinki-NLP/opus-100",
                                missing, split=self.split)
         return dataset
@@ -278,10 +277,8 @@ class EPManager:
         if pair2 in self.pairs:
             return pair2
 
-    def _download_data(self, pair: str):
+    def _download_data(self, pair: str) -> Dataset:
         print(f'Files for {pair} must be downloaded.')
-
-        from datasets import load_dataset
         dataset = load_dataset("Helsinki-NLP/europarl", pair, split=self.split)
         return dataset['translation']
 
