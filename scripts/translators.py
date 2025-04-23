@@ -42,6 +42,8 @@ def get_openai_client():
 
 
 class TranslationClient(ABC):
+    def __init__(self):
+        self.model = None
     @abstractmethod
     def translate_document(self, text: list[str], src_lang: str, tgt_lang: str) -> list[str]:
         pass
