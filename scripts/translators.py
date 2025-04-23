@@ -44,6 +44,7 @@ def get_openai_client():
 class TranslationClient(ABC):
     def __init__(self):
         self.model = None
+
     @abstractmethod
     def translate_document(self, text: list[str], src_lang: str, tgt_lang: str) -> list[str]:
         pass
@@ -130,11 +131,13 @@ class GPT4Client(TranslationClient):
                 {'role': 'user', 'content': user_prompt},
             ]
         )
+
+        # Log real GPT tokens
         if self.logger:
             self.logger.finish(
                 tgt_text=resp.choices[0].message.content,
-                in_tokens=resp.usage.prompt_tokens,
-                out_tokens=resp.usage.completion_tokens,
+                in_model_tokens=resp.usage.prompt_tokens,
+                out_model_tokens=resp.usage.completion_tokens,
             )
         return resp.choices[0].message.content
 
@@ -178,8 +181,7 @@ def translate_document(text: list[str], src_lang: str, tgt_lang: str, mt_folder:
         src_lang: ISO code for source language
         tgt_lang: ISO code for target language
         mt_folder: Path to folder where translations should be stored
-        translator: Translator of choice, i.e. 'deepl' or 'gpt4'
-        logger: An instance of the MyLogger class found in scripts.util
+        client: A translator client that has a translate_document method specified by TranslationClient abstract class
 
     Returns:
         A list of translated sentences, will ideally contain the same number of strings as input

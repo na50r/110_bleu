@@ -88,9 +88,9 @@ class MyLogger:
                            translator, dataset=self.dataset)
         return self.current
 
-    def finish(self, tgt_text: str, out_tokens: int | None = None, in_tokens: int | None = None):
+    def finish(self, tgt_text: str, out_model_tokens: int | None = None, in_model_tokens: int | None = None):
         if self.current:
-            self.current.finish(tgt_text, out_tokens, in_tokens)
+            self.current.finish(tgt_text, out_model_tokens, in_model_tokens)
             self._write_log(self.current.to_dict())
             self.current = None
 
@@ -119,30 +119,30 @@ class Log:
         self.in_lines = len(src_text.splitlines()) if src_text else None
         self.in_sents = len(split_sents(src_text, lang=src_lang)
                             ) if src_text else None
-        self.stamp = str(datetime.now().astimezone())
+        self.timestamp = str(datetime.now().astimezone())
         self.in_chars = len(src_text) if src_text else None
-        self.in_tiktoks = len(self.enc.encode(src_text)) if src_text else None
+        self.in_tokens = len(self.enc.encode(src_text)) if src_text else None
         self.dataset = dataset
 
         self.out_chars = None
-        self.out_tiktoks = None
+        self.out_tokens = None
         self.out_sents = None
-        self.in_toks = None
-        self.out_toks = None
+        self.in_model_tokens = None
+        self.out_model_tokens = None
         self.out_lines = None
         self.end = None
         self.error = None
         self.error_msg = None
 
-    def finish(self, tgt_text: str, out_tokens: int | None = None, in_tokens: int | None = None):
+    def finish(self, tgt_text: str, out_model_tokens: int | None = None, in_model_tokens: int | None = None):
         self.end = time.time()
         self.time = self.end - self.start
         self.out_chars = len(tgt_text)
         self.out_lines = len(tgt_text.splitlines())
         self.out_sents = len(split_sents(tgt_text, lang=self.tgt_lang))
-        self.out_tiktoks = len(self.enc.encode(tgt_text))
-        self.out_toks = out_tokens
-        self.in_toks = in_tokens
+        self.out_tokens = len(self.enc.encode(tgt_text))
+        self.out_model_tokens = out_model_tokens
+        self.in_model_tokens = in_model_tokens
 
     def to_dict(self) -> dict[str, str]:
         out = vars(self)
