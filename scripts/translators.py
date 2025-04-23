@@ -138,6 +138,7 @@ class GPT4Client(TranslationClient):
                 tgt_text=resp.choices[0].message.content,
                 in_model_tokens=resp.usage.prompt_tokens,
                 out_model_tokens=resp.usage.completion_tokens,
+                finish_reason=resp.choices[0].finish_reason
             )
         return resp.choices[0].message.content
 

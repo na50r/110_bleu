@@ -75,7 +75,7 @@ class MyLogger:
         self.dataset = None
         self.current = None
 
-    def add_dataset_info(self, name: str, num_of_sents: int, start_idx: int = 0, **kwargs: str):
+    def add_dataset_info(self, name: str, num_of_sents: int, start_idx: int = 0, **kwargs):
         self.dataset = {
             'name': name,
             'num_of_sents': num_of_sents,
@@ -88,9 +88,9 @@ class MyLogger:
                            translator, dataset=self.dataset)
         return self.current
 
-    def finish(self, tgt_text: str, out_model_tokens: int | None = None, in_model_tokens: int | None = None):
+    def finish(self, tgt_text: str, **kwargs):
         if self.current:
-            self.current.finish(tgt_text, out_model_tokens, in_model_tokens)
+            self.current.finish(tgt_text, **kwargs)
             self._write_log(self.current.to_dict())
             self.current = None
 
@@ -134,15 +134,16 @@ class Log:
         self.error = None
         self.error_msg = None
 
-    def finish(self, tgt_text: str, out_model_tokens: int | None = None, in_model_tokens: int | None = None):
+    def finish(self, tgt_text: str, **kwargs):
         self.end = time.time()
         self.time = self.end - self.start
         self.out_chars = len(tgt_text)
         self.out_lines = len(tgt_text.splitlines())
         self.out_sents = len(split_sents(tgt_text, lang=self.tgt_lang))
         self.out_tokens = len(self.enc.encode(tgt_text))
-        self.out_model_tokens = out_model_tokens
-        self.in_model_tokens = in_model_tokens
+
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
     def to_dict(self) -> dict[str, str]:
         out = vars(self)
