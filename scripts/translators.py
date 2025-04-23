@@ -1,6 +1,7 @@
 from os.path import exists, join
 from scripts.util import get_env_variables, store_sents, MyLogger, LANG_ISO
 from io import BytesIO
+from abc import ABC, abstractmethod
 
 
 def get_deepl_client():
@@ -40,7 +41,13 @@ def get_openai_client():
     return client
 
 
-class DeepLClient:
+class TranslationClient(ABC):
+    @abstractmethod
+    def translate_document(self, text: list[str], src_lang: str, tgt_lang: str) -> list[str]:
+        pass
+
+
+class DeepLClient(TranslationClient):
     def __init__(self,  logger: MyLogger | None = None):
         self.client = get_deepl_client()
         self.logger = logger
@@ -94,7 +101,7 @@ class DeepLClient:
         return out_sents
 
 
-class GPT4Client:
+class GPT4Client(TranslationClient):
     # System prompt based on https://github.com/jb41/translate-book/blob/main/main.py
     # User prompt added after discussion with Phillip Fischer
     def __init__(self, model: str = 'gpt-4.1', logger: MyLogger | None = None):
@@ -158,7 +165,7 @@ class GPT4Client:
         return trans_text.splitlines()
 
 
-def translate_document(text: list[str], src_lang: str, tgt_lang: str, mt_folder: str, translator: str, logger: MyLogger | None = None) -> list[str]:
+def translate_document(text: list[str], src_lang: str, tgt_lang: str, mt_folder: str, client: TranslationClient) -> list[str]:
     '''
     Main translation function
     This function returns translations but also stores them in the specified folder
@@ -175,11 +182,6 @@ def translate_document(text: list[str], src_lang: str, tgt_lang: str, mt_folder:
     Returns:
         A list of translated sentences, will ideally contain the same number of strings as input
     '''
-
-    if translator == 'deepl':
-        client = DeepLClient(logger=logger)
-    elif translator == 'gpt-4.1':
-        client = GPT4Client(logger=logger)
     out_file = join(mt_folder, f'{src_lang}-{tgt_lang}.txt')
 
     if not exists(out_file):

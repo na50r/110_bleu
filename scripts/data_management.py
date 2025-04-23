@@ -7,8 +7,12 @@ from abc import ABC, abstractmethod
 
 
 class DataManager(ABC):
+    def __init__(self):
+        self.name = None
+        self.split = None
+    
     @abstractmethod
-    def get_sentence_pairs(self, src_lang: str, tgt_lang: str, num_of_sents: int = 300) -> tuple[list[str], list[str]]:
+    def get_sentence_pairs(self, src_lang: str, tgt_lang: str, num_of_sents: int) -> tuple[list[str], list[str]]:
         pass
 
 
@@ -32,6 +36,7 @@ class FloresPlusManager(DataManager):
         self.store = get_env_variables('FLORES_STORE')
         self.split = f'{split}[:{size}]'
         self.langs = FloresPlusManager.EURO_LANGS
+        self.name = "openlanguagedata/flores_plus"
 
     def _same_split(self):
         split_file = join(self.store, 'split')
@@ -53,8 +58,7 @@ class FloresPlusManager(DataManager):
         print(f'Files for {lang} must be downloaded.')
 
         self._hugging_face_login()
-        dataset = load_dataset(
-            "openlanguagedata/flores_plus", missing, split=self.split)
+        dataset = load_dataset(self.name, missing, split=self.split)
         return dataset
 
     def _store_data(self, lang: str):
@@ -127,6 +131,7 @@ class Opus100Manager(DataManager):
         self.store = get_env_variables('OPUS_100_STORE')
         self.langs = Opus100Manager.EURO_LANGS
         self.split = f'{split}[:{size}]'
+        self.name = "Helsinki-NLP/opus-100"
 
     def _same_split(self) -> bool:
         split_file = join(self.store, 'split')
@@ -141,7 +146,7 @@ class Opus100Manager(DataManager):
         missing = self.langs[lang]
         print(f'Files for {lang} must be downloaded.')
 
-        dataset = load_dataset("Helsinki-NLP/opus-100",
+        dataset = load_dataset(self.name,
                                missing, split=self.split)
         return dataset
 
@@ -264,6 +269,7 @@ class EPManager(DataManager):
         # This dataset has only train split
         # Too avoid downloading everything, we shrink the size to the first 5%
         self.split = f'train[:{size}]'
+        self.name = "Helsinki-NLP/europarl"
 
     def _same_split(self):
         split_file = join(self.store, 'split')
@@ -286,7 +292,7 @@ class EPManager(DataManager):
 
     def _download_data(self, pair: str) -> Dataset:
         print(f'Files for {pair} must be downloaded.')
-        dataset = load_dataset("Helsinki-NLP/europarl", pair, split=self.split)
+        dataset = load_dataset(self.name, pair, split=self.split)
         return dataset['translation']
 
     def _store_data(self, pair: str):

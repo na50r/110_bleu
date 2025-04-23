@@ -1,24 +1,17 @@
-from scripts.translators import translate_document
-from scripts.data_management import FloresPlusManager, EPManager, Opus100Manager
+from scripts.translators import translate_document, TranslationClient
+from scripts.data_management import DataManager
 from scripts.util import MyLogger, load_sents
 import os
 
-DM = {
-    'ep': EPManager,
-    'flores_plus': FloresPlusManager,
-    'opus_100': Opus100Manager
-}
-
 
 class TranslationTask:
-    def __init__(self, target_pairs: list[tuple[str, str]], dm: str, translator: str,  mt_folder: str, logfile: str, num_of_sents: int):
+    def __init__(self, target_pairs: list[tuple[str, str]], dm: DataManager, client: TranslationClient, logger: MyLogger, mt_folder: str, num_of_sents: int):
         self.store = mt_folder
         self.pairs = target_pairs
-        self.dm = DM[dm]()
-        self.dm_name = dm
-        self.logger = MyLogger(logfile=logfile)
+        self.dm = dm
+        self.logger = logger
         self.num_of_sents = num_of_sents
-        self.translator = translator
+        self.client = client
         os.makedirs(self.store, exist_ok=True)
 
     def run(self):
@@ -30,24 +23,24 @@ class TranslationTask:
                 num_of_sents=self.num_of_sents,
             )
             self.logger.add_dataset_info(
-                name=self.dm_name,
+                name=self.dm.name,
                 num_of_sents=self.num_of_sents,
+                split=self.dm.split,
             )
             try:
                 translate_document(
                     text=src_sents,
                     src_lang=src_lang,
                     tgt_lang=tgt_lang,
-                    logger=self.logger,
                     mt_folder=self.store,
-                    translator=self.translator
+                    client=self.client
                 )
             except Exception as e:
                 self.logger.log_error(
                     error=e,
                     src_lang=src_lang,
                     tgt_lang=tgt_lang,
-                    translator=self.translator
+                    translator=self.client.model
                 )
                 print(str(e))
                 continue
