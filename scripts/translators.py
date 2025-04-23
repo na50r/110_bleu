@@ -44,6 +44,7 @@ class DeepLClient:
     def __init__(self,  logger: MyLogger | None = None):
         self.client = get_deepl_client()
         self.logger = logger
+        self.model = 'deepl_document'
 
     # Input is a list of sentences
     # Input for translate_document requires a 'document', in this case, 'bytes'
@@ -70,7 +71,7 @@ class DeepLClient:
                 src_lang=src_lang,
                 tgt_lang=tgt_lang,
                 src_text=in_text,
-                translator='deepl_document'
+                translator=self.model
             )
 
         self.client.translate_document(

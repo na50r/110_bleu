@@ -3,9 +3,16 @@ import json
 from scripts.util import get_env_variables, delete_files_in_folder
 from os.path import join
 from datasets import load_dataset, Dataset
+from abc import ABC, abstractmethod
 
 
-class FloresPlusManager:
+class DataManager(ABC):
+    @abstractmethod
+    def get_sentence_pairs(self, src_lang: str, tgt_lang: str, num_of_sents: int = 300) -> tuple[list[str], list[str]]:
+        pass
+
+
+class FloresPlusManager(DataManager):
     # NOTE: Every sentence is aligned with every other sentence, less data overall
     EURO_LANGS = {
         'de': 'deu_Latn',
@@ -101,7 +108,7 @@ class FloresPlusManager:
         return out[src_lang], out[tgt_lang]
 
 
-class Opus100Manager:
+class Opus100Manager(DataManager):
     # NOTE: OPUS100 is English-centric
     EURO_LANGS = {
         'de': 'de-en',
@@ -189,7 +196,7 @@ class Opus100Manager:
         return src_sents[:num_of_sents], tgt_sents[:num_of_sents]
 
 
-class EPManager:
+class EPManager(DataManager):
     EURO_LANGS = set(['de', 'da', 'el', 'es',
                       'pt', 'nl', 'fi', 'sv', 'fr', 'it', 'en'])
 
