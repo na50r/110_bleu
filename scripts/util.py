@@ -7,7 +7,11 @@ import uuid
 from os.path import join, exists, isfile
 from sentence_splitter import SentenceSplitter
 from dotenv import load_dotenv
-load_dotenv()
+from typing import Generator, Any
+
+# Use override=True: https://docs.smith.langchain.com/observability/how_to_guides/toubleshooting_variable_caching
+# Important when dealing with older API keys in JuypterNotebook
+load_dotenv(override=True)
 
 # Shortened version of the same splitter used in bertalign
 LANG_ISO = {
@@ -33,10 +37,7 @@ def delete_files_in_folder(folder_path: str):
             os.remove(file_path)
 
 
-def get_env_variables(*args: tuple[str]) -> str | tuple[str]:
-    # Use override=True: https://docs.smith.langchain.com/observability/how_to_guides/toubleshooting_variable_caching
-    # Important when dealing with older API keys in JuypterNotebook
-    load_dotenv(override=True)
+def get_env_variables(*args: str) -> str | Generator[str | None, None, None] | None:
     if len(args) == 1:
         return os.getenv(args[0])
     return (os.getenv(arg) for arg in args)
@@ -72,8 +73,6 @@ def load_sents(folder_path: str, src_lang: str, tgt_lang: str) -> list[str]:
 class MyLogger:
     def __init__(self, logfile: str):
         self.logfile = logfile
-        self.dataset = None
-        self.current = None
 
     def add_dataset_info(self, name: str, num_of_sents: int, start_idx: int = 0, **kwargs):
         self.dataset = {
@@ -92,24 +91,24 @@ class MyLogger:
         if self.current:
             self.current.finish(tgt_text, **kwargs)
             self._write_log(self.current.to_dict())
-            self.current = None
+            del self.current
 
     def _write_log(self, log_dict: dict[str, str]):
         with open(self.logfile, 'a') as f:
             print(json.dumps(log_dict), file=f)
 
     def log_error(self, error: Exception, src_lang: str, tgt_lang: str, translator: str):
-        log = self.start(src_lang, tgt_lang, src_text=None,
+        log = self.start(src_lang, tgt_lang, src_text='',
                          translator=translator)
         log.error_msg = f"Translation {src_lang} to {tgt_lang} failed"
         log.error = str(error)
         self._write_log(log.to_dict())
-        self.current = None
+        del self.current
 
 
 class Log:
-    def __init__(self, src_lang: str, tgt_lang: str, src_text, translator: str, dataset: dict[str, str]):
-        self.enc = tiktoken.encoding_for_model("gpt-4o")
+    def __init__(self, src_lang: str, tgt_lang: str, src_text, translator: str, dataset: dict[str, Any], tokenizer: str = 'gpt-4o'):
+        self.enc = tiktoken.encoding_for_model(tokenizer)
 
         self.translator = translator
         self.src_lang = src_lang
@@ -123,16 +122,6 @@ class Log:
         self.in_chars = len(src_text) if src_text else None
         self.in_tokens = len(self.enc.encode(src_text)) if src_text else None
         self.dataset = dataset
-
-        self.out_chars = None
-        self.out_tokens = None
-        self.out_sents = None
-        self.in_model_tokens = None
-        self.out_model_tokens = None
-        self.out_lines = None
-        self.end = None
-        self.error = None
-        self.error_msg = None
 
     def finish(self, tgt_text: str, **kwargs):
         self.end = time.time()

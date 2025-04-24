@@ -4,15 +4,24 @@ from scripts.util import get_env_variables, delete_files_in_folder
 from os.path import join
 from datasets import load_dataset, Dataset
 from abc import ABC, abstractmethod
+from typing import Any
 
 
 class DataManager(ABC):
     def __init__(self):
         self.name = None
         self.split = None
-    
+
     @abstractmethod
     def get_sentence_pairs(self, src_lang: str, tgt_lang: str, num_of_sents: int) -> tuple[list[str], list[str]]:
+        '''
+        Args:
+            src_lang: source language
+            tgt_lang: target language
+            num_of_sents: number of desired sentences
+
+        Returns sentencences specifed by language pair
+        '''
         pass
 
 
@@ -72,7 +81,7 @@ class FloresPlusManager(DataManager):
             print(self.split, file=f)
         print(f'FLORES+ data for {lang} has been stored.')
 
-    def _get_data(self, lang: str, num_of_sents: int = 300) -> list[dict[str, str]]:
+    def _get_data(self, lang: str, num_of_sents: int = 300) -> list[dict[str, Any]]:
         if not self._same_split():
             delete_files_in_folder(self.store)
             self._store_data(lang=lang)
@@ -85,18 +94,22 @@ class FloresPlusManager(DataManager):
 
         file_path = join(self.store, f'{lang}.jsonl')
         with open(file_path, 'r') as f:
-            data = []
+            data: list[dict[str, Any]] = []
             for i, ln in enumerate(f):
                 if i >= num_of_sents:
-                    return data
+                    break
                 data.append(json.loads(ln))
+        return data
 
     def _load_sents_for_lang(self, lang: str, num_of_sents: int = 300) -> list[str]:
         data = self._get_data(lang, num_of_sents=num_of_sents)
         sents = [o['text'] for o in data]
         return sents
 
-    def get_sentences(self, *langs: tuple[str], num_of_sents: int = 300) -> dict[str, list[str]]:
+    def get_sentences(self, *langs: str, num_of_sents: int = 300) -> dict[str, list[str]]:
+        '''
+        Returns aligned sentences
+        '''
         lang_sents = {}
         for lang in langs:
             assert lang in self.langs, 'Only the 11 European languages should be supported by the FloresManager'
@@ -105,9 +118,6 @@ class FloresPlusManager(DataManager):
         return lang_sents
 
     def get_sentence_pairs(self, src_lang: str, tgt_lang: str, num_of_sents: int = 300) -> tuple[list[str], list[str]]:
-        '''
-        Returns sentences specified language pair
-        '''
         out = self.get_sentences(src_lang, tgt_lang, num_of_sents=num_of_sents)
         return out[src_lang], out[tgt_lang]
 
@@ -163,7 +173,7 @@ class Opus100Manager(DataManager):
             print(self.split, file=f)
         print(f'OPUS-100 data for {lang} has been stored.')
 
-    def _get_data(self, lang, num_of_sents: int = 300) -> list[dict[str, str]]:
+    def _get_data(self, lang, num_of_sents: int = 300) -> list[dict[str, Any]]:
         if not self._same_split():
             delete_files_in_folder(self.store)
             self._store_data(lang=lang)
@@ -177,15 +187,21 @@ class Opus100Manager(DataManager):
         file_path = join(self.store, f'{lang}.jsonl')
 
         with open(file_path, 'r') as f:
-            data = []
+            data: list[dict[str, Any]] = []
             for i, ln in enumerate(f):
                 if i >= num_of_sents:
-                    return data
+                    break
                 data.append(json.loads(ln))
+        return data
 
     def get_sentence_pairs(self, src_lang: str, tgt_lang: str = 'en', num_of_sents: int = 300) -> tuple[list[str], list[str]]:
         '''
-        Returns sentences of specified language-English pair
+        Args:
+            src_lang: source language
+            tgt_lang: target language
+            num_of_sents: number of desired sentences
+
+        Returns sentences specified by language to/from English pair
         '''
         check = [src_lang, tgt_lang]
         assert 'en' in check, 'This corpus only provides language pairs aligned to English, either src_lang or tgt_lang must be English!'
@@ -206,8 +222,8 @@ class EPManager(DataManager):
                       'pt', 'nl', 'fi', 'sv', 'fr', 'it', 'en'])
 
     # NOTE: Different from FLORES+, 55 different language pairs, thus 55 different alignments, much more data
-    EP_HELSINKI_PAIRS = set(['da-de',
-                            'da-el',
+    EP_PAIRS = set(['da-de',
+                             'da-el',
                              'da-en',
                              'da-es',
                              'da-fi',
@@ -263,7 +279,7 @@ class EPManager(DataManager):
                              'pt-sv'])
 
     def __init__(self, size: int = 500):
-        self.pairs = EPManager.EP_HELSINKI_PAIRS
+        self.pairs = EPManager.EP_PAIRS
         self.langs = EPManager.EURO_LANGS
         self.store = get_env_variables('EUROPARL_STORE')
         # This dataset has only train split
@@ -281,13 +297,12 @@ class EPManager(DataManager):
         return split.strip() == self.split
 
     def _get_pair(self, lang1: str, lang2: str) -> str:
-        assert lang1 in self.langs and lang2 in self.langs, 'Language pair not supported by corpus'
         pair1 = f'{lang1}-{lang2}'
         pair2 = f'{lang2}-{lang1}'
         assert pair1 in self.pairs or pair2 in self.pairs, 'Language pair not supported'
         if pair1 in self.pairs:
             return pair1
-        if pair2 in self.pairs:
+        else:
             return pair2
 
     def _download_data(self, pair: str) -> Dataset:
@@ -306,7 +321,7 @@ class EPManager(DataManager):
             print(self.split, file=f)
         print(f'EuroParl data for {pair} has been stored')
 
-    def _get_data(self, pair: str, num_of_sents: int = 300) -> list[dict[str, str]]:
+    def _get_data(self, pair: str, num_of_sents: int = 300) -> list[dict[str, Any]]:
         if not self._same_split():
             delete_files_in_folder(self.store)
             self._store_data(pair)
@@ -319,10 +334,10 @@ class EPManager(DataManager):
 
         file_path = join(self.store, f'{pair}.jsonl')
         with open(file_path, 'r') as f:
-            data = []
+            data: list[dict[str, str]] = []
             for i, ln in enumerate(f):
                 if i >= num_of_sents:
-                    return data
+                    break
                 data.append(json.loads(ln))
         return data
 
