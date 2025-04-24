@@ -11,6 +11,7 @@ class DataManager(ABC):
     def __init__(self):
         self.name = None
         self.split = None
+        self.store = None
 
     @abstractmethod
     def get_sentence_pairs(self, src_lang: str, tgt_lang: str, num_of_sents: int) -> tuple[list[str], list[str]]:
@@ -23,6 +24,15 @@ class DataManager(ABC):
         Returns sentencences specifed by language pair
         '''
         pass
+
+    def _same_split(self) -> bool:
+        split_file = join(self.store, 'split')
+        try:
+            with open(split_file, 'r') as f:
+                split = f.readline()
+        except FileNotFoundError:
+            return False
+        return split.strip() == self.split
 
 
 class FloresPlusManager(DataManager):
@@ -46,15 +56,6 @@ class FloresPlusManager(DataManager):
         self.split = f'{split}[:{size}]'
         self.langs = FloresPlusManager.EURO_LANGS
         self.name = "openlanguagedata/flores_plus"
-
-    def _same_split(self):
-        split_file = join(self.store, 'split')
-        try:
-            with open(split_file, 'r') as f:
-                split = f.readline()
-        except FileNotFoundError:
-            return False
-        return split.strip() == self.split
 
     @staticmethod
     def _hugging_face_login():
@@ -143,15 +144,6 @@ class Opus100Manager(DataManager):
         self.split = f'{split}[:{size}]'
         self.name = "Helsinki-NLP/opus-100"
 
-    def _same_split(self) -> bool:
-        split_file = join(self.store, 'split')
-        try:
-            with open(split_file, 'r') as f:
-                split = f.readline()
-        except FileNotFoundError:
-            return False
-        return split.strip() == self.split
-
     def _download_data(self, lang: str) -> Dataset:
         missing = self.langs[lang]
         print(f'Files for {lang} must be downloaded.')
@@ -223,60 +215,60 @@ class EPManager(DataManager):
 
     # NOTE: Different from FLORES+, 55 different language pairs, thus 55 different alignments, much more data
     EP_PAIRS = set(['da-de',
-                             'da-el',
-                             'da-en',
-                             'da-es',
-                             'da-fi',
-                             'da-fr',
-                             'da-it',
-                             'da-nl',
-                             'da-pt',
-                             'da-sv',
-                             'de-el',
-                             'de-en',
-                             'de-es',
-                             'de-fi',
-                             'de-fr',
-                             'de-it',
-                             'de-nl',
-                             'de-pt',
-                             'de-sv',
-                             'el-en',
-                             'el-es',
-                             'el-fi',
-                             'el-fr',
-                             'el-it',
-                             'el-nl',
-                             'el-pt',
-                             'el-sv',
-                             'en-es',
-                             'en-fi',
-                             'en-fr',
-                             'en-it',
-                             'en-nl',
-                             'en-pt',
-                             'en-sv',
-                             'es-fi',
-                             'es-fr',
-                             'es-it',
-                             'es-nl',
-                             'es-pt',
-                             'es-sv',
-                             'fi-fr',
-                             'fi-it',
-                             'fi-nl',
-                             'fi-pt',
-                             'fi-sv',
-                             'fr-it',
-                             'fr-nl',
-                             'fr-pt',
-                             'fr-sv',
-                             'it-nl',
-                             'it-pt',
-                             'it-sv',
-                             'nl-pt',
-                             'nl-sv',
-                             'pt-sv'])
+                    'da-el',
+                    'da-en',
+                    'da-es',
+                    'da-fi',
+                    'da-fr',
+                    'da-it',
+                    'da-nl',
+                    'da-pt',
+                    'da-sv',
+                    'de-el',
+                    'de-en',
+                    'de-es',
+                    'de-fi',
+                    'de-fr',
+                    'de-it',
+                    'de-nl',
+                    'de-pt',
+                    'de-sv',
+                    'el-en',
+                    'el-es',
+                    'el-fi',
+                    'el-fr',
+                    'el-it',
+                    'el-nl',
+                    'el-pt',
+                    'el-sv',
+                    'en-es',
+                    'en-fi',
+                    'en-fr',
+                    'en-it',
+                    'en-nl',
+                    'en-pt',
+                    'en-sv',
+                    'es-fi',
+                    'es-fr',
+                    'es-it',
+                    'es-nl',
+                    'es-pt',
+                    'es-sv',
+                    'fi-fr',
+                    'fi-it',
+                    'fi-nl',
+                    'fi-pt',
+                    'fi-sv',
+                    'fr-it',
+                    'fr-nl',
+                    'fr-pt',
+                    'fr-sv',
+                    'it-nl',
+                    'it-pt',
+                    'it-sv',
+                    'nl-pt',
+                    'nl-sv',
+                    'pt-sv'])
 
     def __init__(self, size: int = 500):
         self.pairs = EPManager.EP_PAIRS
@@ -286,15 +278,6 @@ class EPManager(DataManager):
         # Too avoid downloading everything, we shrink the size to the first 5%
         self.split = f'train[:{size}]'
         self.name = "Helsinki-NLP/europarl"
-
-    def _same_split(self):
-        split_file = join(self.store, 'split')
-        try:
-            with open(split_file, 'r') as f:
-                split = f.readline()
-        except FileNotFoundError:
-            return False
-        return split.strip() == self.split
 
     def _get_pair(self, lang1: str, lang2: str) -> str:
         pair1 = f'{lang1}-{lang2}'
