@@ -131,7 +131,7 @@ class GPT4Client(TranslationClient):
         # TikToken count will be smaller than real since system & user prompt excluded
         if self.logger:
             self.logger.start(
-                src_text=text,
+                src_text=in_text,
                 src_lang=src_lang,
                 tgt_lang=tgt_lang,
                 translator=self.model)
