@@ -21,7 +21,7 @@ class DataManager(ABC):
             tgt_lang: target language
             num_of_sents: number of desired sentences
 
-        Returns sentencences specifed by language pair
+        Returns sentence pairs of specified languages
         '''
         pass
 
@@ -34,10 +34,22 @@ class DataManager(ABC):
             return False
         return split.strip() == self.split
 
+    def _load_data_files(self, file_path: str, num_of_sents: int) -> list[dict[str, Any]]:
+        data: list[dict[str, Any]] = []
+        with open(file_path, 'r') as f:
+            for i, ln in enumerate(f):
+                if i >= num_of_sents:
+                    break
+                data.append(json.loads(ln))
+        return data
+
 
 class FloresPlusManager(DataManager):
-    # NOTE: Every sentence is aligned with every other sentence, less data overall
-    EURO_LANGS = {
+    # NOTE: Flores+ supports more languages than these 11 European languages
+    # NOTE: For the context of this project, we hardcode only these 11
+    # NOTE: Additionally, every sentence in lang x is aligned with every other sentence in lang y
+    # NOTE: In other corpora, sentences are stored as pairs
+    EURO_ISO_2_FLORES_CODE = {
         'de': 'deu_Latn',
         'fr': 'fra_Latn',
         'da': 'dan_Latn',
@@ -54,7 +66,7 @@ class FloresPlusManager(DataManager):
     def __init__(self, split: str = "dev", size: int = 500):
         self.store = get_env_variables('FLORES_STORE')
         self.split = f'{split}[:{size}]'
-        self.langs = FloresPlusManager.EURO_LANGS
+        self.langs = FloresPlusManager.EURO_ISO_2_FLORES_CODE
         self.name = "openlanguagedata/flores_plus"
 
     @staticmethod
@@ -94,12 +106,7 @@ class FloresPlusManager(DataManager):
             self._store_data(lang=lang)
 
         file_path = join(self.store, f'{lang}.jsonl')
-        with open(file_path, 'r') as f:
-            data: list[dict[str, Any]] = []
-            for i, ln in enumerate(f):
-                if i >= num_of_sents:
-                    break
-                data.append(json.loads(ln))
+        data = self._load_data_files(file_path, num_of_sents)
         return data
 
     def _load_sents_for_lang(self, lang: str, num_of_sents: int = 300) -> list[str]:
@@ -124,8 +131,9 @@ class FloresPlusManager(DataManager):
 
 
 class Opus100Manager(DataManager):
-    # NOTE: OPUS100 is English-centric
-    EURO_LANGS = {
+    # NOTE: OPUS100 is English-centric and supports more language to English pairs than these 11
+    # NOTE: For the context of this project, we hardcode only these 11
+    EURO_ISO_2_PAIR = {
         'de': 'de-en',
         'da': 'da-en',
         'el': 'el-en',
@@ -140,7 +148,7 @@ class Opus100Manager(DataManager):
 
     def __init__(self, split: str = 'test', size: int = 500):
         self.store = get_env_variables('OPUS_100_STORE')
-        self.langs = Opus100Manager.EURO_LANGS
+        self.langs = Opus100Manager.EURO_ISO_2_PAIR
         self.split = f'{split}[:{size}]'
         self.name = "Helsinki-NLP/opus-100"
 
@@ -177,24 +185,10 @@ class Opus100Manager(DataManager):
             self._store_data(lang=lang)
 
         file_path = join(self.store, f'{lang}.jsonl')
-
-        with open(file_path, 'r') as f:
-            data: list[dict[str, Any]] = []
-            for i, ln in enumerate(f):
-                if i >= num_of_sents:
-                    break
-                data.append(json.loads(ln))
+        data = self._load_data_files(file_path, num_of_sents)
         return data
 
     def get_sentence_pairs(self, src_lang: str, tgt_lang: str = 'en', num_of_sents: int = 300) -> tuple[list[str], list[str]]:
-        '''
-        Args:
-            src_lang: source language
-            tgt_lang: target language
-            num_of_sents: number of desired sentences
-
-        Returns sentences specified by language to/from English pair
-        '''
         check = [src_lang, tgt_lang]
         assert 'en' in check, 'This corpus only provides language pairs aligned to English, either src_lang or tgt_lang must be English!'
 
@@ -209,11 +203,11 @@ class Opus100Manager(DataManager):
         return src_sents[:num_of_sents], tgt_sents[:num_of_sents]
 
 
-class EPManager(DataManager):
+class EuroParlManager(DataManager):
     EURO_LANGS = set(['de', 'da', 'el', 'es',
                       'pt', 'nl', 'fi', 'sv', 'fr', 'it', 'en'])
-
-    # NOTE: Different from FLORES+, 55 different language pairs, thus 55 different alignments, much more data
+    # NOTE: The EuroParl corpus has grown since 2005 and supports more than 11 languages
+    # NOTE: For the context of this project, we hardcode only these 11
     EP_PAIRS = set(['da-de',
                     'da-el',
                     'da-en',
@@ -271,11 +265,10 @@ class EPManager(DataManager):
                     'pt-sv'])
 
     def __init__(self, size: int = 500):
-        self.pairs = EPManager.EP_PAIRS
-        self.langs = EPManager.EURO_LANGS
+        self.pairs = EuroParlManager.EP_PAIRS
+        self.langs = EuroParlManager.EURO_LANGS
         self.store = get_env_variables('EUROPARL_STORE')
         # This dataset has only train split
-        # Too avoid downloading everything, we shrink the size to the first 5%
         self.split = f'train[:{size}]'
         self.name = "Helsinki-NLP/europarl"
 
@@ -316,12 +309,7 @@ class EPManager(DataManager):
             self._store_data(pair)
 
         file_path = join(self.store, f'{pair}.jsonl')
-        with open(file_path, 'r') as f:
-            data: list[dict[str, str]] = []
-            for i, ln in enumerate(f):
-                if i >= num_of_sents:
-                    break
-                data.append(json.loads(ln))
+        data = self._load_data_files(file_path, num_of_sents)
         return data
 
     def get_sentence_pairs(self, src_lang: str, tgt_lang: str, num_of_sents: int = 300) -> tuple[list[str], list[str]]:
