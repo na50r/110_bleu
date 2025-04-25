@@ -1,9 +1,8 @@
+# NOTE: This code is still work in progress!
 import os
 import json
 from os.path import join, exists
 
-# Functions required for post_processing tasks
-# Namely: Alignment
 
 def direct_triplet_align(mt_sents: list[str], ref_sents: list[str], src_sents: list[str], src_lang: str, ref_lang: str, folder_path):
     '''

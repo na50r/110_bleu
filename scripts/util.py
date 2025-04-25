@@ -37,7 +37,7 @@ def delete_files_in_folder(folder_path: str):
             os.remove(file_path)
 
 
-def get_env_variables(*args: str) -> str | None | tuple[str|None]:
+def get_env_variables(*args: str) -> str | None | tuple[str | None]:
     if len(args) == 1:
         return os.getenv(args[0])
     return tuple(os.getenv(arg) for arg in args)

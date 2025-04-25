@@ -1,14 +1,10 @@
+# NOTE: This code is still work in progress!
 import numpy as np
 import json
 import pandas as pd
 import random
 import pickle
-import os
-from os.path import join
-import re
 from sacrebleu.compat import corpus_bleu, corpus_chrf
-
-# BLEU & chrF computation
 
 
 def compute_bleu(ref: list[str], hyp: list[str]):
@@ -23,7 +19,6 @@ def compute_chrf(ref: list[str], hyp: list[str]):
     return res.score
 
 
-# CometKiwi
 def compute_comet_kiwi(data, lang):
     from comet import download_model, load_from_checkpoint
     model_path = download_model("Unbabel/wmt22-cometkiwi-da")
@@ -50,8 +45,6 @@ def pre_compute_comet_kiwi(data, mapping):
         scores.append(s)
     return np.array(scores).mean() * 100
 
-# Comet computation
-
 
 def compute_comet(data, lang):
     from comet import download_model, load_from_checkpoint
@@ -62,8 +55,6 @@ def compute_comet(data, lang):
     print(f'Computed COMET scores for ref & hyp of lang {lang}')
     return model_output
 
-# Store comet results after computed once
-
 
 def comet_mapper(data, scores):
     mapping = {}
@@ -71,9 +62,6 @@ def comet_mapper(data, scores):
         triple = (o['ref'], o['mt'], o['src'])
         mapping[triple] = s
     return mapping
-
-# Precomputes Comet scores based on stored results
-# Can be used to compute Comet scores of smaller samples
 
 
 def pre_compute_comet(data, mapping):
@@ -85,16 +73,13 @@ def pre_compute_comet(data, mapping):
     return np.array(scores).mean() * 100
 
 
-# BERT scores
-# Recale with Baseline set to True as specified in: https://github.com/Tiiiger/bert_score/blob/master/journal/rescale_baseline.md
 def compute_bert_score(ref, hyp, lang):
+    # Recale with Baseline set to True as specified in: https://github.com/Tiiiger/bert_score/blob/master/journal/rescale_baseline.md
     from bert_score import score
     P, R, F1 = score(hyp, ref, lang=lang, verbose=False,
                      rescale_with_baseline=True)
     print(f'Computed BERT-F1 scores for ref & hyp of lang {lang}')
     return F1
-
-# Stores BERT-F scores after computed once
 
 
 def bert_mapper(data, scores):
@@ -104,19 +89,16 @@ def bert_mapper(data, scores):
         mapping[tup] = s
     return mapping
 
-# Pre-computes BERT-F1 scores after computed once
-# Can be used to compute BERT-F1 scores of smaller samples
-
 
 def pre_compute_bert(data, mapping):
+    # Pre-computes BERT-F1 scores after computed once
+    # Can be used to compute BERT-F1 scores of smaller samples
     scores = []
     for o in data:
         tup = (o['ref'], o['mt'])
         s = mapping[tup]
         scores.append(s)
     return np.array(scores).mean() * 100
-
-# Overall class to produce results
 
 
 class ResultProducer:
@@ -302,13 +284,14 @@ class ResultProducer:
             f"Loaded COMET KIWI mappings for languages: {list(self.comet_kiwi_mapper.keys())}"
         )
 
-# https://stackoverflow.com/questions/72827153/how-to-extract-specific-key-and-value-from-a-dataframe-python
+
 def create_matrix_from_csv(path_to_csv, metric='BLEU'):
+    # https://stackoverflow.com/questions/72827153/how-to-extract-specific-key-and-value-from-a-dataframe-python
     '''
     Assume CSV of format:
     Label   Metric
     src-tgt value
-    
+
     I.e.
     Label   BLEU
     de-en   31.04
@@ -322,17 +305,17 @@ def create_matrix_from_csv(path_to_csv, metric='BLEU'):
         all_langs.append(src)
         all_langs.append(tgt)
     all_langs = sorted(list(set(all_langs)))
-    
+
     df.set_index('Label', inplace=True)
     label2metric = df[metric].to_dict()
-    
-    lang2metric = {l:[] for l in all_langs}
+
+    lang2metric = {l: [] for l in all_langs}
     for src in all_langs:
         for tgt in all_langs:
             pair = f'{src}-{tgt}'
             value = label2metric.get(pair, None)
             lang2metric[src].append(value)
-    
+
     df_tgt_src = pd.DataFrame(data=lang2metric, index=all_langs)
     df_src_tgt = df_tgt_src.T
     return df_src_tgt
