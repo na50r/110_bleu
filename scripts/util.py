@@ -7,7 +7,7 @@ import uuid
 from os.path import join, exists, isfile
 from sentence_splitter import SentenceSplitter
 from dotenv import load_dotenv
-from typing import Generator, Any
+from typing import Any
 
 # Use override=True: https://docs.smith.langchain.com/observability/how_to_guides/toubleshooting_variable_caching
 # Important when dealing with older API keys in JuypterNotebook
@@ -37,7 +37,7 @@ def delete_files_in_folder(folder_path: str):
             os.remove(file_path)
 
 
-def get_env_variables(*args: str) -> str | None | tuple[str | None]:
+def get_env_variables(*args: str) -> str | None | tuple[str | None, ...]:
     if len(args) == 1:
         return os.getenv(args[0])
     return tuple(os.getenv(arg) for arg in args)
