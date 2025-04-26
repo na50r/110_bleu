@@ -142,7 +142,7 @@ class GPT4Client(TranslationClient):
         return trans_text.splitlines()
 
 
-def translate_document(text: list[str], src_lang: str, tgt_lang: str, mt_folder: str, client: TranslationClient) -> list[str] | None:
+def translate_document(text: list[str], src_lang: str, tgt_lang: str, client: TranslationClient, mt_folder: str | None = None) -> list[str] | None:
     '''
     Main translation function
     This function returns translations but also stores them in the specified folder
@@ -152,14 +152,20 @@ def translate_document(text: list[str], src_lang: str, tgt_lang: str, mt_folder:
         text: A list of sentences/strings
         src_lang: ISO code for source language
         tgt_lang: ISO code for target language
-        mt_folder: Path to folder where translations should be stored
         client: A translator client that has a translate_document method specified by TranslationClient abstract class
+        mt_folder: Path to folder where translations should be stored
 
     Returns:
         A list of translated sentences, will ideally contain the same number of strings as input
     '''
+    if mt_folder is None:
+        return client.translate_document(
+            text=text,
+            src_lang=src_lang,
+            tgt_lang=tgt_lang
+        )
+    
     out_file = join(mt_folder, f'{src_lang}-{tgt_lang}.txt')
-
     if not exists(out_file):
         out_text = client.translate_document(
             text=text,

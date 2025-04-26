@@ -65,6 +65,7 @@ class FloresPlusManager(DataManager):
 
     def __init__(self, split: str = "dev", size: int = 500):
         self.store = get_env_variables('FLORES_STORE')
+        assert self.store != None, 'Please provide a path to a folder for FLORES_STORE in the .env file!'
         self.split = f'{split}[:{size}]'
         self.langs = FloresPlusManager.EURO_ISO_2_FLORES_CODE
         self.name = "openlanguagedata/flores_plus"
@@ -72,8 +73,9 @@ class FloresPlusManager(DataManager):
     @staticmethod
     def _hugging_face_login():
         from huggingface_hub import login
-        hug_key = get_env_variables('HUGGING_FACE_KEY')
-        login(token=hug_key, add_to_git_credential=True)
+        hug_key = get_env_variables('HUGGINGFACE_KEY')
+        assert hug_key != None, 'Please provide your Hugging Face token as the value for HUGGINGFACE_KEY in the .env file!'
+        login(token=hug_key)
 
     def _download_data(self, lang: str) -> Dataset:
         missing = self.langs[lang]
@@ -148,6 +150,7 @@ class Opus100Manager(DataManager):
 
     def __init__(self, split: str = 'test', size: int = 500):
         self.store = get_env_variables('OPUS_100_STORE')
+        assert self.store != None, 'Please provide a path to a folder for OPUS_100_STORE in the .env file!'
         self.langs = Opus100Manager.EURO_ISO_2_PAIR
         self.split = f'{split}[:{size}]'
         self.name = "Helsinki-NLP/opus-100"
@@ -268,6 +271,7 @@ class EuroParlManager(DataManager):
         self.pairs = EuroParlManager.EP_PAIRS
         self.langs = EuroParlManager.EURO_LANGS
         self.store = get_env_variables('EUROPARL_STORE')
+        assert self.store != None, 'Please provide a path to a folder for EUROPARL_STORE in the .env file!'
         # This dataset has only train split
         self.split = f'train[:{size}]'
         self.name = "Helsinki-NLP/europarl"
