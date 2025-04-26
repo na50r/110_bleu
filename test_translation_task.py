@@ -10,22 +10,20 @@ import shutil
 
 
 class MockClient(TranslationClient):
-    def __init__(self, logger=None, with_error=False):
+    def __init__(self, logger=None, error_rate=0):
         self.client = None
         self.logger = logger
         self.model = 'mock'
-        self.error = with_error
+        self.error_rate = error_rate
 
     def encrypt(self, text, key=13, direction=1):
-        if self.error:
-            raise (Exception(f'Mock Error'))
+        if self.error_rate > 0 and random() < self.error_rate:
+            raise (Exception(f'MockError'))
+
         # Code from: https://stackoverflow.com/a/34734063
-        # direction == -1 is trivially converted to direction == 1 case
         if direction == -1:
             key = 26 - key
 
-        # On Py2, you'd use the string module's string.maketrans instead of
-        # str.maketrans
         trans = str.maketrans(
             ascii_letters, ascii_lowercase[key:] + ascii_lowercase[:key] + ascii_uppercase[key:] + ascii_uppercase[:key])
         return text.translate(trans)
@@ -47,15 +45,15 @@ class MockClient(TranslationClient):
         return out_text.splitlines()
 
 
-def task_run(mt_folder, with_error=False):
+def task_run(pairs, mt_folder, error_rate=0):
     dms = [FloresPlusManager, EuroParlManager, Opus100Manager]
     dm = choice(dms)()
     logfile = StringIO()
     logger = MyLogger(logfile=logfile)
-    cli = MockClient(logger=logger, with_error=with_error)
+    cli = MockClient(logger=logger, error_rate=error_rate)
 
     task = TranslationTask(
-        target_pairs=[('en', 'de'), ('de', 'en')],
+        target_pairs=pairs,
         dm=dm,
         client=cli,
         logger=logger,
@@ -69,12 +67,13 @@ def task_run(mt_folder, with_error=False):
 
 def test_run_1():
     test_folder = 'tmp_test'
+    pairs = [('de', 'en')]
     if os.path.exists(test_folder):
         shutil.rmtree(test_folder)
     os.makedirs(test_folder)
 
     try:
-        task_run(mt_folder=test_folder)
+        task_run(pairs=pairs, mt_folder=test_folder)
     finally:
         if os.path.exists(test_folder):
             shutil.rmtree(test_folder)
@@ -82,12 +81,13 @@ def test_run_1():
 
 def test_run_2():
     test_folder = 'tmp_test'
+    pairs = [('de', 'en'), ('en', 'de'), ('fr', 'en'), ('en', 'fr')]
     if os.path.exists(test_folder):
         shutil.rmtree(test_folder)
     os.makedirs(test_folder)
 
     try:
-        task_run(mt_folder=test_folder, with_error=True)
+        task_run(pairs=pairs, mt_folder=test_folder, error_rate=0.5)
     finally:
         if os.path.exists(test_folder):
             shutil.rmtree(test_folder)
