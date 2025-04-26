@@ -10,18 +10,15 @@ import shutil
 
 
 class MockClient(TranslationClient):
-    def __init__(self, logger=None, error_rate=0):
+    def __init__(self, logger=None, with_error=False):
         self.client = None
         self.logger = logger
         self.model = 'mock'
-        self.error_rate = error_rate
+        self.error = with_error
 
     def encrypt(self, text, key=13, direction=1):
-        if self.error_rate > 0:
-            state = random() < self.error_rate
-            if state:
-                raise (
-                    Exception(f'Error triggered with error rate {self.error_rate}'))
+        if self.error:
+            raise (Exception(f'Mock Error'))
         # Code from: https://stackoverflow.com/a/34734063
         # direction == -1 is trivially converted to direction == 1 case
         if direction == -1:
@@ -47,16 +44,15 @@ class MockClient(TranslationClient):
 
         if self.logger:
             self.logger.finish(tgt_text=out_text)
-
         return out_text.splitlines()
 
 
-def task_run(mt_folder, error_rate=0):
+def task_run(mt_folder, with_error=False):
     dms = [FloresPlusManager, EuroParlManager, Opus100Manager]
     dm = choice(dms)()
     logfile = StringIO()
     logger = MyLogger(logfile=logfile)
-    cli = MockClient(logger=logger, error_rate=error_rate)
+    cli = MockClient(logger=logger, with_error=with_error)
 
     task = TranslationTask(
         target_pairs=[('en', 'de'), ('de', 'en')],
@@ -91,7 +87,7 @@ def test_run_2():
     os.makedirs(test_folder)
 
     try:
-        task_run(mt_folder=test_folder, error_rate=1)
+        task_run(mt_folder=test_folder, with_error=True)
     finally:
         if os.path.exists(test_folder):
             shutil.rmtree(test_folder)
