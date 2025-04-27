@@ -36,7 +36,7 @@ class DataManager(ABC):
         return stored_split.strip() == self.split
 
     def _load_data_files(self, file_path: str, num_of_sents: int) -> list[dict[str, Any]]:
-        data: list[dict[str, Any]] = []
+        data = []
         with open(file_path, 'r') as f:
             for i, ln in enumerate(f):
                 if i >= num_of_sents:
@@ -122,7 +122,7 @@ class FloresPlusManager(DataManager):
         Args:
             langs: ISO codes for languages
             num_of_sents: number of desired sentences
-            
+
         Returns: 
             A dictionary of sentences for each language
         '''

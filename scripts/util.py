@@ -76,7 +76,7 @@ class MyLogger:
         self.is_path = isinstance(logfile, str)
         self.dataset = {}
 
-    def add_dataset_info(self, name: str, num_of_sents: int, start_idx: int = 0, **kwargs: str | int):
+    def add_dataset_info(self, name: str, num_of_sents: int, start_idx: int = 0, **kwargs):
         self.dataset = {
             'name': name,
             'num_of_sents': num_of_sents,
@@ -89,7 +89,7 @@ class MyLogger:
                            translator, dataset=self.dataset)
         return self.current
 
-    def finish(self, tgt_text: str, **kwargs: str | int):
+    def finish(self, tgt_text: str, **kwargs):
         if self.current:
             self.current.finish(tgt_text, **kwargs)
             self._write_log(self.current.to_dict())
