@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from typing import TextIO, Any
 
 # Use override=True: https://docs.smith.langchain.com/observability/how_to_guides/toubleshooting_variable_caching
-# Important when dealing with older API keys in JuypterNotebook
+# Important when dealing with older API keys in Jupyter Notebook cache
 load_dotenv(override=True)
 
 # Shortened version of the same splitter used in bertalign
@@ -51,7 +51,7 @@ def split_sents(text: str, lang: str) -> list[str]:
         sents = [sent.strip() for sent in sents]
         return sents
     else:
-        raise Exception(f'The language {LANG_ISO[lang]} is not suppored yet.')
+        raise Exception(f'The language {LANG_ISO[lang]} is not supported yet')
 
 
 def store_sents(sents: list[str], folder_path: str, src_lang: str, tgt_lang: str):

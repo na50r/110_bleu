@@ -17,11 +17,12 @@ class DataManager(ABC):
     def get_sentence_pairs(self, src_lang: str, tgt_lang: str, num_of_sents: int) -> tuple[list[str], list[str]]:
         '''
         Args:
-            src_lang: source language
-            tgt_lang: target language
+            src_lang: ISO code of source language
+            tgt_lang: ISO code of target language
             num_of_sents: number of desired sentences
 
-        Returns sentence pairs of specified languages
+        Returns: 
+            sentence pairs of specified languages
         '''
         pass
 
@@ -118,7 +119,12 @@ class FloresPlusManager(DataManager):
 
     def get_sentences(self, *langs: str, num_of_sents: int = 300) -> dict[str, list[str]]:
         '''
-        Returns aligned sentences
+        Args:
+            langs: ISO codes for languages
+            num_of_sents: number of desired sentences
+            
+        Returns: 
+            A dictionary of sentences for each language
         '''
         lang_sents = {}
         for lang in langs:

@@ -2,21 +2,8 @@ from os.path import exists, join
 from scripts.util import get_env_variables, store_sents, MyLogger, LANG_ISO
 from io import BytesIO
 from abc import ABC, abstractmethod
-from typing import Any
-
-
-def get_deepl_client() -> Any:
-    from deepl import DeepLClient
-    api_key = get_env_variables('DEEPL_API_KEY')
-    client = DeepLClient(auth_key=api_key)
-    return client
-
-
-def get_openai_client() -> Any:
-    from openai import OpenAI
-    api_key = get_env_variables('OPENAI_API_KEY')
-    client = OpenAI(api_key=api_key)
-    return client
+from deepl import DeepLClient
+from openai import OpenAI
 
 
 class TranslationClient(ABC):
@@ -27,12 +14,12 @@ class TranslationClient(ABC):
     def translate_document(self, text: list[str], src_lang: str, tgt_lang: str) -> list[str]:
         '''
         Args:
-            text: A list of sentences/strings
-            src_lang: ISO code for source language
-            tgt_lang: ISO code for target language
+            text: A list of strings (sentences)
+            src_lang: ISO code of source language
+            tgt_lang: ISO code of target language
 
         Returns:
-            A list of translated sentences, will ideally contain the same number of strings as input
+            A list of translated strings (sentences), will ideally contain the same number of strings as input
         '''
         pass
 
@@ -45,11 +32,12 @@ class DeeplClient(TranslationClient):
     }
 
     def __init__(self,  logger: MyLogger | None = None):
-        self.client = get_deepl_client()
+        api_key = get_env_variables('DEEPL_API_KEY')
+        self.client = DeepLClient(auth_key=api_key)
         self.logger = logger
         self.model = 'deepl_document'
 
-    # Input is a list of sentences
+    # Input is a list of strings (sentences)
     # Input for translate_document requires a 'document', in this case, 'bytes'
     def translate_document(self, text: list[str], src_lang: str, tgt_lang: str) -> list[str]:
         out_buffer = BytesIO()
@@ -89,7 +77,8 @@ class DeeplClient(TranslationClient):
 
 class GPTClient(TranslationClient):
     def __init__(self, model: str = 'gpt-4.1', logger: MyLogger | None = None):
-        self.client = get_openai_client()
+        api_key = get_env_variables('OPENAI_API_KEY')
+        self.client = OpenAI(api_key=api_key)
         self.logger = logger
         self.model = model
 
@@ -114,7 +103,7 @@ class GPTClient(TranslationClient):
             ]
         )
 
-        # Log real GPT tokens
+        # Logs real GPT tokens & GPT specific resp messages
         if self.logger and resp.usage is not None:
             self.logger.finish(
                 tgt_text=resp.choices[0].message.content,
@@ -125,10 +114,10 @@ class GPTClient(TranslationClient):
         return resp.choices[0].message.content
 
     def translate_document(self, text: list[str], src_lang: str, tgt_lang: str):
-        # Input is a list of sentences
+        # Input is a list of strings (sentences)
         # Input for GPT4.1 are system and user prompts
         in_text = '\n'.join(text)
-        # TikToken count will be smaller than real since system & user prompt excluded
+        # Token count computed by Logger will be smaller as system & user prompt are excluded
         if self.logger:
             self.logger.start(
                 src_text=in_text,
@@ -146,17 +135,17 @@ def translate_document(text: list[str], src_lang: str, tgt_lang: str, client: Tr
     '''
     Main translation function
     This function returns translations but also stores them in the specified folder
-    If run again by accident, will not call API if translation is detected in the specified folder
+    If run again by accident, will not call API if the translation is detected in the specified folder
 
     Args:
-        text: A list of sentences/strings
-        src_lang: ISO code for source language
-        tgt_lang: ISO code for target language
-        client: A translator client that has a translate_document method specified by TranslationClient abstract class
-        mt_folder: Path to folder where translations should be stored
+        text: A list of strings (sentences)
+        src_lang: ISO code of source language
+        tgt_lang: ISO code of target language
+        client: A client that has a translate_document method specified by TranslationClient abstract class
+        mt_folder: Path to a folder where translations should be stored
 
     Returns:
-        A list of translated sentences, will ideally contain the same number of strings as input
+        A list of translated strings (sentences), will ideally contain the same number of strings as input
     '''
     if mt_folder is None:
         return client.translate_document(
@@ -164,7 +153,7 @@ def translate_document(text: list[str], src_lang: str, tgt_lang: str, client: Tr
             src_lang=src_lang,
             tgt_lang=tgt_lang
         )
-    
+
     out_file = join(mt_folder, f'{src_lang}-{tgt_lang}.txt')
     if not exists(out_file):
         out_text = client.translate_document(
