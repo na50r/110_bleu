@@ -29,10 +29,10 @@ class DataManager(ABC):
         split_file = join(self.store, 'split')
         try:
             with open(split_file, 'r') as f:
-                split = f.readline()
+                stored_split = f.readline()
         except FileNotFoundError:
             return False
-        return split.strip() == self.split
+        return stored_split.strip() == self.split
 
     def _load_data_files(self, file_path: str, num_of_sents: int) -> list[dict[str, Any]]:
         data: list[dict[str, Any]] = []
@@ -165,8 +165,6 @@ class Opus100Manager(DataManager):
 
     def _store_data(self, lang: str):
         data = self._download_data(lang=lang)
-        if data is None:
-            return
         file_path = join(self.store, f'{lang}.jsonl')
         with open(file_path, 'w') as f:
             for item in data:
@@ -203,7 +201,7 @@ class Opus100Manager(DataManager):
             data = self._get_data(tgt_lang, num_of_sents=num_of_sents)
             tgt_sents = [o[tgt_lang] for o in data]
             src_sents = [o['en'] for o in data]
-        return src_sents[:num_of_sents], tgt_sents[:num_of_sents]
+        return src_sents, tgt_sents
 
 
 class EuroParlManager(DataManager):
@@ -321,4 +319,4 @@ class EuroParlManager(DataManager):
         data = self._get_data(pair, num_of_sents=num_of_sents)
         src_sents = [o[src_lang] for o in data]
         tgt_sents = [o[tgt_lang] for o in data]
-        return src_sents[:num_of_sents], tgt_sents[:num_of_sents]
+        return src_sents, tgt_sents

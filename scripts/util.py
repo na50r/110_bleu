@@ -7,7 +7,7 @@ import uuid
 from os.path import join, exists, isfile
 from sentence_splitter import SentenceSplitter
 from dotenv import load_dotenv
-from typing import Any
+from typing import TextIO, Any
 
 # Use override=True: https://docs.smith.langchain.com/observability/how_to_guides/toubleshooting_variable_caching
 # Important when dealing with older API keys in JuypterNotebook
@@ -71,7 +71,7 @@ def load_sents(folder_path: str, src_lang: str, tgt_lang: str) -> list[str]:
 
 
 class MyLogger:
-    def __init__(self, logfile: str|Any):
+    def __init__(self, logfile: str | TextIO):
         self.logfile = logfile
         self.is_path = isinstance(logfile, str)
         self.dataset = {}
@@ -103,7 +103,8 @@ class MyLogger:
             print(json.dumps(log_dict), file=self.logfile)
 
     def log_error(self, error: Exception, src_lang: str, tgt_lang: str, translator: str):
-        log = self.start(src_lang, tgt_lang, src_text='',translator=translator)
+        log = self.start(src_lang, tgt_lang, src_text='',
+                         translator=translator)
         log.error_msg = f"Translation {src_lang} to {tgt_lang} failed"
         log.error = str(error)
         self._write_log(log.to_dict())
@@ -119,14 +120,14 @@ class Log:
         self.tgt_lang = tgt_lang
         self.start = time.time()
         self.id = str(uuid.uuid4())
-        self.in_lines = len(src_text.splitlines()) 
-        self.in_sents = len(split_sents(src_text, lang=src_lang)) 
+        self.in_lines = len(src_text.splitlines())
+        self.in_sents = len(split_sents(src_text, lang=src_lang))
         self.timestamp = str(datetime.now().astimezone())
-        self.in_chars = len(src_text) 
+        self.in_chars = len(src_text)
         self.in_tokens = len(self.enc.encode(src_text))
         self.dataset = dataset
 
-    def finish(self, tgt_text: str, **kwargs):
+    def finish(self, tgt_text: str, **kwargs: str | int):
         self.end = time.time()
         self.time = self.end - self.start
         self.out_chars = len(tgt_text)

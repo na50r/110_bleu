@@ -87,7 +87,7 @@ class DeeplClient(TranslationClient):
         return out_sents
 
 
-class GPT4Client(TranslationClient):
+class GPTClient(TranslationClient):
     def __init__(self, model: str = 'gpt-4.1', logger: MyLogger | None = None):
         self.client = get_openai_client()
         self.logger = logger
