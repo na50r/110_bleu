@@ -8,6 +8,7 @@ from os.path import join, exists, isfile
 from sentence_splitter import SentenceSplitter
 from dotenv import load_dotenv
 from typing import TextIO, Any
+import subprocess
 
 # Use override=True: https://docs.smith.langchain.com/observability/how_to_guides/toubleshooting_variable_caching
 # Important when dealing with older API keys in Jupyter Notebook cache
@@ -70,6 +71,10 @@ def load_sents(folder_path: str, src_lang: str, tgt_lang: str) -> list[str]:
     return data
 
 
+def get_git_revision_short_hash() -> str:
+    # Code from: https://stackoverflow.com/a/21901260
+    return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
+
 class MyLogger:
     def __init__(self, logfile: str | TextIO):
         self.logfile = logfile
@@ -125,6 +130,7 @@ class Log:
         self.timestamp = str(datetime.now().astimezone())
         self.in_chars = len(src_text)
         self.in_tokens = len(self.enc.encode(src_text))
+        self.git_hash = get_git_revision_short_hash()
         self.dataset = dataset
 
     def finish(self, tgt_text: str, **kwargs: str | int):

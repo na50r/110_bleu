@@ -97,7 +97,7 @@ class FloresPlusManager(DataManager):
             print(self.split, file=f)
         print(f'FLORES+ data for {lang} has been stored.')
 
-    def _get_data(self, lang: str, num_of_sents: int = 300) -> list[dict[str, Any]]:
+    def _get_data(self, lang: str, num_of_sents: int) -> list[dict[str, Any]]:
         if not self._same_split():
             delete_files_in_folder(self.store)
             self._store_data(lang=lang)
@@ -112,12 +112,12 @@ class FloresPlusManager(DataManager):
         data = self._load_data_files(file_path, num_of_sents)
         return data
 
-    def _load_sents_for_lang(self, lang: str, num_of_sents: int = 300) -> list[str]:
+    def _load_sents_for_lang(self, lang: str, num_of_sents: int) -> list[str]:
         data = self._get_data(lang, num_of_sents=num_of_sents)
         sents = [o['text'] for o in data]
         return sents
 
-    def get_sentences(self, *langs: str, num_of_sents: int = 300) -> dict[str, list[str]]:
+    def get_sentences(self, *langs: str, num_of_sents: int = 500) -> dict[str, list[str]]:
         '''
         Args:
             langs: ISO codes for languages
@@ -133,7 +133,7 @@ class FloresPlusManager(DataManager):
                 lang, num_of_sents=num_of_sents)
         return lang_sents
 
-    def get_sentence_pairs(self, src_lang: str, tgt_lang: str, num_of_sents: int = 300) -> tuple[list[str], list[str]]:
+    def get_sentence_pairs(self, src_lang: str, tgt_lang: str, num_of_sents: int = 500) -> tuple[list[str], list[str]]:
         out = self.get_sentences(src_lang, tgt_lang, num_of_sents=num_of_sents)
         return out[src_lang], out[tgt_lang]
 
@@ -180,7 +180,7 @@ class Opus100Manager(DataManager):
             print(self.split, file=f)
         print(f'OPUS-100 data for {lang} has been stored.')
 
-    def _get_data(self, lang, num_of_sents: int = 300) -> list[dict[str, Any]]:
+    def _get_data(self, lang, num_of_sents: int) -> list[dict[str, Any]]:
         if not self._same_split():
             delete_files_in_folder(self.store)
             self._store_data(lang=lang)
@@ -195,7 +195,7 @@ class Opus100Manager(DataManager):
         data = self._load_data_files(file_path, num_of_sents)
         return data
 
-    def get_sentence_pairs(self, src_lang: str, tgt_lang: str = 'en', num_of_sents: int = 300) -> tuple[list[str], list[str]]:
+    def get_sentence_pairs(self, src_lang: str, tgt_lang: str = 'en', num_of_sents: int = 500) -> tuple[list[str], list[str]]:
         check = [src_lang, tgt_lang]
         assert 'en' in check, 'This corpus only provides language pairs aligned to English, either src_lang or tgt_lang must be English!'
 
@@ -305,7 +305,7 @@ class EuroParlManager(DataManager):
             print(self.split, file=f)
         print(f'EuroParl data for {pair} has been stored')
 
-    def _get_data(self, pair: str, num_of_sents: int = 300) -> list[dict[str, Any]]:
+    def _get_data(self, pair: str, num_of_sents: int) -> list[dict[str, Any]]:
         if not self._same_split():
             delete_files_in_folder(self.store)
             self._store_data(pair)
@@ -320,7 +320,7 @@ class EuroParlManager(DataManager):
         data = self._load_data_files(file_path, num_of_sents)
         return data
 
-    def get_sentence_pairs(self, src_lang: str, tgt_lang: str, num_of_sents: int = 300) -> tuple[list[str], list[str]]:
+    def get_sentence_pairs(self, src_lang: str, tgt_lang: str, num_of_sents: int = 500) -> tuple[list[str], list[str]]:
         pair = self._get_pair(src_lang, tgt_lang)
         data = self._get_data(pair, num_of_sents=num_of_sents)
         src_sents = [o[src_lang] for o in data]
