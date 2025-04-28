@@ -1,6 +1,8 @@
 # NOTE: This code is still work in progress!
 import tiktoken
 from scripts.util import split_sents
+from scripts.data_management import FloresPlusManager
+from os.path import join
 
 # Cost: DEEPL_RATE * Char Count
 DEEPL_RATE = 2e-5
@@ -42,3 +44,14 @@ def get_gpt41_cost(input_sents: list[str]):
 def get_real_sent_cnt(input_sents: list[str], lang):
     text = '\n'.join(input_sents)
     return len(split_sents(text, lang=lang))
+
+
+def get_flores_meta(lang: str, num_of_sents: int, *keys):
+    dm = FloresPlusManager()
+    data = dm._load_data_files(join(dm.store, f'{lang}.jsonl'), num_of_sents)
+    meta_set ={k: set() for k in keys}
+    for o in data:
+        for k in keys:
+            meta_set[k].add(o[k])
+    nums = {key:len(meta_set[key]) for key in meta_set}
+    return nums
