@@ -22,44 +22,44 @@ def direct_triplet_align(mt_sents: list[str], ref_sents: list[str], src_sents: l
             print(json.dumps(obj), file=f)
 
 
-def align_src_mt_sents(src_sents, mt_sents, src_lang, mt_lang, folder_path):
+def align_sents(src_sents, tgt_sents, src_lang, tgt_lang, folder_path):
     '''
     Aligns source and machine translation in case of misalignments in output
     '''
     if not exists(folder_path):
         os.makedirs(folder_path)
 
-    mt_filename = f'{src_lang}-{mt_lang}.{mt_lang}'
-    src_filename = f'{src_lang}-{mt_lang}.{src_lang}'
+    mt_filename = f'{src_lang}-{tgt_lang}.{tgt_lang}'
+    src_filename = f'{src_lang}-{tgt_lang}.{src_lang}'
 
     mt_file = join(folder_path, mt_filename)
     src_file = join(folder_path, src_filename)
     if exists(mt_file) and exists(src_file):
-        print(f'{src_lang} and {mt_lang} already aligned!')
+        print(f'{src_lang} and {tgt_lang} already aligned!')
         return
 
     from bertalign import Bertalign
-    mt_text = '\n'.join(mt_sents)
+    tgt_text = '\n'.join(tgt_sents)
     src_text = '\n'.join(src_sents)
     aligner = Bertalign(
         src=src_text,
-        tgt=mt_text,
+        tgt=tgt_text,
         src_lang=src_lang,
-        tgt_lang=mt_lang,
+        tgt_lang=tgt_lang,
         model='paraphrase-multilingual-MiniLM-L12-v2'
     )
     aligner.align_sents()
-    src_sents_a, mt_sents_a = aligner.get_sents()
+    src_sents_a, tgt_sents_a = aligner.get_sents()
 
     with open(join(folder_path, src_filename), 'w') as f:
         for sent in src_sents_a:
             print(sent, file=f)
 
     with open(join(folder_path, mt_filename), 'w') as f:
-        for sent in mt_sents_a:
+        for sent in tgt_sents_a:
             print(sent, file=f)
 
-    return src_sents_a, mt_sents_a
+    return src_sents_a, tgt_sents_a
 
 
 def post_triplet_align(src_sents_org, src_sents_ali, ref_sents_org, mt_sents_ali, src_lang, ref_lang, folder_path):
