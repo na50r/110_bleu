@@ -100,7 +100,7 @@ class MyLogger:
             self._write_log(self.current.to_dict())
             del self.current
 
-    def _write_log(self, log_dict: dict[str, str]):
+    def _write_log(self, log_dict: dict[str, Any]):
         if self.is_path:
             with open(self.logfile, 'a') as f:
                 print(json.dumps(log_dict), file=f)
@@ -133,7 +133,7 @@ class Log:
         self.git_hash = get_git_revision_short_hash()
         self.dataset = dataset
 
-    def finish(self, tgt_text: str, **kwargs: str | int):
+    def finish(self, tgt_text: str, **kwargs):
         self.end = time.time()
         self.time = self.end - self.start
         self.out_chars = len(tgt_text)
@@ -144,7 +144,7 @@ class Log:
         for key, value in kwargs.items():
             setattr(self, key, value)
 
-    def to_dict(self) -> dict[str, str]:
+    def to_dict(self) -> dict[str, Any]:
         out = vars(self)
         del out['enc']
         return out
