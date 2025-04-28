@@ -4,7 +4,7 @@ import json
 from os.path import join, exists
 
 
-def direct_triplet_align(mt_sents: list[str], ref_sents: list[str], src_sents: list[str], src_lang: str, ref_lang: str, folder_path):
+def direct_triplet_align(mt_sents: list[str], ref_sents: list[str], src_sents: list[str], src_lang: str, ref_lang: str, folder_path: str):
     '''
     Aligns source, reference and machine translation in COMET format directly
     Assumes that mt_sents, ref_sents and src_sents are aligned with each other
@@ -22,9 +22,18 @@ def direct_triplet_align(mt_sents: list[str], ref_sents: list[str], src_sents: l
             print(json.dumps(obj), file=f)
 
 
-def align_sents(src_sents, tgt_sents, src_lang, tgt_lang, folder_path):
+def align_sents(src_sents : list[str], tgt_sents : list[str], src_lang : str, tgt_lang : str, folder_path : str) -> tuple[list[str], list[str]]:
     '''
-    Aligns source and machine translation in case of misalignments in output
+    Uses bertalign to align source and target sentences
+    Uses paraphrase-multilingual-MiniLM-L12-v2 as sentence embedding model
+    Args:
+        src_sents: list of source sentences
+        tgt_sents: list of target sentences
+        src_lang: ISO code of source language
+        tgt_lang: ISO code of target language
+        folder_path: path to folder where aligned sentences should be stored
+    Returns:
+        aligned source and target sentences
     '''
     if not exists(folder_path):
         os.makedirs(folder_path)
@@ -62,10 +71,10 @@ def align_sents(src_sents, tgt_sents, src_lang, tgt_lang, folder_path):
     return src_sents_a, tgt_sents_a
 
 
-def post_triplet_align(src_sents_org, src_sents_ali, ref_sents_org, mt_sents_ali, src_lang, ref_lang, folder_path):
+def post_triplet_align(src_sents_org : list[str], src_sents_ali: list[str], ref_sents_org: list[str], mt_sents_ali: list[str], src_lang: str, ref_lang: str, folder_path: str):
     '''
-    Alings source, reference and machine translation in COMET format after source and machine translation were correctly aligned
-    Uses src_sents as a key to align ref_sents and mt_sents with each other, missing sentences are discarded in this process
+    Alignes re-aligned source, reference and machine translation in COMET format
+    Assumes that mt_sents, ref_sents and src_sents are aligned with each other
     '''
     if not exists(folder_path):
         os.makedirs(folder_path)
