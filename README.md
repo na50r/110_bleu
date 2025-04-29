@@ -49,7 +49,7 @@ mkdir C:\Files\Storage\Flores
 
 ## Data Managers
 * Contains dataset wrappers, makes it easier to get sentence pairs from the respective datasets
-* `EPManager` is a wrapper around [Helsinki-NLP/europarl](https://huggingface.co/datasets/Helsinki-NLP/europarl)
+* `EuroParlManager` is a wrapper around [Helsinki-NLP/europarl](https://huggingface.co/datasets/Helsinki-NLP/europarl)
 * `FloresPlusManager` is a wrapper around [openlanguagedata/flores_plus](https://huggingface.co/datasets/openlanguagedata/flores_plus)
 * `Opus100Manager` is a wrapper around [Helsinki-NLP/opus-100](https://huggingface.co/datasets/Helsinki-NLP/opus-100)
 
