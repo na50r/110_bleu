@@ -38,7 +38,14 @@ EUROPARL_STORE=
 ```
 * DeepL and OpenAI API keys are required for the translators to work.
 * HuggingFace key is required to access Flores+ dataset for the first time, downloading it
-* Variables suffixed with `_STORE` are required to store dataset files locally on your machine
+* Variables suffixed with `_STORE` are required to store dataset files locally on your machine, specify paths to folders, if you write:
+```sh
+FLORES_STORE=C:\Files\Storage\Flores
+```
+Then make sure that Flores folder exists
+```sh
+mkdir C:\Files\Storage\Flores
+```
 
 ## Data Managers
 * Contains dataset wrappers, makes it easier to get sentence pairs from the respective datasets
@@ -103,14 +110,14 @@ for pair in pairs:
 
 ## Util
 * Contains utility functions used for various purposes
-* Contains self-implemented, task-specific logger
 
-### Logging
+## Logging
 
 * `MyLogger` and `Log` are used to log each translation from source to target.
 * Logging is done to ensure documentation of each translation, especially in cases where translations have to be re-run
 * TikToken with `gpt-4o` encoder is used for both GPT and DeepL translation in terms of logging, only the actual input and output texts are tokenized and counted, so we can prove that the same text was used as input for both translators
 * GPT will always have slightly more input due to the prompt which shall not vary besides the language pairs
+* Logger also accounts for re-running, in case translation calls have to be run again, it allows us to link the new log to the old one using logged ids
 
 ## Testing
 Simple unit tests were implemented to confirm the functionality of the data managers and the translation task as a whole. 
