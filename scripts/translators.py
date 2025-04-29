@@ -1,5 +1,6 @@
 from os.path import exists, join
-from scripts.util import get_env_variables, store_sents, MyLogger, LANG_ISO
+from scripts.util import get_env_variables, store_sents, LANG_ISO
+from scripts.logger import MyLogger
 from io import BytesIO
 from abc import ABC, abstractmethod
 from deepl import DeepLClient

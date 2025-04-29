@@ -1,11 +1,11 @@
 from scripts.translators import translate_document, TranslationClient
 from scripts.data_management import DataManager
-from scripts.util import MyLogger, load_sents
+from scripts.util import load_sents
+from scripts.logger import MyLogger
 import os
 
-
 class TranslationTask:
-    def __init__(self, target_pairs: list[tuple[str, str]], dm: DataManager, client: TranslationClient, logger: MyLogger, mt_folder: str, num_of_sents: int):
+    def __init__(self, target_pairs: list[tuple[str, str]], dm: DataManager, client: TranslationClient, logger: MyLogger, mt_folder: str, num_of_sents: int, rerun: bool = False):
         self.store = mt_folder
         self.pairs = target_pairs
         self.dm = dm
@@ -13,6 +13,7 @@ class TranslationTask:
         self.num_of_sents = num_of_sents
         self.client = client
         os.makedirs(self.store, exist_ok=True)
+        self.rerun = rerun
 
     def run(self):
         for pair in self.pairs:
@@ -27,6 +28,10 @@ class TranslationTask:
                 num_of_sents=self.num_of_sents,
                 split=self.dm.split,
             )
+            
+            if self.rerun:
+                self.logger.add_rerun_info(pair)
+            
             try:
                 translate_document(
                     text=src_sents,
