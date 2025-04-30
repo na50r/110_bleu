@@ -7,9 +7,18 @@ import time
 
 
 class TranslationTask:
-    def __init__(self, target_pairs: list[tuple[str, str]], dm: DataManager, client: TranslationClient, logger: MyLogger, mt_folder: str, num_of_sents: int, manual_retry: bool = False, max_retries=3, retry_delay=30):
+    def __init__(self, target_pairs: list[tuple[str, str]],
+                 dm: DataManager,
+                 client: TranslationClient,
+                 logger: MyLogger,
+                 mt_folder: str,
+                 num_of_sents: int,
+                 manual_retry: bool = False,
+                 max_retries: int = 3,
+                 retry_delay: int = 30):
+        
         self.store = mt_folder
-        self.pairs = [pair for pair in reversed(target_pairs)]
+        self.pairs = [pair for pair in reversed(target_pairs)] # stack, reverse of insertion order
         self.dm = dm
         self.logger = logger
         self.num_of_sents = num_of_sents
@@ -22,7 +31,7 @@ class TranslationTask:
     def run(self):
         retries = 0
         while len(self.pairs) > 0:
-            pair = self.pairs.pop()
+            pair = self.pairs.pop() # Pop element from stack
             src_lang, tgt_lang = pair
             src_sents, _ = self.dm.get_sentence_pairs(
                 src_lang=src_lang,
@@ -60,7 +69,7 @@ class TranslationTask:
                 if retries < self.max_retries:
                     print('Retrying...')
                     retries += 1
-                    self.pairs.append(pair)
+                    self.pairs.append(pair) # Push element back into stack
                 else:
                     print(
                         f'Failed {self.max_retries} times, skipping {pair}...')
