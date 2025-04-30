@@ -81,12 +81,13 @@ class GPTClient(TranslationClient):
     # Using Templates for prompt for development purposes
     # Based on: https://stackoverflow.com/questions/11630106/advanced-string-formatting-vs-template-strings
     SYS_TEMPL = Template("You are a $src_lang-to-$tgt_lang translator.")
-    
+
     USR_TEMPL = Template(
-        "Translate the following $src_lang sentences into $tgt_lang.\n" 
-        "Please make sure to keep the same formatting, do not add more newlines.\n" 
+        "Translate the following $src_lang sentences into $tgt_lang.\n"
+        "Please make sure to keep the same formatting, do not add more newlines.\n"
+        "You are not allowed to omit anything.\n"
         "Here is the text:")
-    
+
     def __init__(self, model: str = 'gpt-4.1', logger: MyLogger | None = None, sys_templ: Template = SYS_TEMPL, usr_templ: Template = USR_TEMPL):
         api_key = get_env_variables('OPENAI_API_KEY')
         self.client = OpenAI(api_key=api_key)
