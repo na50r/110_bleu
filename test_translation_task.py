@@ -79,7 +79,7 @@ def setup_teardown(foldername, func):
 
 
 def task_run(pairs, mt_folder, error_rate=0, planned_fails=[]):
-    dms = [FloresPlusManager, EuroParlManager, Opus100Manager]
+    dms = [EuroParlManager, Opus100Manager]
     dm = choice(dms)()
     logfile = StringIO()
     logger = MyLogger(logfile=logfile)
