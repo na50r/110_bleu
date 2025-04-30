@@ -5,6 +5,7 @@ from io import BytesIO
 from abc import ABC, abstractmethod
 from deepl import DeepLClient
 from openai import OpenAI
+from string import Template
 
 
 class TranslationClient(ABC):
@@ -77,22 +78,37 @@ class DeeplClient(TranslationClient):
 
 
 class GPTClient(TranslationClient):
-    def __init__(self, model: str = 'gpt-4.1', logger: MyLogger | None = None):
+    # Using Templates for prompt for development purposes
+    # Based on: https://stackoverflow.com/questions/11630106/advanced-string-formatting-vs-template-strings
+    SYS_TEMPL = Template("You are a $src_lang-to-$tgt_lang translator.")
+    
+    USR_TEMPL = Template(
+        "Translate the following $src_lang sentences into $tgt_lang.\n" 
+        "Please make sure to keep the same formatting, do not add more newlines.\n" 
+        "Here is the text:")
+    
+    def __init__(self, model: str = 'gpt-4.1', logger: MyLogger | None = None, sys_templ: Template = SYS_TEMPL, usr_templ: Template = USR_TEMPL):
         api_key = get_env_variables('OPENAI_API_KEY')
         self.client = OpenAI(api_key=api_key)
         self.logger = logger
         self.model = model
+        self.sys_templ = sys_templ
+        self.usr_templ = usr_templ
 
     def sys_prompt(self, src_lang: str, tgt_lang: str):
         # System prompt based on https://github.com/jb41/translate-book/blob/main/main.py
-        p = f"You are a {LANG_ISO[src_lang]}-to-{LANG_ISO[tgt_lang]} translator."
+        p = self.sys_templ.substitute(
+            src_lang=LANG_ISO[src_lang],
+            tgt_lang=LANG_ISO[tgt_lang]
+        )
         return p
 
     def user_prompt(self, src_lang: str, tgt_lang: str, text: str):
-        p1 = f"Translate the following {LANG_ISO[src_lang]} sentences into {LANG_ISO[tgt_lang]}."
-        p2 = f"Please make sure to keep the same formatting, do not add more newlines."
-        p3 = f"Here is the text:"
-        return '\n'.join([p1, p2, p3, text])
+        p = self.usr_templ.substitute(
+            src_lang=LANG_ISO[src_lang],
+            tgt_lang=LANG_ISO[tgt_lang]
+        )
+        return '\n'.join([p, text])
 
     def chat_complete(self, sys_prompt: str, user_prompt: str):
         resp = self.client.chat.completions.create(
