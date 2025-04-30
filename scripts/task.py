@@ -4,8 +4,9 @@ from scripts.util import load_sents
 from scripts.logger import MyLogger
 import os
 
+
 class TranslationTask:
-    def __init__(self, target_pairs: list[tuple[str, str]], dm: DataManager, client: TranslationClient, logger: MyLogger, mt_folder: str, num_of_sents: int, rerun: bool = False):
+    def __init__(self, target_pairs: list[tuple[str, str]], dm: DataManager, client: TranslationClient, logger: MyLogger, mt_folder: str, num_of_sents: int, is_retry: bool = False):
         self.store = mt_folder
         self.pairs = target_pairs
         self.dm = dm
@@ -13,7 +14,7 @@ class TranslationTask:
         self.num_of_sents = num_of_sents
         self.client = client
         os.makedirs(self.store, exist_ok=True)
-        self.rerun = rerun
+        self.is_retry = is_retry
 
     def run(self):
         for pair in self.pairs:
@@ -28,10 +29,10 @@ class TranslationTask:
                 num_of_sents=self.num_of_sents,
                 split=self.dm.split,
             )
-            
-            if self.rerun:
-                self.logger.add_rerun_info(pair)
-            
+
+            if self.is_retry:
+                self.logger.add_retry_info(pair)
+
             try:
                 translate_document(
                     text=src_sents,

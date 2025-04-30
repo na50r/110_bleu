@@ -1,6 +1,6 @@
 from scripts.translators import TranslationClient
 from scripts.task import TranslationTask
-from scripts.logger import MyLogger, ReRun
+from scripts.logger import MyLogger, Retry
 from scripts.data_management import Opus100Manager, FloresPlusManager, EuroParlManager
 from string import ascii_letters, ascii_uppercase, ascii_lowercase
 from random import random, choice
@@ -119,7 +119,7 @@ def test_task_with_error():
         pairs=pairs, mt_folder=test_folder))
 
 
-def test_logging_with_rerun():
+def test_logging_with_retry():
     test_folder = 'tmp_test'
     pairs = [('de', 'en'), ('en', 'de'), ('fr', 'en'), ('en', 'fr')]
     dm = Opus100Manager()
@@ -149,9 +149,9 @@ def test_logging_with_rerun():
             log_ids.append(log['translation']['id'])
 
     target_pairs = [('en', 'de'), ('en', 'fr')]
-    rerun = ReRun(pairs=target_pairs, log_ids=log_ids,
+    retry = Retry(pairs=target_pairs, log_ids=log_ids,
                   reasons=['test1', 'test2'])
-    new_logger = MyLogger(logfile=logfile, rerun=rerun)
+    new_logger = MyLogger(logfile=logfile, retry=retry)
     cli = MockClient(logger=new_logger)
 
     task = TranslationTask(
@@ -161,7 +161,7 @@ def test_logging_with_rerun():
         logger=new_logger,
         mt_folder=test_folder,
         num_of_sents=400,
-        rerun=True
+        is_retry=True
     )
 
     setup_teardown(test_folder, lambda: silent_task_run(task.run))
@@ -169,5 +169,5 @@ def test_logging_with_rerun():
     logvalues = logfile.getvalue()
     log_data = [json.loads(ln) for ln in logvalues.splitlines()]
     interest = log_data[-2:]
-    assert interest[0]['rerun']['reason'] == 'test1' and interest[1]['rerun']['reason'] == 'test2'
-    assert interest[0]['rerun']['log_id'] == log_ids[0] and interest[1]['rerun']['log_id'] == log_ids[1]
+    assert interest[0]['retry']['reason'] == 'test1' and interest[1]['retry']['reason'] == 'test2'
+    assert interest[0]['retry']['log_id'] == log_ids[0] and interest[1]['retry']['log_id'] == log_ids[1]
