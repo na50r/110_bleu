@@ -7,3 +7,6 @@ scripts/__pycache__/
 tmp*.py
 tmp*.ipynb
 .vscode/
+
+tasks/phase1/*
+!tasks/phase1/*.jsonl

@@ -7,18 +7,22 @@ import time
 
 
 class TranslationTask:
-    def __init__(self, target_pairs: list[tuple[str, str]], dm: DataManager, client: TranslationClient, logger: MyLogger, mt_folder: str, num_of_sents: int, is_retry: bool = False):
+    def __init__(self, target_pairs: list[tuple[str, str]], dm: DataManager, client: TranslationClient, logger: MyLogger, mt_folder: str, num_of_sents: int, manual_retry: bool = False, max_retries=3, retry_delay=30):
         self.store = mt_folder
-        self.pairs = target_pairs
+        self.pairs = [pair for pair in reversed(target_pairs)]
         self.dm = dm
         self.logger = logger
         self.num_of_sents = num_of_sents
         self.client = client
         os.makedirs(self.store, exist_ok=True)
-        self.is_retry = is_retry
+        self.manual_retry = manual_retry
+        self.max_retries = max_retries
+        self.retry_delay = retry_delay
 
     def run(self):
-        for pair in self.pairs:
+        retries = 0
+        while len(self.pairs) > 0:
+            pair = self.pairs.pop()
             src_lang, tgt_lang = pair
             src_sents, _ = self.dm.get_sentence_pairs(
                 src_lang=src_lang,
@@ -31,7 +35,7 @@ class TranslationTask:
                 split=self.dm.split,
             )
 
-            if self.is_retry:
+            if self.manual_retry:
                 self.logger.add_retry_info(pair)
 
             try:
@@ -42,6 +46,7 @@ class TranslationTask:
                     mt_folder=self.store,
                     client=self.client
                 )
+                retries = 0
             except Exception as e:
                 self.logger.log_error(
                     error=e,
@@ -50,9 +55,16 @@ class TranslationTask:
                     translator=self.client.model
                 )
                 print('Error:\n', str(e))
-                print('Waiting 30 seconds before retrying...')
-                time.sleep(30)
-                print('Retrying...')
+                print(f'Waiting {self.retry_delay} seconds before retrying...')
+                time.sleep(self.retry_delay)
+                if retries < self.max_retries:
+                    print('Retrying...')
+                    retries += 1
+                    self.pairs.append(pair)
+                else:
+                    print(
+                        f'Failed {self.max_retries} times, skipping {pair}...')
+                    retries = 0
                 continue
             mt_sents = load_sents(self.store, src_lang, tgt_lang)
             print(f'{len(mt_sents)} translated from {src_lang} to {tgt_lang}')

@@ -12,16 +12,20 @@ import sys
 
 
 class MockClient(TranslationClient):
-    def __init__(self, logger=None, error_rate=0, planned_fails=[]):
+    def __init__(self, logger=None, error_rate=0, planned_fails=[], planned_errors=[]):
         self.client = None
         self.logger = logger
         self.model = 'mock'
         self.error_rate = error_rate
         self.planned_fails = planned_fails
-        self.translation_cnt = -1
+        self.planned_errors = planned_errors
 
-    def encrypt(self, text, key=13, direction=1):
+    def encrypt(self, text, key=13, direction=1, error_pair=None):
         if self.error_rate > 0 and random() < self.error_rate:
+            raise (Exception(f'MockError'))
+
+        if error_pair in self.planned_errors:
+            self.planned_errors.remove(error_pair)
             raise (Exception(f'MockError'))
 
         # Code from: https://stackoverflow.com/a/34734063
@@ -33,7 +37,6 @@ class MockClient(TranslationClient):
         return text.translate(trans)
 
     def translate_document(self, text, src_lang, tgt_lang):
-        self.translation_cnt += 1
         in_text = '\n'.join(text)
 
         if self.logger:
@@ -43,9 +46,9 @@ class MockClient(TranslationClient):
                 src_text=in_text,
                 translator=self.model,
             )
-        out_text = self.encrypt(in_text)
+        out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
 
-        if self.translation_cnt in self.planned_fails:
+        if (src_lang, tgt_lang) in self.planned_fails:
             tmp = out_text.splitlines()
             tmp = tmp[:round(len(tmp)/2)]
             out_text = '\n'.join(tmp)
@@ -89,7 +92,7 @@ def task_run(pairs, mt_folder, error_rate=0, planned_fails=[]):
         client=cli,
         logger=logger,
         mt_folder=mt_folder,
-        num_of_sents=50
+        num_of_sents=50,
     )
 
     silent_task_run(task.run)
@@ -116,24 +119,55 @@ def test_task_with_error():
     test_folder = 'tmp_test'
     pairs = [('de', 'en'), ('en', 'de'), ('fr', 'en'), ('en', 'fr')]
     setup_teardown(test_folder, lambda: task_run(
-        pairs=pairs, mt_folder=test_folder))
+        pairs=sorted(pairs), mt_folder=test_folder))
 
 
-def test_logging_with_retry():
+def test_task_with_error_and_retry():
     test_folder = 'tmp_test'
     pairs = [('de', 'en'), ('en', 'de'), ('fr', 'en'), ('en', 'fr')]
     dm = Opus100Manager()
     logfile = StringIO()
     logger = MyLogger(logfile=logfile)
-    cli = MockClient(logger=logger, planned_fails=[1, 3])
-
+    cli = MockClient(logger=logger, planned_errors=[pairs[0], pairs[3]])
     task = TranslationTask(
         target_pairs=pairs,
         dm=dm,
         client=cli,
         logger=logger,
         mt_folder=test_folder,
-        num_of_sents=400
+        num_of_sents=400,
+        max_retries=1,
+        retry_delay=0
+    )
+    setup_teardown(test_folder, lambda: silent_task_run(task.run))
+    logvalues = logfile.getvalue()
+    log_data = [json.loads(ln) for ln in logvalues.splitlines()]
+    expected_logs = len(pairs) + 2
+    assert len(log_data) == expected_logs
+    for log in log_data:
+        if log['translation'].get('error', None) != None:
+            assert log['translation']['error'] == 'MockError'
+            assert log['translation']['src_lang'] in ['de', 'en']
+            assert log['translation']['tgt_lang'] in ['en', 'fr']
+
+
+def test_logging_with_manual_retry():
+    test_folder = 'tmp_test'
+    pairs = [('de', 'en'), ('en', 'de'), ('fr', 'en'), ('en', 'fr')]
+    dm = Opus100Manager()
+    logfile = StringIO()
+    logger = MyLogger(logfile=logfile)
+    cli = MockClient(logger=logger, planned_fails=[pairs[1], pairs[3]])
+
+    task = TranslationTask(
+        target_pairs=sorted(pairs),
+        dm=dm,
+        client=cli,
+        logger=logger,
+        mt_folder=test_folder,
+        num_of_sents=400,
+        max_retries=0,
+        retry_delay=0
     )
 
     setup_teardown(test_folder, lambda: silent_task_run(task.run))
@@ -155,13 +189,15 @@ def test_logging_with_retry():
     cli = MockClient(logger=new_logger)
 
     task = TranslationTask(
-        target_pairs=target_pairs,
+        target_pairs=sorted(target_pairs),
         dm=dm,
         client=cli,
         logger=new_logger,
         mt_folder=test_folder,
         num_of_sents=400,
-        is_retry=True
+        manual_retry=True,
+        max_retries=0,
+        retry_delay=0
     )
 
     setup_teardown(test_folder, lambda: silent_task_run(task.run))
