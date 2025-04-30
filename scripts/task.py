@@ -3,6 +3,7 @@ from scripts.data_management import DataManager
 from scripts.util import load_sents
 from scripts.logger import MyLogger
 import os
+import time
 
 
 class TranslationTask:
@@ -48,7 +49,10 @@ class TranslationTask:
                     tgt_lang=tgt_lang,
                     translator=self.client.model
                 )
-                print(str(e))
+                print('Error:\n', str(e))
+                print('Waiting 30 seconds before retrying...')
+                time.sleep(30)
+                print('Retrying...')
                 continue
             mt_sents = load_sents(self.store, src_lang, tgt_lang)
             print(f'{len(mt_sents)} translated from {src_lang} to {tgt_lang}')
