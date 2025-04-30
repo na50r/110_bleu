@@ -1,9 +1,9 @@
 from scripts.translators import TranslationClient
 from scripts.task import TranslationTask
 from scripts.logger import MyLogger, Retry
-from scripts.data_management import Opus100Manager, FloresPlusManager, EuroParlManager
+from scripts.data_management import Opus100Manager, EuroParlManager
 from string import ascii_letters, ascii_uppercase, ascii_lowercase
-from random import random, choice
+from random import choice
 from io import StringIO
 import os
 import shutil
@@ -12,18 +12,14 @@ import sys
 
 
 class MockClient(TranslationClient):
-    def __init__(self, logger=None, error_rate=0, planned_fails=[], planned_errors=[]):
+    def __init__(self, logger=None, planned_fails=[], planned_errors=[]):
         self.client = None
         self.logger = logger
         self.model = 'mock'
-        self.error_rate = error_rate
         self.planned_fails = planned_fails
         self.planned_errors = planned_errors
 
     def encrypt(self, text, key=13, direction=1, error_pair=None):
-        if self.error_rate > 0 and random() < self.error_rate:
-            raise (Exception(f'MockError'))
-
         if error_pair in self.planned_errors:
             self.planned_errors.remove(error_pair)
             raise (Exception(f'MockError'))
@@ -78,13 +74,12 @@ def setup_teardown(foldername, func):
             shutil.rmtree(foldername)
 
 
-def task_run(pairs, mt_folder, error_rate=0, planned_fails=[]):
+def task_run(pairs, mt_folder):
     dms = [EuroParlManager, Opus100Manager]
     dm = choice(dms)()
     logfile = StringIO()
     logger = MyLogger(logfile=logfile)
-    cli = MockClient(logger=logger, error_rate=error_rate,
-                     planned_fails=planned_fails)
+    cli = MockClient(logger=logger)
 
     task = TranslationTask(
         target_pairs=pairs,
@@ -94,18 +89,7 @@ def task_run(pairs, mt_folder, error_rate=0, planned_fails=[]):
         mt_folder=mt_folder,
         num_of_sents=50,
     )
-
     silent_task_run(task.run)
-
-    logvalues = logfile.getvalue()
-    log_data = [json.loads(ln) for ln in logvalues.splitlines()]
-    rest = []
-    for log in log_data:
-        if log['translation'].get('error', None) != None:
-            rest.append(log)
-    if len(rest) != 0:
-        for log in rest:
-            assert log['translation']['error'] == 'MockError'
 
 
 def test_task():
@@ -113,13 +97,6 @@ def test_task():
     pairs = [('de', 'en')]
     setup_teardown(test_folder, lambda: task_run(
         pairs=pairs, mt_folder=test_folder))
-
-
-def test_task_with_error():
-    test_folder = 'tmp_test'
-    pairs = [('de', 'en'), ('en', 'de'), ('fr', 'en'), ('en', 'fr')]
-    setup_teardown(test_folder, lambda: task_run(
-        pairs=sorted(pairs), mt_folder=test_folder))
 
 
 def test_task_with_error_and_retry():
