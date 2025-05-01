@@ -7,7 +7,7 @@ from typing import TextIO, Any
 import uuid
 
 
-class Retry:
+class RetryLog:
     def __init__(self, pairs: list[tuple[str, str]] = [], log_ids: list[str] = [], reasons: list[str] = []):
         self.items = {pair: {'log_id': log_id, 'reason': reason}
                       for pair, log_id, reason in zip(pairs, log_ids, reasons)}
@@ -20,7 +20,7 @@ class Retry:
 
 
 class MyLogger:
-    def __init__(self, logfile: str | TextIO, retry: Retry = Retry()):
+    def __init__(self, logfile: str | TextIO, retry: RetryLog = RetryLog()):
         self.logfile = logfile
         self.is_path = isinstance(logfile, str)
         self.log = {'git_hash': get_git_revision_short_hash()}
@@ -38,12 +38,12 @@ class MyLogger:
         dataset_log.update(kwargs)
         self.add_entry(dataset=dataset_log)
 
-    def add_retry_info(self, pair: tuple[str, str]):
+    def add_manual_retry_info(self, pair: tuple[str, str]):
         retry_log = {
             'log_id': self.retry.get_log_id(pair),
             'reason': self.retry.get_reason(pair)
         }
-        self.add_entry(retry=retry_log)
+        self.add_entry(manual_retry=retry_log)
 
     def start(self, src_lang: str, tgt_lang: str, src_text: str, translator: str):
         self.current = TranslationLog(src_lang, tgt_lang, src_text, translator)
