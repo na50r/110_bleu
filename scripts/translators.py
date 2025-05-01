@@ -111,24 +111,27 @@ class GPTClient(TranslationClient):
         )
         return '\n'.join([p, text])
 
-    def chat_complete(self, sys_prompt: str, user_prompt: str):
+    def chat_complete(self, sys_prompt: str, user_prompt: str, temp=0, top_p=None):
+        msgs = []
+        if sys_prompt:
+            msgs.append({'role': 'system', 'content': sys_prompt})
+
+        if user_prompt:
+            msgs.append({'role': 'user', 'content': user_prompt})
+
         resp = self.client.chat.completions.create(
             model=self.model,
-            temperature=0,
-            messages=[
-                {'role': 'system', 'content': sys_prompt},
-                {'role': 'user', 'content': user_prompt},
-            ]
+            temperature=temp,
+            top_p=top_p,
+            messages=msgs
         )
-
         # Logs real GPT tokens & GPT specific resp messages
         if self.logger and resp.usage is not None:
             self.logger.finish(
                 tgt_text=resp.choices[0].message.content,
                 in_model_tokens=resp.usage.prompt_tokens,
                 out_model_tokens=resp.usage.completion_tokens,
-                finish_reason=resp.choices[0].finish_reason
-            )
+                finish_reason=resp.choices[0].finish_reason)
         return resp.choices[0].message.content
 
     def translate_document(self, text: list[str], src_lang: str, tgt_lang: str):
