@@ -88,15 +88,20 @@ class GPTClient(TranslationClient):
         "You are not allowed to omit anything.\n"
         "Here is the text:")
 
-    def __init__(self, model: str = 'gpt-4.1', logger: MyLogger | None = None, sys_templ: Template = SYS_TEMPL, usr_templ: Template = USR_TEMPL):
+    def __init__(self, model: str = 'gpt-4.1', logger: MyLogger | None = None, sys_templ: Template = SYS_TEMPL, usr_templ: Template = USR_TEMPL, temp=0, top_p=None):
         api_key = get_env_variables('OPENAI_API_KEY')
         self.client = OpenAI(api_key=api_key)
         self.logger = logger
         self.model = model
         self.sys_templ = sys_templ
         self.usr_templ = usr_templ
+        self.temp = temp
+        self.top_p = top_p
 
-    def sys_prompt(self, src_lang: str, tgt_lang: str):
+    def sys_prompt(self, src_lang: str, tgt_lang: str) -> str | None:
+        if self.sys_templ is None:
+            return None
+
         # System prompt based on https://github.com/jb41/translate-book/blob/main/main.py
         p = self.sys_templ.substitute(
             src_lang=LANG_ISO[src_lang],
@@ -104,25 +109,28 @@ class GPTClient(TranslationClient):
         )
         return p
 
-    def user_prompt(self, src_lang: str, tgt_lang: str, text: str):
+    def user_prompt(self, src_lang: str, tgt_lang: str, text: str) -> str | None:
+        if self.usr_templ is None:
+            return None
+
         p = self.usr_templ.substitute(
             src_lang=LANG_ISO[src_lang],
             tgt_lang=LANG_ISO[tgt_lang]
         )
         return '\n'.join([p, text])
 
-    def chat_complete(self, sys_prompt: str, user_prompt: str, temp=0, top_p=None):
+    def chat_complete(self, sys_prompt: str, user_prompt: str) -> str:
         msgs = []
-        if sys_prompt:
+        if sys_prompt is not None:
             msgs.append({'role': 'system', 'content': sys_prompt})
 
-        if user_prompt:
+        if user_prompt is not None:
             msgs.append({'role': 'user', 'content': user_prompt})
 
         resp = self.client.chat.completions.create(
             model=self.model,
-            temperature=temp,
-            top_p=top_p,
+            temperature=self.temp,
+            top_p=self.top_p,
             messages=msgs
         )
         # Logs real GPT tokens & GPT specific resp messages
@@ -134,7 +142,7 @@ class GPTClient(TranslationClient):
                 finish_reason=resp.choices[0].finish_reason)
         return resp.choices[0].message.content
 
-    def translate_document(self, text: list[str], src_lang: str, tgt_lang: str):
+    def translate_document(self, text: list[str], src_lang: str, tgt_lang: str) -> list[str]:
         # Input is a list of strings (sentences)
         # Input for GPT4.1 are system and user prompts
         in_text = '\n'.join(text)
