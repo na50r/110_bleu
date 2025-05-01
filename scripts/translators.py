@@ -1,5 +1,5 @@
 from os.path import exists, join
-from scripts.util import get_env_variables, store_sents, LANG_ISO
+from scripts.util import get_env_variables, store_sents, load_sents, LANG_ISO
 from scripts.logger import MyLogger
 from io import BytesIO
 from abc import ABC, abstractmethod
@@ -200,4 +200,4 @@ def translate_document(text: list[str], src_lang: str, tgt_lang: str, client: Tr
     else:
         print(
             f'Document for pair {src_lang}-{tgt_lang} has been translated already.')
-        return None
+        return load_sents(mt_folder, src_lang, tgt_lang)
