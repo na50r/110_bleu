@@ -11,14 +11,13 @@ class Retry:
     def __init__(self, pairs: list[tuple[str, str]] = [], log_ids: list[str] = [], reasons: list[str] = []):
         self.items = {pair: {'log_id': log_id, 'reason': reason}
                       for pair, log_id, reason in zip(pairs, log_ids, reasons)}
-        
 
     def get_log_id(self, pair: tuple[str, str]):
         return self.items[pair]['log_id']
 
     def get_reason(self, pair: tuple[str, str]):
         return self.items[pair]['reason']
-    
+
 
 class MyLogger:
     def __init__(self, logfile: str | TextIO, retry: Retry = Retry()):
@@ -54,24 +53,19 @@ class MyLogger:
         if self.current:
             self.current.finish(tgt_text, **kwargs)
             self.log['translation'] = self.current.to_dict()
-            self._write_log(self.log)
-            del self.current
 
-    def _write_log(self, log_dict: dict[str, Any]):
+    def write_log(self):
+        del self.current
         if self.is_path:
             with open(self.logfile, 'a') as f:
-                print(json.dumps(log_dict), file=f)
+                print(json.dumps(self.log), file=f)
         else:
-            print(json.dumps(log_dict), file=self.logfile)
+            print(json.dumps(self.log), file=self.logfile)
 
-    def log_error(self, error: Exception, src_lang: str, tgt_lang: str, translator: str):
-        log = self.start(src_lang, tgt_lang, src_text='',
-                         translator=translator)
-        log.error_msg = f"Translation {src_lang} to {tgt_lang} failed"
-        log.error = str(error)
-        self.log['translation'] = log.to_dict()
-        self._write_log(self.log)
-        del self.current
+    def log_error(self, error: Exception):
+        self.log['translation'] = self.current.to_dict()
+        self.add_entry(verdict={'failure': 'Translation failed', 'error': str(error)})
+        self.write_log()
 
 
 class TranslationLog:

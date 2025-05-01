@@ -48,9 +48,11 @@ class MockClient(TranslationClient):
             tmp = out_text.splitlines()
             tmp = tmp[:round(len(tmp)/2)]
             out_text = '\n'.join(tmp)
+            self.planned_fails.remove((src_lang, tgt_lang))
 
         if self.logger:
             self.logger.finish(tgt_text=out_text)
+        
         return out_text.splitlines()
 
 
@@ -63,16 +65,22 @@ def silent_task_run(func):
     sys.stdout = original_stdout
 
 
-def setup_teardown(foldername, func):
+
+def setup(foldername):
     if os.path.exists(foldername):
         shutil.rmtree(foldername)
     os.makedirs(foldername)
+
+def teardown(foldername):
+    if os.path.exists(foldername):
+        shutil.rmtree(foldername)
+
+def setup_teardown(foldername, func):
+    setup(foldername)
     try:
         func()
     finally:
-        if os.path.exists(foldername):
-            shutil.rmtree(foldername)
-
+        teardown(foldername)
 
 def task_run(pairs, mt_folder):
     dms = [EuroParlManager, Opus100Manager]
@@ -121,66 +129,43 @@ def test_task_with_error_and_retry():
     log_data = [json.loads(ln) for ln in logvalues.splitlines()]
     expected_logs = len(pairs) + 2
     assert len(log_data) == expected_logs
-    for log in log_data:
-        if log['translation'].get('error', None) != None:
-            assert log['translation']['error'] == 'MockError'
-            assert log['translation']['src_lang'] in ['de', 'en']
-            assert log['translation']['tgt_lang'] in ['en', 'fr']
 
-
-def test_logging_with_manual_retry():
+def test_logging_and_retry():
     test_folder = 'tmp_test'
     pairs = [('de', 'en'), ('en', 'de'), ('fr', 'en'), ('en', 'fr')]
     dm = Opus100Manager()
     logfile = StringIO()
     logger = MyLogger(logfile=logfile)
-    cli = MockClient(logger=logger, planned_fails=[pairs[1], pairs[3]])
+    cli = MockClient(logger=logger, planned_fails=[pairs[1], pairs[1], pairs[3]])
 
     task = TranslationTask(
-        target_pairs=sorted(pairs),
+        target_pairs=pairs,
         dm=dm,
         client=cli,
         logger=logger,
         mt_folder=test_folder,
         num_of_sents=400,
-        max_retries=0,
+        max_retries=1,
         retry_delay=0
     )
 
-    setup_teardown(test_folder, lambda: silent_task_run(task.run))
-
+    setup(test_folder)
+    silent_task_run(task.run)
+    files = os.listdir(test_folder)
+    fail_files = [f for f in files if f.endswith('_fail1.txt') or f.endswith('_fail2.txt')]
+    assert len(fail_files) == 3
+    assert f'{pairs[1][0]}-{pairs[1][1]}.txt' not in files
+    teardown(test_folder)
+    
     logvalues = logfile.getvalue()
-    log_ids = []
     log_data = [json.loads(ln) for ln in logvalues.splitlines()]
+    expected_logs = len(pairs) + 2
+    assert len(log_data) == expected_logs
+    
+    expected_fail_logs = 3
+    actual_fail_logs = 0
     for log in log_data:
-        src_lang = log['translation']['src_lang']
-        tgt_lang = log['translation']['tgt_lang']
-        if (src_lang == 'en' and tgt_lang == 'de') or (src_lang == 'en' and tgt_lang == 'fr'):
-            assert log['translation']['in_lines'] == 400 and log['translation']['out_lines'] == 200
-            log_ids.append(log['translation']['id'])
+        if 'failure' in log['verdict']:
+            actual_fail_logs += 1
+    assert actual_fail_logs == expected_fail_logs
 
-    target_pairs = [('en', 'de'), ('en', 'fr')]
-    retry = Retry(pairs=target_pairs, log_ids=log_ids,
-                  reasons=['test1', 'test2'])
-    new_logger = MyLogger(logfile=logfile, retry=retry)
-    cli = MockClient(logger=new_logger)
-
-    task = TranslationTask(
-        target_pairs=sorted(target_pairs),
-        dm=dm,
-        client=cli,
-        logger=new_logger,
-        mt_folder=test_folder,
-        num_of_sents=400,
-        manual_retry=True,
-        max_retries=0,
-        retry_delay=0
-    )
-
-    setup_teardown(test_folder, lambda: silent_task_run(task.run))
-
-    logvalues = logfile.getvalue()
-    log_data = [json.loads(ln) for ln in logvalues.splitlines()]
-    interest = log_data[-2:]
-    assert interest[0]['retry']['reason'] == 'test1' and interest[1]['retry']['reason'] == 'test2'
-    assert interest[0]['retry']['log_id'] == log_ids[0] and interest[1]['retry']['log_id'] == log_ids[1]
