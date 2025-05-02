@@ -25,6 +25,7 @@ class MyLogger:
         self.is_path = isinstance(logfile, str)
         self.log = {'git_hash': get_git_revision_short_hash()}
         self.retry = retry
+        self.current = None
 
     def add_entry(self, **kwargs):
         self.log.update(kwargs)
@@ -55,7 +56,9 @@ class MyLogger:
             self.log['translation'] = self.current.to_dict()
 
     def write_log(self):
-        del self.current
+        if not self.current:
+            return
+        self.current = None
         if self.is_path:
             with open(self.logfile, 'a') as f:
                 print(json.dumps(self.log), file=f)

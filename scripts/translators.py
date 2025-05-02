@@ -1,10 +1,11 @@
 from os.path import exists, join
-from scripts.util import get_env_variables, store_sents, LANG_ISO
+from scripts.util import get_env_variables, store_sents, load_sents, LANG_ISO
 from scripts.logger import MyLogger
 from io import BytesIO
 from abc import ABC, abstractmethod
 from deepl import DeepLClient
 from openai import OpenAI
+from openai._types import NotGiven, NOT_GIVEN
 from string import Template
 
 
@@ -80,58 +81,96 @@ class DeeplClient(TranslationClient):
 class GPTClient(TranslationClient):
     # Using Templates for prompt for development purposes
     # Based on: https://stackoverflow.com/questions/11630106/advanced-string-formatting-vs-template-strings
-    SYS_TEMPL = Template("You are a $src_lang-to-$tgt_lang translator.")
+
+    SYS_TEMPL = 'You are a professional translation system.'
 
     USR_TEMPL = Template(
         "Translate the following $src_lang sentences into $tgt_lang.\n"
         "Please make sure to keep the same formatting, do not add more newlines.\n"
         "You are not allowed to omit anything.\n"
-        "Here is the text:")
+        "Here is the text:\n"
+        "$text")
 
-    def __init__(self, model: str = 'gpt-4.1', logger: MyLogger | None = None, sys_templ: Template = SYS_TEMPL, usr_templ: Template = USR_TEMPL):
+    def __init__(self, model: str = 'gpt-4.1-2025-04-14',
+                 logger: MyLogger | None = None,
+                 sys_templ: Template | str | None = SYS_TEMPL,
+                 usr_templ: Template | str | None = USR_TEMPL,
+                 temp: float | NotGiven | None = 0,
+                 top_p: float | NotGiven | None = NOT_GIVEN):
         api_key = get_env_variables('OPENAI_API_KEY')
         self.client = OpenAI(api_key=api_key)
         self.logger = logger
         self.model = model
         self.sys_templ = sys_templ
         self.usr_templ = usr_templ
+        self.temp = temp
+        self.top_p = top_p
 
-    def sys_prompt(self, src_lang: str, tgt_lang: str):
-        # System prompt based on https://github.com/jb41/translate-book/blob/main/main.py
+    def sys_prompt(self, src_lang: str, tgt_lang: str) -> str | None:
+        if self.sys_templ is None:
+            return None
+
+        if isinstance(self.sys_templ, str):
+            return self.sys_templ
+
         p = self.sys_templ.substitute(
             src_lang=LANG_ISO[src_lang],
             tgt_lang=LANG_ISO[tgt_lang]
         )
         return p
 
-    def user_prompt(self, src_lang: str, tgt_lang: str, text: str):
+    def user_prompt(self, src_lang: str, tgt_lang: str, text: str) -> str | None:
+        if self.usr_templ is None:
+            return None
+
+        if isinstance(self.usr_templ, str):
+            return self.usr_templ
+
         p = self.usr_templ.substitute(
             src_lang=LANG_ISO[src_lang],
-            tgt_lang=LANG_ISO[tgt_lang]
+            tgt_lang=LANG_ISO[tgt_lang],
+            text=text
         )
-        return '\n'.join([p, text])
+        return p
 
-    def chat_complete(self, sys_prompt: str, user_prompt: str):
+    def print_prompt(self, src_lang='$src_lang', tgt_lang='$tgt_lang', text='$text'):
+        print('System Prompt:')
+        if isinstance(self.sys_templ, str) or self.sys_templ is None:
+            print(self.sys_templ)
+        else:
+            print(self.sys_templ.substitute(
+                src_lang=src_lang, tgt_lang=tgt_lang))
+        print('\nUser Prompt:')
+        if isinstance(self.usr_templ, str) or self.usr_templ is None:
+            print(self.usr_templ)
+        else:
+            print(self.usr_templ.substitute(
+                tgt_lang=tgt_lang, src_lang=src_lang, text=text))
+
+    def chat_complete(self, sys_prompt: str, user_prompt: str) -> str:
+        msgs = []
+        if sys_prompt is not None:
+            msgs.append({'role': 'system', 'content': sys_prompt})
+
+        if user_prompt is not None:
+            msgs.append({'role': 'user', 'content': user_prompt})
+
         resp = self.client.chat.completions.create(
             model=self.model,
-            temperature=0,
-            messages=[
-                {'role': 'system', 'content': sys_prompt},
-                {'role': 'user', 'content': user_prompt},
-            ]
+            temperature=self.temp,
+            top_p=self.top_p,
+            messages=msgs
         )
-
         # Logs real GPT tokens & GPT specific resp messages
         if self.logger and resp.usage is not None:
             self.logger.finish(
                 tgt_text=resp.choices[0].message.content,
                 in_model_tokens=resp.usage.prompt_tokens,
                 out_model_tokens=resp.usage.completion_tokens,
-                finish_reason=resp.choices[0].finish_reason
-            )
+                finish_reason=resp.choices[0].finish_reason)
         return resp.choices[0].message.content
 
-    def translate_document(self, text: list[str], src_lang: str, tgt_lang: str):
+    def translate_document(self, text: list[str], src_lang: str, tgt_lang: str) -> list[str]:
         # Input is a list of strings (sentences)
         # Input for GPT4.1 are system and user prompts
         in_text = '\n'.join(text)
@@ -189,4 +228,4 @@ def translate_document(text: list[str], src_lang: str, tgt_lang: str, client: Tr
     else:
         print(
             f'Document for pair {src_lang}-{tgt_lang} has been translated already.')
-        return None
+        return load_sents(mt_folder, src_lang, tgt_lang)
