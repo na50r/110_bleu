@@ -1,12 +1,14 @@
 from scripts.translators import translate_document, TranslationClient
 from scripts.data_management import DataManager
-from scripts.util import load_sents, split_sents
+from scripts.util import load_sents, split_sents, get_git_revision_short_hash
 from scripts.logger import MyLogger
 import os
 import time
 from os.path import join, exists
 from collections import defaultdict
 import uuid
+import json
+from datetime import datetime
 
 
 class TranslationTask:
@@ -79,7 +81,15 @@ class TranslationTask:
         self.retry_pair = None
         self.failure = defaultdict(int)
         self.id = str(uuid.uuid4())
-        logger.add_entry(task_id=self.id)
+
+    def log_task_attrib(self):
+        self.logger.add_entry(task_id=self.id)
+        self.logger.add_entry(git_hash=get_git_revision_short_hash())
+        self.logger.add_dataset_info(
+            name=self.dm.name,
+            num_of_sents=self.num_of_sents,
+            split=self.dm.split,
+        )
 
     def accept_output(self, mt_sents: list[str], tgt_lang: str):
         min_cnt = self.acceptable_range[0]
@@ -126,7 +136,19 @@ class TranslationTask:
         if exists(filename):
             os.rename(filename, new_filename)
 
+    def finish(self):
+        log = self.logger.log
+        log['pairs'] = self.pairs
+        del log['translation']
+        log['translator'] = self.client.model
+        timestamp = str(datetime.now().astimezone())
+        log['timestamp'] = timestamp
+        with open(join(self.store, 'task.json'), 'w') as f:
+            print(json.dumps(log), file=f)
+        print(f'[🏁]: Task Finished at {timestamp}')
+
     def run(self):
+        self.log_task_attrib()
         print(f'[🏁]: Starting task {self.id}')
         while len(self.pairs) > 0:
             pair = self.pairs.pop()
@@ -136,12 +158,6 @@ class TranslationTask:
                 tgt_lang=tgt_lang,
                 num_of_sents=self.num_of_sents,
             )
-            self.logger.add_dataset_info(
-                name=self.dm.name,
-                num_of_sents=self.num_of_sents,
-                split=self.dm.split,
-            )
-
             if self.manual_retry:
                 self.logger.add_manual_retry_info(pair)
 

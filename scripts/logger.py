@@ -23,9 +23,20 @@ class MyLogger:
     def __init__(self, logfile: str | TextIO, retry: RetryLog = RetryLog()):
         self.logfile = logfile
         self.is_path = isinstance(logfile, str)
-        self.log = {'git_hash': get_git_revision_short_hash()}
+        self.log = {}
         self.retry = retry
         self.current = None
+        
+    def create_task_log(self, pairs: list[tuple[str, str]], outfile: str| TextIO = 'stamp.json'):
+        task_log = {'pairs': pairs}
+        task_log.update(self.log)
+        del task_log['translation']
+        
+        if isinstance(outfile, str):
+            with open(outfile, 'w') as f:
+                print(json.dumps(task_log), file=f)
+        else:
+            print(json.dumps(task_log), file=outfile)
 
     def add_entry(self, **kwargs):
         self.log.update(kwargs)
@@ -72,9 +83,9 @@ class MyLogger:
 
 
 class TranslationLog:
-    def __init__(self, src_lang: str, tgt_lang: str, src_text: str, translator: str, tokenizer: str = 'gpt-4o'):
+    def __init__(self, src_lang: str, tgt_lang: str, src_text: str, translator:str, tokenizer: str = 'gpt-4o'):
         self.enc = tiktoken.encoding_for_model(tokenizer)
-
+        
         self.translator = translator
         self.src_lang = src_lang
         self.tgt_lang = tgt_lang
