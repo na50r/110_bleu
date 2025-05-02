@@ -7,9 +7,6 @@ import time
 from os.path import join, exists
 from collections import defaultdict
 import uuid
-import json
-from datetime import datetime
-
 
 class TranslationTask:
     '''
@@ -35,6 +32,8 @@ class TranslationTask:
         retries: Number of retries for current pair
         retry_pair: Current pair for which retries are being performed
         failure: Dictionary that keeps track of number of failures for each pair
+        id: uuid of the task
+        duration: Duration of task execution (runtime of run())
     '''
 
     def __init__(self, target_pairs: list[tuple[str, str]],
@@ -81,6 +80,7 @@ class TranslationTask:
         self.retry_pair = None
         self.failure = defaultdict(int)
         self.id = str(uuid.uuid4())
+        self.task_duration = None
 
     def log_task_attrib(self):
         self.logger.add_entry(task_id=self.id)
@@ -137,17 +137,12 @@ class TranslationTask:
             os.rename(filename, new_filename)
 
     def finish(self):
-        log = self.logger.log
-        log['pairs'] = self.pairs
-        del log['translation']
-        log['translator'] = self.client.model
-        timestamp = str(datetime.now().astimezone())
-        log['timestamp'] = timestamp
-        with open(join(self.store, 'task.json'), 'w') as f:
-            print(json.dumps(log), file=f)
-        print(f'[🏁]: Task Finished at {timestamp}')
+        with open(join(self.store, 'task'), 'w') as f:
+            print(f'Task Id: {self.id}\nTask Duration: {self.duration:.2f}', file=f)
+        print(f'[🏁]: Task took {self.duration:.2f}s')
 
     def run(self):
+        start = time.time()
         self.log_task_attrib()
         print(f'[🏁]: Starting task {self.id}')
         while len(self.pairs) > 0:
@@ -193,3 +188,7 @@ class TranslationTask:
                 print('[⚠️]: Error', str(e))
                 self.retry_loop(pair)
                 continue
+        end = time.time()
+        self.duration = end-start
+        self.finish()
+

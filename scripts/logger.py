@@ -1,4 +1,4 @@
-from scripts.util import get_git_revision_short_hash, split_sents
+from scripts.util import split_sents
 import time
 import json
 import tiktoken
@@ -27,17 +27,6 @@ class MyLogger:
         self.retry = retry
         self.current = None
         
-    def create_task_log(self, pairs: list[tuple[str, str]], outfile: str| TextIO = 'stamp.json'):
-        task_log = {'pairs': pairs}
-        task_log.update(self.log)
-        del task_log['translation']
-        
-        if isinstance(outfile, str):
-            with open(outfile, 'w') as f:
-                print(json.dumps(task_log), file=f)
-        else:
-            print(json.dumps(task_log), file=outfile)
-
     def add_entry(self, **kwargs):
         self.log.update(kwargs)
 
