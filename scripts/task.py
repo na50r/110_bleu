@@ -127,6 +127,7 @@ class TranslationTask:
             os.rename(filename, new_filename)
 
     def run(self):
+        print(f'[🏁]: Starting task {self.id}')
         while len(self.pairs) > 0:
             pair = self.pairs.pop()
             src_lang, tgt_lang = pair
