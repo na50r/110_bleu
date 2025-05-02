@@ -6,6 +6,7 @@ import os
 import time
 from os.path import join, exists
 from collections import defaultdict
+import uuid
 
 
 class TranslationTask:
@@ -77,6 +78,8 @@ class TranslationTask:
         self.retries = -1
         self.retry_pair = None
         self.failure = defaultdict(int)
+        self.id = str(uuid.uuid4())
+        logger.add_entry(task_id=self.id)
 
     def accept_output(self, mt_sents: list[str], tgt_lang: str):
         min_cnt = self.acceptable_range[0]
