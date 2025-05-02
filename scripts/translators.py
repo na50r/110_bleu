@@ -5,6 +5,7 @@ from io import BytesIO
 from abc import ABC, abstractmethod
 from deepl import DeepLClient
 from openai import OpenAI
+from openai._types import NotGiven, NOT_GIVEN
 from string import Template
 
 
@@ -80,15 +81,22 @@ class DeeplClient(TranslationClient):
 class GPTClient(TranslationClient):
     # Using Templates for prompt for development purposes
     # Based on: https://stackoverflow.com/questions/11630106/advanced-string-formatting-vs-template-strings
-    SYS_TEMPL = Template("You are a $src_lang-to-$tgt_lang translator.")
+
+    SYS_TEMPL = 'You are a professional translation system.'
 
     USR_TEMPL = Template(
         "Translate the following $src_lang sentences into $tgt_lang.\n"
         "Please make sure to keep the same formatting, do not add more newlines.\n"
         "You are not allowed to omit anything.\n"
-        "Here is the text:")
+        "Here is the text:\n"
+        "$text")
 
-    def __init__(self, model: str = 'gpt-4.1', logger: MyLogger | None = None, sys_templ: Template = SYS_TEMPL, usr_templ: Template = USR_TEMPL, temp=0, top_p=None):
+    def __init__(self, model: str = 'gpt-4.1-2025-04-14',
+                 logger: MyLogger | None = None,
+                 sys_templ: Template | str | None = SYS_TEMPL,
+                 usr_templ: Template | str | None = USR_TEMPL,
+                 temp: float | NotGiven | None = 0,
+                 top_p: float | NotGiven | None = NOT_GIVEN):
         api_key = get_env_variables('OPENAI_API_KEY')
         self.client = OpenAI(api_key=api_key)
         self.logger = logger
@@ -102,7 +110,9 @@ class GPTClient(TranslationClient):
         if self.sys_templ is None:
             return None
 
-        # System prompt based on https://github.com/jb41/translate-book/blob/main/main.py
+        if isinstance(self.sys_templ, str):
+            return self.sys_templ
+
         p = self.sys_templ.substitute(
             src_lang=LANG_ISO[src_lang],
             tgt_lang=LANG_ISO[tgt_lang]
@@ -113,11 +123,29 @@ class GPTClient(TranslationClient):
         if self.usr_templ is None:
             return None
 
+        if isinstance(self.usr_templ, str):
+            return self.usr_templ
+
         p = self.usr_templ.substitute(
             src_lang=LANG_ISO[src_lang],
-            tgt_lang=LANG_ISO[tgt_lang]
+            tgt_lang=LANG_ISO[tgt_lang],
+            text=text
         )
-        return '\n'.join([p, text])
+        return p
+
+    def print_prompt(self, src_lang='$src_lang', tgt_lang='$tgt_lang', text='$text'):
+        print('System Prompt:')
+        if isinstance(self.sys_templ, str) or self.sys_templ is None:
+            print(self.sys_templ)
+        else:
+            print(self.sys_templ.substitute(
+                src_lang=src_lang, tgt_lang=tgt_lang))
+        print('\nUser Prompt:')
+        if isinstance(self.usr_templ, str) or self.usr_templ is None:
+            print(self.usr_templ)
+        else:
+            print(self.usr_templ.substitute(
+                tgt_lang=tgt_lang, src_lang=src_lang, text=text))
 
     def chat_complete(self, sys_prompt: str, user_prompt: str) -> str:
         msgs = []
