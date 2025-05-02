@@ -12,14 +12,24 @@ import sys
 
 
 class MockClient(TranslationClient):
-    def __init__(self, logger=None, planned_fails=[], planned_errors=[]):
+    def __init__(self, logger=None, planned_fails=[], planned_errors=[], scenario=[]):
         self.client = None
         self.logger = logger
         self.model = 'mock'
         self.planned_fails = planned_fails
         self.planned_errors = planned_errors
+        self.scenario = scenario
+        self.current = 0
+
+        if len(self.scenario) > 0:
+            self.planned_fails = []
+            self.planned_errors = []
 
     def encrypt(self, text, key=13, direction=1, error_pair=None):
+        if len(self.scenario) > 0 and self.scenario[self.current] == 2:
+            self.current += 1  # an error log will be created in the except statement, so we increment the current translation here
+            raise (Exception(f'MockError'))
+
         if error_pair in self.planned_errors:
             self.planned_errors.remove(error_pair)
             raise (Exception(f'MockError'))
@@ -44,15 +54,17 @@ class MockClient(TranslationClient):
             )
         out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
 
-        if (src_lang, tgt_lang) in self.planned_fails:
+        if (len(self.scenario) > 0 and self.scenario[self.current] == 1) or (src_lang, tgt_lang) in self.planned_fails:
             tmp = out_text.splitlines()
             tmp = tmp[:round(len(tmp)/2)]
             out_text = '\n'.join(tmp)
-            self.planned_fails.remove((src_lang, tgt_lang))
+            if (src_lang, tgt_lang) in self.planned_fails:
+                self.planned_fails.remove((src_lang, tgt_lang))
 
         if self.logger:
             self.logger.finish(tgt_text=out_text)
-
+            # both rejected & accepted translation get the same log, difference only verdict
+            self.current += 1
         return out_text.splitlines()
 
 
@@ -219,7 +231,7 @@ def test_logging_with_manual_retry():
     log_ids = [log['translation']['id'] for log in log_data]
     target_ids = [log_ids[1], log_ids[-1]]
     retry = RetryLog(pairs=target_pair, log_ids=target_ids,
-                  reasons=['BLEU score single digit', 'BLEU score single digit'])
+                     reasons=['Returned Src text', 'BLEU score single digit'])
     new_logger = MyLogger(logfile=logfile, retry=retry)
     cli = MockClient(logger=new_logger)
     task = TranslationTask(
@@ -234,5 +246,66 @@ def test_logging_with_manual_retry():
     setup_teardown(test_folder, lambda: silent_task_run(task.run))
     logvalues = logfile.getvalue()
     log_data = [json.loads(ln) for ln in logvalues.splitlines()]
-    expected_logs = len(pairs) + 2 
+    expected_logs = len(pairs) + 2
     assert len(log_data) == expected_logs
+    assert log_data[-1]['manual_retry']['reason'] == 'BLEU score single digit'
+    assert log_data[-2]['manual_retry']['reason'] == 'Returned Src text'
+
+
+def test_logging_with_scenario_1():
+    test_folder = 'tmp_test'
+    pairs = get_pairs(2)
+    dm = Opus100Manager()
+    logfile = StringIO()
+    logger = MyLogger(logfile=logfile)
+    scenario = [0, 1, 2, 0]
+    cli = MockClient(logger=logger, scenario=scenario)
+    task = TranslationTask(
+        target_pairs=pairs,
+        dm=dm,
+        client=cli,
+        logger=logger,
+        mt_folder=test_folder,
+        num_of_sents=400,
+        max_retries=2,
+        retry_delay=0
+    )
+    setup_teardown(test_folder, lambda: silent_task_run(task.run))
+    logvalues = logfile.getvalue()
+    log_data = [json.loads(ln) for ln in logvalues.splitlines()]
+    assert len(log_data) == len(scenario)
+    assert log_data[0]['verdict']['success'] == 'Translation accepted'
+    assert log_data[1]['verdict']['failure'] == 'Translation rejected'
+    assert log_data[2]['verdict']['failure'] == 'Translation failed'
+    assert log_data[3]['verdict']['success'] == 'Translation accepted'
+
+
+def test_logging_with_scenario_2():
+    test_folder = 'tmp_test'
+    pairs = get_pairs(3)
+    dm = Opus100Manager()
+    logfile = StringIO()
+    logger = MyLogger(logfile=logfile)
+    scenario = [0, 1, 2, 2, 0, 1, 1, 2, 2]
+    cli = MockClient(logger=logger, scenario=scenario)
+    task = TranslationTask(
+        target_pairs=pairs,
+        dm=dm,
+        client=cli,
+        logger=logger,
+        mt_folder=test_folder,
+        num_of_sents=400,
+        max_retries=3,
+        retry_delay=0
+    )
+    setup_teardown(test_folder, lambda: silent_task_run(task.run))
+    logvalues = logfile.getvalue()
+    log_data = [json.loads(ln) for ln in logvalues.splitlines()]
+    assert len(log_data) == len(scenario)
+    for idx, s in enumerate(scenario):
+        if s == 0:
+            assert log_data[idx]['verdict']['success'] == 'Translation accepted'
+        elif s == 1:
+            assert log_data[idx]['verdict']['failure'] == 'Translation rejected'
+        elif s == 2:
+            assert log_data[idx]['verdict']['failure'] == 'Translation failed'
