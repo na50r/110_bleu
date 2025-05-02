@@ -5,9 +5,8 @@ from io import BytesIO
 from abc import ABC, abstractmethod
 from deepl import DeepLClient
 from openai import OpenAI
-from openai._types import NotGiven, NOT_GIVEN
 from string import Template
-
+from typing import Any
 
 class TranslationClient(ABC):
     def __init__(self):
@@ -25,7 +24,6 @@ class TranslationClient(ABC):
             A list of translated strings (sentences), will ideally contain the same number of strings as input
         '''
         pass
-
 
 class DeeplClient(TranslationClient):
     TGT_LANGS = {
@@ -90,21 +88,23 @@ class GPTClient(TranslationClient):
         "You are not allowed to omit anything.\n"
         "Here is the text:\n"
         "$text")
+    
+    HYPER_PARAMS = {'temperature': 0}
 
     def __init__(self, model: str = 'gpt-4.1-2025-04-14',
                  logger: MyLogger | None = None,
                  sys_templ: Template | str | None = SYS_TEMPL,
                  usr_templ: Template | str | None = USR_TEMPL,
-                 temp: float | NotGiven | None = 0,
-                 top_p: float | NotGiven | None = NOT_GIVEN):
+                 hyper_params : dict[str, Any] = HYPER_PARAMS
+                 ):
         api_key = get_env_variables('OPENAI_API_KEY')
         self.client = OpenAI(api_key=api_key)
         self.logger = logger
         self.model = model
         self.sys_templ = sys_templ
         self.usr_templ = usr_templ
-        self.temp = temp
-        self.top_p = top_p
+        self.hyper_params = hyper_params
+
 
     def sys_prompt(self, src_lang: str, tgt_lang: str) -> str | None:
         if self.sys_templ is None:
@@ -133,8 +133,9 @@ class GPTClient(TranslationClient):
         )
         return p
 
-    def print_prompt(self, src_lang='$src_lang', tgt_lang='$tgt_lang', text='$text'):
-        print('System Prompt:')
+    def print_config(self, src_lang='$src_lang', tgt_lang='$tgt_lang', text='$text'):
+        print(f'Hyperparameters: {self.hyper_params}')
+        print('\nSystem Prompt:')
         if isinstance(self.sys_templ, str) or self.sys_templ is None:
             print(self.sys_templ)
         else:
@@ -157,9 +158,8 @@ class GPTClient(TranslationClient):
 
         resp = self.client.chat.completions.create(
             model=self.model,
-            temperature=self.temp,
-            top_p=self.top_p,
-            messages=msgs
+            messages=msgs,
+            **self.hyper_params
         )
         # Logs real GPT tokens & GPT specific resp messages
         if self.logger and resp.usage is not None:
