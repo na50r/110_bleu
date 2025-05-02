@@ -43,9 +43,7 @@ class TranslationTask:
                  manual_retry: bool = False,
                  max_retries: int = 3,
                  retry_delay: int = 30,
-                 acceptable_range: tuple[int, int] = (
-                     int(num_of_sents * 0.8), int(num_of_sents * 1.2))
-                 ):
+                 acceptable_range: tuple[int, int] | None = None):
         '''
         Args:
             target_pairs: Selection of language pair to be translated
@@ -68,6 +66,9 @@ class TranslationTask:
         self.client = client
         os.makedirs(self.store, exist_ok=True)
         self.acceptable_range = acceptable_range
+        if self.acceptable_range is None:
+            self.acceptable_range = (
+                int(num_of_sents * 0.8), int(num_of_sents * 1.2))
 
         self.manual_retry = manual_retry
         self.max_retries = max_retries
