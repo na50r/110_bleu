@@ -180,7 +180,7 @@ class TranslationTask:
 
                 else:
                     logging.info(
-                        f'[❌]: Output for {src_lang}-{tgt_lang} is not acceptable!')
+                        f'[❌]: Output for {src_lang}-{tgt_lang} is not acceptable')
                     self.logger.add_entry(
                         verdict={'failure': 'Translation rejected'})
                     self.logger.write_log()

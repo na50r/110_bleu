@@ -5,8 +5,9 @@ from io import BytesIO
 from abc import ABC, abstractmethod
 from deepl import DeepLClient
 from openai import OpenAI
-from string import Template
+from string import Template, ascii_letters, ascii_uppercase, ascii_lowercase
 from typing import Any
+
 
 class TranslationClient(ABC):
     def __init__(self):
@@ -229,3 +230,60 @@ def translate_document(text: list[str], src_lang: str, tgt_lang: str, client: Tr
         print(
             f'Document for pair {src_lang}-{tgt_lang} has been translated already.')
         return load_sents(mt_folder, src_lang, tgt_lang)
+
+
+class MockClient(TranslationClient):
+    def __init__(self, logger=None, model='mock', planned_fails=[], planned_errors=[], scenario=[]):
+        self.client = None
+        self.logger = logger
+        self.model = model
+        self.planned_fails = planned_fails
+        self.planned_errors = planned_errors
+        self.scenario = scenario
+        self.current = 0
+
+        if len(self.scenario) > 0:
+            self.planned_fails = []
+            self.planned_errors = []
+
+    def encrypt(self, text, key=13, direction=1, error_pair=None):
+        if len(self.scenario) > 0 and self.scenario[self.current] == 2:
+            self.current += 1  # an error log will be created in the except statement, so we increment the current translation here
+            raise (Exception(f'MockError'))
+
+        if error_pair in self.planned_errors:
+            self.planned_errors.remove(error_pair)
+            raise (Exception(f'MockError'))
+
+        # Code from: https://stackoverflow.com/a/34734063
+        if direction == -1:
+            key = 26 - key
+
+        trans = str.maketrans(
+            ascii_letters, ascii_lowercase[key:] + ascii_lowercase[:key] + ascii_uppercase[key:] + ascii_uppercase[:key])
+        return text.translate(trans)
+
+    def translate_document(self, text, src_lang, tgt_lang):
+        in_text = '\n'.join(text)
+
+        if self.logger:
+            self.logger.start(
+                src_lang=src_lang,
+                tgt_lang=tgt_lang,
+                src_text=in_text,
+                translator=self.model,
+            )
+        out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+
+        if (len(self.scenario) > 0 and self.scenario[self.current] == 1) or (src_lang, tgt_lang) in self.planned_fails:
+            tmp = out_text.splitlines()
+            tmp = tmp[:round(len(tmp)/2)]
+            out_text = '\n'.join(tmp)
+            if (src_lang, tgt_lang) in self.planned_fails:
+                self.planned_fails.remove((src_lang, tgt_lang))
+
+        if self.logger:
+            self.logger.finish(tgt_text=out_text)
+            # both rejected & accepted translation get the same log, difference only verdict
+            self.current += 1
+        return out_text.splitlines()
