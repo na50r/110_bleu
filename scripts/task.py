@@ -1,12 +1,14 @@
 from scripts.translators import translate_document, TranslationClient
 from scripts.data_management import DataManager
-from scripts.util import load_sents, split_sents, get_git_revision_short_hash
+from scripts.util import load_sents, split_sents, get_git_revision_short_hash, get_local_timestamp
 from scripts.logger import MyLogger
 import os
 import time
 from os.path import join, exists
 from collections import defaultdict
 import uuid
+import logging
+
 
 class TranslationTask:
     '''
@@ -114,13 +116,13 @@ class TranslationTask:
             self.retries += 1
 
         if self.retries < self.max_retries:
-            print(f'[⏲️]: Retrying {pair[0]}-{pair[1]}...')
+            logging.info(f'[⏲️]: Retrying {pair[0]}-{pair[1]}...')
             time.sleep(self.retry_delay)
             self.retries += 1
             self.pairs.append(pair)
             self.mark_failure(pair)
         else:
-            print(
+            logging.info(
                 f'[⏩]: Failed {self.max_retries} times, skipping {pair[0]}-{pair[1]}...')
             self.mark_failure(pair)
             self.retries = -1
@@ -137,14 +139,16 @@ class TranslationTask:
             os.rename(filename, new_filename)
 
     def finish(self):
+        timestamp = get_local_timestamp()
         with open(join(self.store, 'task'), 'w') as f:
-            print(f'Task Id: {self.id}\nTask Duration: {self.duration:.2f}', file=f)
-        print(f'[🏁]: Task took {self.duration:.2f}s')
+            print(f'{self.id}\n{self.duration:.2f}\n{timestamp}', file=f)
+        logging.info(
+            f'[🏁]: Task took {self.duration:.2f}s and finished at {timestamp}')
 
     def run(self):
         start = time.time()
         self.log_task_attrib()
-        print(f'[🏁]: Starting task {self.id}')
+        logging.info(f'[🏁]: Starting task {self.id}')
         while len(self.pairs) > 0:
             pair = self.pairs.pop()
             src_lang, tgt_lang = pair
@@ -166,7 +170,7 @@ class TranslationTask:
                 )
 
                 if self.accept_output(mt_sents, tgt_lang):
-                    print(
+                    logging.info(
                         f'[✔️]: {len(mt_sents)} translated from {src_lang} to {tgt_lang}')
                     mt_sents = load_sents(self.store, src_lang, tgt_lang)
                     self.logger.add_entry(
@@ -175,7 +179,7 @@ class TranslationTask:
                     continue
 
                 else:
-                    print(
+                    logging.info(
                         f'[❌]: Output for {src_lang}-{tgt_lang} is not acceptable!')
                     self.logger.add_entry(
                         verdict={'failure': 'Translation rejected'})
@@ -185,10 +189,11 @@ class TranslationTask:
 
             except Exception as e:
                 self.logger.log_error(error=e)
-                print('[⚠️]: Error', str(e))
+                # Not good practice but we do it here because we have two loggers
+                # logging is mainly there for aesthetic/presentation
+                logging.info(f'[⚠️]: Error {str(e)}')
                 self.retry_loop(pair)
                 continue
         end = time.time()
         self.duration = end-start
         self.finish()
-

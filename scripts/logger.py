@@ -2,7 +2,6 @@ from scripts.util import split_sents
 import time
 import json
 import tiktoken
-from datetime import datetime
 from typing import TextIO, Any
 import uuid
 
@@ -82,14 +81,11 @@ class TranslationLog:
         self.id = str(uuid.uuid4())
         self.in_lines = len(src_text.splitlines())
         self.in_sents = len(split_sents(src_text, lang=src_lang))
-        self.start_timestamp = str(datetime.now().astimezone())
         self.in_chars = len(src_text)
         self.in_tokens = len(self.enc.encode(src_text))
 
     def finish(self, tgt_text: str, **kwargs):
         self.end = time.time()
-        self.end_timestamp = str(datetime.now().astimezone())
-        self.time = self.end - self.start
         self.out_chars = len(tgt_text)
         self.out_lines = len(tgt_text.splitlines())
         self.out_sents = len(split_sents(tgt_text, lang=self.tgt_lang))

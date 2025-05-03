@@ -12,10 +12,10 @@ import sys
 
 
 class MockClient(TranslationClient):
-    def __init__(self, logger=None, planned_fails=[], planned_errors=[], scenario=[]):
+    def __init__(self, logger=None, model='mock',planned_fails=[], planned_errors=[], scenario=[]):
         self.client = None
         self.logger = logger
-        self.model = 'mock'
+        self.model = model
         self.planned_fails = planned_fails
         self.planned_errors = planned_errors
         self.scenario = scenario
