@@ -2,18 +2,20 @@ import random
 import argparse
 import logging
 
+
 class Process:
     '''
     Template class for processes.
     A process is simply put running the specified tasks associated with the specified model and dataset.
-    
+
     Create a child class and implement the __init__ method with the following attributes:
     dm_ids: List of dataset ids
     tasks: Dictionary of tasks, where the keys are dataset ids and the values are dictionaries of tasks, where the keys are model ids and the values are TranslationTask objects
     model_ids: List of model ids
-    
+
     The argument parsing and fancy prints is handled by this script to make it easy to create processes
     '''
+
     def __init__(self):
 
         self.dm_ids = None
@@ -49,7 +51,7 @@ class Process:
 
 def show_commands():
     print('Available commands:')
-    print('options: Show available datasets and models')
+    print('inputs: Show available datasets and models')
     print('task: Show detailed information about a task')
     print(
         'task -model $model -dataset $dataset: Show detailed information about a task')
@@ -61,19 +63,18 @@ def proc_parser(desc='Process Template'):
         description=desc)
     subparsers = parser.add_subparsers(
         dest='command', help='Command to execute')
-
     subparsers.add_parser(
-        'options', help='Show available options')
+        'inputs', help='Show available inputs')
 
     task_parser = subparsers.add_parser(
         'task', help='Show task details (if no arguments, show random task details)')
-    task_parser.add_argument('-model', '-m', type=str, help='Model name')
-    task_parser.add_argument('-dataset', '-d', type=str, help='Dataset name')
+    task_parser.add_argument('--model', '-m', type=str, help='Model name')
+    task_parser.add_argument('--dataset', '-d', type=str, help='Dataset name')
 
     run_parser = subparsers.add_parser('run', help='Run a specific task')
     run_parser.add_argument(
-        '-model', '-m', type=str, required=True, help='Model name')
-    run_parser.add_argument('-dataset',  '-d', type=str,
+        '--model', '-m', type=str, required=True, help='Model name')
+    run_parser.add_argument('--dataset',  '-d', type=str,
                             required=True, help='Dataset name')
     return parser
 
@@ -84,7 +85,7 @@ def main(parser=proc_parser(), proc=Process()):
         show_commands()
         return
 
-    if args.command == 'options':
+    if args.command == 'inputs':
         proc.show_options()
         return
     elif args.command == 'task':
