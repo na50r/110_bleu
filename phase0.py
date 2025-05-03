@@ -10,7 +10,7 @@ import logging
 # Based on https://stackoverflow.com/a/40909549
 level = logging.INFO
 format = '  %(message)s'
-handlers = [logging.FileHandler('phase0.log'), logging.StreamHandler()]
+handlers = [logging.FileHandler(join('tmp', 'phase0.log')), logging.StreamHandler()]
 logging.basicConfig(level=level, format=format, handlers=handlers)
 
 
