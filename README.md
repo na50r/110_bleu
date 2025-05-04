@@ -110,7 +110,7 @@ for pair in pairs:
 * `P ⊆ {(x, y) | x ∈ L, y ∈ L, x ≠ y}`
 * `d ∈ {EuroParl, FloresPlus, Opus100}`
 * `t ∈ {DeepL, GPT4.1}`
-* Then a task `(P, d, t)` mean: *Translate all pairs in $P$ using sentences from $d$ with $t$*
+* Then a task `(P, d, t)` mean: *Translate all pairs in **P** using sentences from **d** with **t***
 
 * In addition to this, we can define 
     * how many sentences we want to translate
