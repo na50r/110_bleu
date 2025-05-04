@@ -70,6 +70,16 @@ class FloresPlusManager(DataManager):
         self.split = f'{split}[:{size}]'
         self.langs = FloresPlusManager.EURO_ISO_2_FLORES_CODE
         self.name = "openlanguagedata/flores_plus"
+        self.short_name = self.name.split('/')[-1]
+
+    @classmethod
+    def get_pairs(cls):
+        pairs = []
+        for x in cls.EURO_ISO_2_FLORES_CODE:
+            for y in cls.EURO_ISO_2_FLORES_CODE:
+                if x != y:
+                    pairs.append((x, y))
+        return pairs
 
     @staticmethod
     def _hugging_face_login():
@@ -160,6 +170,15 @@ class Opus100Manager(DataManager):
         self.langs = Opus100Manager.EURO_ISO_2_PAIR
         self.split = f'{split}[:{size}]'
         self.name = "Helsinki-NLP/opus-100"
+        self.short_name = self.name.split('/')[-1]
+
+    @classmethod
+    def get_pairs(cls):
+        pairs = []
+        for x in cls.EURO_ISO_2_PAIR:
+            pairs.append((x, 'en'))
+            pairs.append(('en', x))
+        return pairs
 
     def _download_data(self, lang: str) -> Dataset:
         missing = self.langs[lang]
@@ -279,6 +298,14 @@ class EuroParlManager(DataManager):
         # This dataset has only train split
         self.split = f'train[:{size}]'
         self.name = "Helsinki-NLP/europarl"
+        self.short_name = self.name.split('/')[-1]
+
+    @classmethod
+    def get_pairs(cls):
+        pairs1 = [tuple(pair.split('-')) for pair in cls.EP_PAIRS]
+        pairs2 = [tuple((pair[1], pair[0])) for pair in pairs1]
+        pairs1.extend(pairs2)
+        return pairs1
 
     def _get_pair(self, lang1: str, lang2: str) -> str:
         pair1 = f'{lang1}-{lang2}'

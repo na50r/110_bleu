@@ -3,6 +3,7 @@ from os.path import join, exists, isfile
 from sentence_splitter import SentenceSplitter
 from dotenv import load_dotenv
 import subprocess
+from datetime import datetime
 
 # Use override=True: https://docs.smith.langchain.com/observability/how_to_guides/toubleshooting_variable_caching
 # Important when dealing with older API keys in Jupyter Notebook cache
@@ -68,3 +69,6 @@ def load_sents(folder_path: str, src_lang: str, tgt_lang: str) -> list[str]:
 def get_git_revision_short_hash() -> str:
     # Code from: https://stackoverflow.com/a/21901260
     return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
+
+def get_local_timestamp() -> str:
+    return datetime.now().astimezone().isoformat()

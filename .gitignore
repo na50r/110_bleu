@@ -10,3 +10,4 @@ tmp*.ipynb
 
 tasks/phase1/*
 !tasks/phase1/*.jsonl
+*.log

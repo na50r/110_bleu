@@ -1,12 +1,13 @@
 from os.path import exists, join
 from scripts.util import get_env_variables, store_sents, load_sents, LANG_ISO
-from scripts.logger import MyLogger
+from scripts.logger import TranslationLogger
 from io import BytesIO
 from abc import ABC, abstractmethod
 from deepl import DeepLClient
 from openai import OpenAI
-from string import Template
+from string import Template, ascii_letters, ascii_uppercase, ascii_lowercase
 from typing import Any
+
 
 class TranslationClient(ABC):
     def __init__(self):
@@ -25,6 +26,49 @@ class TranslationClient(ABC):
         '''
         pass
 
+
+    def translate_and_store_document(self, text: list[str], src_lang: str, tgt_lang: str, mt_folder: str | None = None) -> list[str] | None:
+        '''
+        This method returns translations but also stores them in the specified folder
+        If run again by accident, will not call API if the translation is detected in the specified folder
+
+        Args:
+            text: A list of strings (sentences)
+            src_lang: ISO code of source language
+            tgt_lang: ISO code of target language
+            client: A client that has a translate_document method specified by TranslationClient abstract class
+            mt_folder: Path to a folder where translations should be stored
+
+        Returns:
+            A list of translated strings (sentences), will ideally contain the same number of strings as input
+        '''
+        if mt_folder is None:
+            return self.translate_document(
+                text=text,
+                src_lang=src_lang,
+                tgt_lang=tgt_lang
+            )
+
+        out_file = join(mt_folder, f'{src_lang}-{tgt_lang}.txt')
+        if not exists(out_file):
+            out_text = self.translate_document(
+                text=text,
+                src_lang=src_lang,
+                tgt_lang=tgt_lang
+            )
+            store_sents(
+                sents=out_text,
+                folder_path=mt_folder,
+                src_lang=src_lang,
+                tgt_lang=tgt_lang
+            )
+            return out_text
+        else:
+            print(
+                f'Pair {src_lang}-{tgt_lang} has been translated already.')
+            return load_sents(mt_folder, src_lang, tgt_lang)
+
+
 class DeeplClient(TranslationClient):
     TGT_LANGS = {
         # Account for special target language codes
@@ -32,7 +76,7 @@ class DeeplClient(TranslationClient):
         'pt': 'PT-PT'
     }
 
-    def __init__(self,  logger: MyLogger | None = None):
+    def __init__(self,  logger: TranslationLogger | None = None):
         api_key = get_env_variables('DEEPL_API_KEY')
         self.client = DeepLClient(auth_key=api_key)
         self.logger = logger
@@ -50,8 +94,7 @@ class DeeplClient(TranslationClient):
             self.logger.start(
                 src_lang=src_lang,
                 tgt_lang=tgt_lang,
-                src_text=in_text,
-                translator=self.model
+                src_text=in_text
             )
 
         resp = self.client.translate_document(
@@ -92,7 +135,7 @@ class GPTClient(TranslationClient):
     HYPER_PARAMS = {'temperature': 0}
 
     def __init__(self, model: str = 'gpt-4.1-2025-04-14',
-                 logger: MyLogger | None = None,
+                 logger: TranslationLogger | None = None,
                  sys_templ: Template | str | None = SYS_TEMPL,
                  usr_templ: Template | str | None = USR_TEMPL,
                  hyper_params : dict[str, Any] = HYPER_PARAMS
@@ -179,53 +222,63 @@ class GPTClient(TranslationClient):
             self.logger.start(
                 src_text=in_text,
                 src_lang=src_lang,
-                tgt_lang=tgt_lang,
-                translator=self.model)
+                tgt_lang=tgt_lang)
 
         sys_prompt = self.sys_prompt(src_lang, tgt_lang)
         user_prompt = self.user_prompt(src_lang, tgt_lang, in_text)
         trans_text = self.chat_complete(sys_prompt, user_prompt)
         return trans_text.splitlines()
 
+class MockClient(TranslationClient):
+    def __init__(self, logger=None, model='mock', planned_fails=[], planned_errors=[], scenario=[]):
+        self.client = None
+        self.logger = logger
+        self.model = model
+        self.planned_fails = planned_fails
+        self.planned_errors = planned_errors
+        self.scenario = scenario
+        self.current = 0
 
-def translate_document(text: list[str], src_lang: str, tgt_lang: str, client: TranslationClient, mt_folder: str | None = None) -> list[str] | None:
-    '''
-    Main translation function
-    This function returns translations but also stores them in the specified folder
-    If run again by accident, will not call API if the translation is detected in the specified folder
+        if len(self.scenario) > 0:
+            self.planned_fails = []
+            self.planned_errors = []
 
-    Args:
-        text: A list of strings (sentences)
-        src_lang: ISO code of source language
-        tgt_lang: ISO code of target language
-        client: A client that has a translate_document method specified by TranslationClient abstract class
-        mt_folder: Path to a folder where translations should be stored
+    def encrypt(self, text, key=13, direction=1, error_pair=None):
+        if len(self.scenario) > 0 and self.scenario[self.current] == 2:
+            self.current += 1  # an error log will be created in the except statement, so we increment the current translation here
+            raise (Exception(f'MockError'))
 
-    Returns:
-        A list of translated strings (sentences), will ideally contain the same number of strings as input
-    '''
-    if mt_folder is None:
-        return client.translate_document(
-            text=text,
-            src_lang=src_lang,
-            tgt_lang=tgt_lang
-        )
+        if error_pair in self.planned_errors:
+            self.planned_errors.remove(error_pair)
+            raise (Exception(f'MockError'))
 
-    out_file = join(mt_folder, f'{src_lang}-{tgt_lang}.txt')
-    if not exists(out_file):
-        out_text = client.translate_document(
-            text=text,
-            src_lang=src_lang,
-            tgt_lang=tgt_lang
-        )
-        store_sents(
-            sents=out_text,
-            folder_path=mt_folder,
-            src_lang=src_lang,
-            tgt_lang=tgt_lang
-        )
-        return out_text
-    else:
-        print(
-            f'Document for pair {src_lang}-{tgt_lang} has been translated already.')
-        return load_sents(mt_folder, src_lang, tgt_lang)
+        # Code from: https://stackoverflow.com/a/34734063
+        if direction == -1:
+            key = 26 - key
+
+        trans = str.maketrans(
+            ascii_letters, ascii_lowercase[key:] + ascii_lowercase[:key] + ascii_uppercase[key:] + ascii_uppercase[:key])
+        return text.translate(trans)
+
+    def translate_document(self, text, src_lang, tgt_lang):
+        in_text = '\n'.join(text)
+
+        if self.logger:
+            self.logger.start(
+                src_lang=src_lang,
+                tgt_lang=tgt_lang,
+                src_text=in_text)
+        out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+
+        if (len(self.scenario) > 0 and self.scenario[self.current] == 1) or (src_lang, tgt_lang) in self.planned_fails:
+            tmp = out_text.splitlines()
+            tmp = tmp[:round(len(tmp)/2)]
+            out_text = '\n'.join(tmp)
+            if (src_lang, tgt_lang) in self.planned_fails:
+                self.planned_fails.remove((src_lang, tgt_lang))
+
+        if self.logger:
+            self.logger.finish(tgt_text=out_text)
+            # both rejected & accepted translation get the same log, difference only verdict
+            self.current += 1
+        return out_text.splitlines()

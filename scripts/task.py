@@ -1,12 +1,14 @@
-from scripts.translators import translate_document, TranslationClient
+from scripts.translators import TranslationClient
 from scripts.data_management import DataManager
-from scripts.util import load_sents, split_sents
-from scripts.logger import MyLogger
+from scripts.util import load_sents, split_sents, get_git_revision_short_hash, get_local_timestamp
+from scripts.logger import TranslationLogger
 import os
 import time
 from os.path import join, exists
 from collections import defaultdict
 import uuid
+import logging
+import json
 
 
 class TranslationTask:
@@ -24,7 +26,7 @@ class TranslationTask:
         pairs: A list of tuples of source and target language ISO codes (acts as a stack but preserves insertion order)
         dm: A data manager that has a get_sentence_pairs method specified by DataManager abstract class
         client: A client that has a translate_document method specified by TranslationClient abstract class
-        logger: A logger that is used to log task/input related configuration and each translation
+        logger: A logger that logs translation specific information
         num_of_sents: Number of sentences to translate for each pair
         manual_retry: Boolean to indicate whether this is a manual retry task or not
         max_retries: Maximum number of automatic retries for each translation
@@ -33,12 +35,14 @@ class TranslationTask:
         retries: Number of retries for current pair
         retry_pair: Current pair for which retries are being performed
         failure: Dictionary that keeps track of number of failures for each pair
+        id: uuid of the task
+        duration: Duration of task execution (runtime of run())
     '''
 
     def __init__(self, target_pairs: list[tuple[str, str]],
                  dm: DataManager,
                  client: TranslationClient,
-                 logger: MyLogger,
+                 logger: TranslationLogger,
                  mt_folder: str,
                  num_of_sents: int,
                  manual_retry: bool = False,
@@ -50,19 +54,20 @@ class TranslationTask:
             target_pairs: Selection of language pair to be translated
             dm: Selected DataManager, thus selected dataset, for this task
             client: Selected Translator for this task
-            logger: Logger to log task/input related configuration and each translation, should be the passed into TranslationClient as well
+            logger: A TranslationLogger that logs translation specific information
             mt_folder: Path to a folder where translations should be stored
             num_of_sents: Number of sentences to translate for each pair
             manual_retry: Set this to true if Task is run once again for selected pairs for which log_ids exist and reasons for retry exist
             max_retries: Maximum number of automatic retries for each translation, retries are triggered by errors or if the number of output sentences outside acceptable range
             retry_delay: Delay between retries in seconds
-            acceptable_range: Range of acceptable number of output sentences
+            acceptable_range: Range of acceptable number of output sentences, if None, it is set to 80% to 120% of num_of_sents
         '''
 
         self.store = mt_folder
         self.pairs = [pair for pair in reversed(target_pairs)]
         self.dm = dm
-        self.logger = logger
+        self.tl_logger = logger
+
         self.num_of_sents = num_of_sents
         self.client = client
         os.makedirs(self.store, exist_ok=True)
@@ -79,7 +84,21 @@ class TranslationTask:
         self.retry_pair = None
         self.failure = defaultdict(int)
         self.id = str(uuid.uuid4())
-        logger.add_entry(task_id=self.id)
+        self.task_duration = None
+        self.counter = 0
+
+    def get_task_info(self):
+        task_info = {}
+        task_info['task_id'] = self.id
+        task_info['git_hash'] = get_git_revision_short_hash()
+        task_info['dataset'] = self.dm.name
+        task_info['num_of_sents'] = self.num_of_sents
+        task_info['split'] = self.dm.split
+        task_info['translator'] = self.client.model
+        task_info['acceptable_range'] = self.acceptable_range
+        task_info['timestamp'] = get_local_timestamp()
+        task_info['manual_retry'] = self.manual_retry
+        return task_info
 
     def accept_output(self, mt_sents: list[str], tgt_lang: str):
         min_cnt = self.acceptable_range[0]
@@ -104,13 +123,13 @@ class TranslationTask:
             self.retries += 1
 
         if self.retries < self.max_retries:
-            print(f'[⏲️]: Retrying {pair[0]}-{pair[1]}...')
+            logging.info(f'[⏲️]: Retrying {pair[0]}-{pair[1]}...')
             time.sleep(self.retry_delay)
             self.retries += 1
             self.pairs.append(pair)
             self.mark_failure(pair)
         else:
-            print(
+            logging.info(
                 f'[⏩]: Failed {self.max_retries} times, skipping {pair[0]}-{pair[1]}...')
             self.mark_failure(pair)
             self.retries = -1
@@ -126,8 +145,21 @@ class TranslationTask:
         if exists(filename):
             os.rename(filename, new_filename)
 
+    def translation_id(self) -> str:
+        return f'{self.id}-{self.counter:04d}'
+
+    def finish(self):
+        task_info = self.get_task_info()
+        task_info['duration'] = self.duration
+        with open(join(self.store, 'task.json'), 'w') as f:
+            print(json.dumps(task_info), file=f)
+        logging.info(
+            f'[🏁]: Task took {self.duration:.2f}s')
+
     def run(self):
-        print(f'[🏁]: Starting task {self.id}')
+        start = time.time()
+        logging.info(
+            f'[🏁]: Starting task {self.id} on commit {get_git_revision_short_hash()}')
         while len(self.pairs) > 0:
             pair = self.pairs.pop()
             src_lang, tgt_lang = pair
@@ -136,44 +168,40 @@ class TranslationTask:
                 tgt_lang=tgt_lang,
                 num_of_sents=self.num_of_sents,
             )
-            self.logger.add_dataset_info(
-                name=self.dm.name,
-                num_of_sents=self.num_of_sents,
-                split=self.dm.split,
-            )
-
-            if self.manual_retry:
-                self.logger.add_manual_retry_info(pair)
-
             try:
-                mt_sents = translate_document(
+                self.counter += 1
+                mt_sents = self.client.translate_and_store_document(
                     text=src_sents,
                     src_lang=src_lang,
                     tgt_lang=tgt_lang,
                     mt_folder=self.store,
-                    client=self.client
                 )
 
+                self.tl_logger.add_entry(id=self.translation_id())
+                self.tl_logger.add_entry(
+                    translator=self.client.model, dataset=self.dm.name)
+                if self.manual_retry:
+                    self.tl_logger.add_manual_retry_info(pair)
+                
                 if self.accept_output(mt_sents, tgt_lang):
-                    print(
-                        f'[✔️]: {len(mt_sents)} translated from {src_lang} to {tgt_lang}')
+                    logging.info(
+                        f'[✔️]: Translated {len(mt_sents)} sents for {src_lang}-{tgt_lang}')
                     mt_sents = load_sents(self.store, src_lang, tgt_lang)
-                    self.logger.add_entry(
-                        verdict={'success': 'Translation accepted'})
-                    self.logger.write_log()
+                    self.tl_logger.write_log()
                     continue
 
                 else:
-                    print(
-                        f'[❌]: Output for {src_lang}-{tgt_lang} is not acceptable!')
-                    self.logger.add_entry(
-                        verdict={'failure': 'Translation rejected'})
-                    self.logger.write_log()
+                    logging.info(
+                        f'[❌]: Translated {len(mt_sents)} sents for {src_lang}-{tgt_lang} but rejected')
+                    self.tl_logger.write_log(verdict=False)
                     self.retry_loop(pair)
                     continue
 
             except Exception as e:
-                self.logger.log_error(error=e)
-                print('[⚠️]: Error', str(e))
+                logging.error(f'[⚠️]: Error {str(e)}')
+                logging.debug("Traceback:", exc_info=True)
                 self.retry_loop(pair)
                 continue
+        end = time.time()
+        self.duration = end-start
+        self.finish()
