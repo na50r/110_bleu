@@ -139,5 +139,9 @@ for pair in pairs:
 ## Testing
 Simple unit tests were implemented to confirm the functionality of the data managers and the translation task as a whole. 
 ```
-python -m pytest -s test_tasks.py test_translation_task.py
+python -m pytest test_tasks.py test_translation_task.py
+```
+* If you want to see the logs, run:
+```
+pytest -o log_cli=true -o log_cli_level=INFO test_tasks.py
 ```

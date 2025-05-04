@@ -9,16 +9,6 @@ import shutil
 import json
 import sys
 
-
-def silent_task_run(func):
-    # Hide stdout
-    # Based on: https://stackoverflow.com/a/2829036
-    original_stdout = sys.stdout
-    sys.stdout = open(os.devnull, 'w')
-    func()
-    sys.stdout = original_stdout
-
-
 def get_sample_pairs(dm, k=2):
     pairs = dm.get_pairs()
     pairs = sample(pairs, k=k)
@@ -43,9 +33,8 @@ def setup_and_teardown(foldername, func):
     finally:
         teardown(foldername)
 
-
-def task_run(mt_folder):
-    # Generic, random task run on 400 sentences
+def test_task():
+    test_folder = 'tmp_test'
     dms = [EuroParlManager, Opus100Manager]
     dm = choice(dms)
     pairs = get_sample_pairs(dm)
@@ -58,16 +47,10 @@ def task_run(mt_folder):
         dm=dm,
         client=cli,
         logger=logger,
-        mt_folder=mt_folder,
+        mt_folder=test_folder,
         num_of_sents=400,
     )
-    silent_task_run(task.run)
-
-
-def test_task():
-    test_folder = 'tmp_test'
-    setup_and_teardown(test_folder, lambda: task_run(mt_folder=test_folder))
-
+    setup_and_teardown(test_folder, task.run)
 
 def test_retry_and_fail_files():
     test_folder = 'tmp_test'
@@ -77,7 +60,6 @@ def test_retry_and_fail_files():
     logger = TranslationLogger(logfile=logfile)
     cli = MockClient(logger=logger, planned_fails=[
                      pairs[1], pairs[1], pairs[3]])
-
     task = TranslationTask(
         target_pairs=pairs,
         dm=dm,
@@ -90,7 +72,7 @@ def test_retry_and_fail_files():
     )
 
     setup(test_folder)
-    silent_task_run(task.run)
+    task.run()
     files = os.listdir(test_folder)
     fail_files = [f for f in files if f.endswith(
         '_fail1.txt') or f.endswith('_fail2.txt')]
@@ -117,7 +99,7 @@ def test_meta_data_in_log():
         max_retries=1,
         retry_delay=0
     )
-    setup_and_teardown(test_folder, lambda: silent_task_run(task.run))
+    setup_and_teardown(test_folder, task.run)
     log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
     assert len(log_data) == 4
     assert [log['verdict'] for log in log_data] == ['accepted'] * 4
@@ -149,7 +131,7 @@ SCENARIOS = {
     },
     'C': {
         'dm': Opus100Manager,
-        'pairs': get_sample_pairs(Opus100Manager, k=5),
+        'pairs': get_sample_pairs(Opus100Manager, k=3),
         'scenario': [0, 1, 1, 1, 0, 2, 2, 2, 0],
         'logs': 6,
         'verdicts': ['accepted', 'rejected', 'rejected', 'rejected', 'accepted', 'accepted'],
@@ -176,7 +158,7 @@ def test_logging_with_scenario_A():
         max_retries=SCENARIOS['A']['max_retries'],
         retry_delay=0
     )
-    setup_and_teardown(test_folder, lambda: silent_task_run(task.run))
+    setup_and_teardown(test_folder, task.run)
     log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
     assert len(log_data) == SCENARIOS['A']['logs']
     assert [log['verdict'] for log in log_data] == SCENARIOS['A']['verdicts']
@@ -199,7 +181,7 @@ def test_logging_with_scenario_B():
         max_retries=SCENARIOS['B']['max_retries'],
         retry_delay=0
     )
-    setup_and_teardown(test_folder, lambda: silent_task_run(task.run))
+    setup_and_teardown(test_folder, task.run)
     log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
     assert len(log_data) == SCENARIOS['B']['logs']
     assert [log['verdict'] for log in log_data] == SCENARIOS['B']['verdicts']
@@ -223,7 +205,7 @@ def test_logging_with_scenario_C_and_file_cnt():
         retry_delay=0
     )
     setup(test_folder)
-    silent_task_run(task.run)
+    task.run()
     files = [f for f in os.listdir(test_folder) if f != 'task.json']
     assert len(files) == SCENARIOS['C']['logs']
     log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
@@ -250,7 +232,7 @@ def test_logging_with_manual_retry():
         retry_delay=0
     )
 
-    setup_and_teardown(test_folder, lambda: silent_task_run(task1.run))
+    setup_and_teardown(test_folder, task1.run)
     log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
     assert len(log_data) == 4
     logA = log_data[0]
@@ -274,7 +256,7 @@ def test_logging_with_manual_retry():
         max_retries=1,
         retry_delay=0
     )
-    setup_and_teardown(test_folder, lambda: silent_task_run(task2.run))
+    setup_and_teardown(test_folder, task2.run)
     log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
     assert len(log_data) == 6
     assert [log['manual_retry']['reason']
