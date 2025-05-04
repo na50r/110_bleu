@@ -36,7 +36,7 @@ def teardown(foldername):
         shutil.rmtree(foldername)
 
 
-def setup_teardown(foldername, func):
+def setup_and_teardown(foldername, func):
     setup(foldername)
     try:
         func()
@@ -66,7 +66,7 @@ def task_run(mt_folder):
 
 def test_task():
     test_folder = 'tmp_test'
-    setup_teardown(test_folder, lambda: task_run(mt_folder=test_folder))
+    setup_and_teardown(test_folder, lambda: task_run(mt_folder=test_folder))
 
 
 def test_retry_and_fail_files():
@@ -117,7 +117,7 @@ def test_meta_data_in_log():
         max_retries=1,
         retry_delay=0
     )
-    setup_teardown(test_folder, lambda: silent_task_run(task.run))
+    setup_and_teardown(test_folder, lambda: silent_task_run(task.run))
     log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
     assert len(log_data) == 4
     assert [log['verdict'] for log in log_data] == ['accepted'] * 4
@@ -168,7 +168,7 @@ def test_logging_with_scenario_A():
         max_retries=SCENARIOS['A']['max_retries'],
         retry_delay=0
     )
-    setup_teardown(test_folder, lambda: silent_task_run(task.run))
+    setup_and_teardown(test_folder, lambda: silent_task_run(task.run))
     log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
     assert len(log_data) == SCENARIOS['A']['logs']
     assert [log['verdict'] for log in log_data] == SCENARIOS['A']['verdicts']
@@ -191,7 +191,58 @@ def test_logging_with_scenario_B():
         max_retries=SCENARIOS['B']['max_retries'],
         retry_delay=0
     )
-    setup_teardown(test_folder, lambda: silent_task_run(task.run))
+    setup_and_teardown(test_folder, lambda: silent_task_run(task.run))
     log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
     assert len(log_data) == SCENARIOS['B']['logs']
     assert [log['verdict'] for log in log_data] == SCENARIOS['B']['verdicts']
+
+
+def test_logging_with_manual_retry():
+    test_folder = 'tmp_test'
+    dm = Opus100Manager()
+    pairs = get_sample_pairs(Opus100Manager, k=4)
+    logfile = StringIO()
+    logger = TranslationLogger(logfile=logfile)
+    cli = MockClient(logger=logger)
+    task1 = TranslationTask(
+        target_pairs=pairs,
+        dm=dm,
+        client=cli,
+        logger=logger,
+        mt_folder=test_folder,
+        num_of_sents=400,
+        max_retries=1,
+        retry_delay=0
+    )
+    
+    setup_and_teardown(test_folder, lambda: silent_task_run(task1.run))
+    log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
+    assert len(log_data) == 4
+    logA = log_data[0]
+    logB = log_data[-1]
+    
+    retry_pairs = [pairs[0], pairs[-1]]
+    retry_log_ids = [logA['id'], logB['id']]
+    retry_reasons = ['BLEU score unnaturally low', 'Returned Src text']
+    retry_log = RetryLog(pairs=retry_pairs, log_ids=retry_log_ids, reasons=retry_reasons)
+    new_logger = TranslationLogger(logfile=logfile, retry_log=retry_log)
+    cli = MockClient(logger=new_logger)
+    task2 = TranslationTask(
+        target_pairs=retry_pairs,
+        dm=dm,
+        client=cli,
+        logger=new_logger,
+        mt_folder=test_folder,
+        num_of_sents=400,
+        manual_retry=True,
+        max_retries=1,
+        retry_delay=0
+    )
+    setup_and_teardown(test_folder, lambda: silent_task_run(task2.run))
+    log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
+    assert len(log_data) == 6
+    assert [log['manual_retry']['reason']
+            for log in log_data[-2:]] == retry_reasons
+    assert [log['manual_retry']['prev_id'] for log in log_data[-2:]] == retry_log_ids
+    assert [log['src_lang'] for log in log_data[-2:]] == [p[0] for p in retry_pairs]
+    assert [log['tgt_lang'] for log in log_data[-2:]] == [p[1] for p in retry_pairs]

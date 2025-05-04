@@ -17,22 +17,22 @@ class RetryLog:
 
 
 class TranslationLogger:
-    def __init__(self, logfile: str | TextIO, tokenizer: str = 'gpt-4o', retry: RetryLog = RetryLog()):
+    def __init__(self, logfile: str | TextIO, tokenizer: str = 'gpt-4o', retry_log: RetryLog = RetryLog()):
         self.logfile = logfile
         self.is_path = isinstance(logfile, str)
-        self.retry = retry
-        self.current = None
+        self.retry_log = retry_log
+        self.current_log = None
         self.enc = tiktoken.encoding_for_model(tokenizer)
         
     def add_entry(self, **kwargs):
-        if self.current is None:
+        if self.current_log is None:
             return
-        self.current.update(kwargs)
+        self.current_log.update(kwargs)
 
     def add_manual_retry_info(self, pair: tuple[str, str]):
         retry_log = {
-            'prev_id': self.retry.get_log_id(pair),
-            'reason': self.retry.get_reason(pair)
+            'prev_id': self.retry_log.get_log_id(pair),
+            'reason': self.retry_log.get_reason(pair)
         }
         self.add_entry(manual_retry=retry_log)
 
@@ -46,29 +46,29 @@ class TranslationLogger:
             'in_chars':  len(src_text),
             'in_tokens': len(self.enc.encode(src_text)),
         }
-        self.current = log
-        return self.current
+        self.current_log = log
+        return self.current_log
 
     def finish(self, tgt_text: str, **kwargs):
-        if self.current is not None:
-            self.current['end'] = time.time()
-            self.current['out_chars'] = len(tgt_text)
-            self.current['out_lines'] = len(tgt_text.splitlines())
-            self.current['out_sents'] = len(split_sents(tgt_text, lang=self.current['tgt_lang']))
-            self.current['out_tokens'] = len(self.enc.encode(tgt_text))
-            self.current.update(kwargs)
+        if self.current_log is not None:
+            self.current_log['end'] = time.time()
+            self.current_log['out_chars'] = len(tgt_text)
+            self.current_log['out_lines'] = len(tgt_text.splitlines())
+            self.current_log['out_sents'] = len(split_sents(tgt_text, lang=self.current_log['tgt_lang']))
+            self.current_log['out_tokens'] = len(self.enc.encode(tgt_text))
+            self.current_log.update(kwargs)
 
     def write_log(self, verdict: bool = True):
-        if self.current is None:
+        if self.current_log is None:
             return
         if verdict:
-            self.current['verdict'] = 'accepted'
+            self.current_log['verdict'] = 'accepted'
         else:
-            self.current['verdict'] = 'rejected'       
+            self.current_log['verdict'] = 'rejected'       
         if self.is_path:
             with open(self.logfile, 'a') as f:
-                print(json.dumps(self.current), file=f)
+                print(json.dumps(self.current_log), file=f)
         else:
-            print(json.dumps(self.current), file=self.logfile)
-        self.current = None
+            print(json.dumps(self.current_log), file=self.logfile)
+        self.current_log = None
 

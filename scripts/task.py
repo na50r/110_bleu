@@ -180,6 +180,9 @@ class TranslationTask:
                 self.tl_logger.add_entry(id=self.translation_id())
                 self.tl_logger.add_entry(
                     translator=self.client.model, dataset=self.dm.name)
+                if self.manual_retry:
+                    self.tl_logger.add_manual_retry_info(pair)
+                
                 if self.accept_output(mt_sents, tgt_lang):
                     logging.info(
                         f'[✔️]: Translated {len(mt_sents)} sents for {src_lang}-{tgt_lang}')

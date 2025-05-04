@@ -1,0 +1,530 @@
+2025-05-04 13:49:43 - [🚀]: Selected task for opus-100 - gpt
+2025-05-04 13:49:43 - [🏁]: Starting task e11e4c3e-3305-44da-b1a4-24d2aae3c6d1 on commit 7498a71
+2025-05-04 13:49:43 - [⚠️]: Error MockError
+2025-05-04 13:49:43 - Traceback:
+Traceback (most recent call last):
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\task.py", line 173, in run
+    mt_sents = self.client.translate_and_store_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 54, in translate_and_store_document
+    out_text = self.translate_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 271, in translate_document
+    out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 253, in encrypt
+    raise (Exception(f'MockError'))
+Exception: MockError
+2025-05-04 13:49:43 - [⏲️]: Retrying de-en...
+2025-05-04 13:49:43 - [❌]: Translated 200 sents for de-en but rejected
+2025-05-04 13:49:43 - [⏲️]: Retrying de-en...
+2025-05-04 13:49:44 - [✔️]: Translated 400 sents for de-en
+2025-05-04 13:49:44 - [✔️]: Translated 400 sents for en-de
+2025-05-04 13:49:44 - [✔️]: Translated 400 sents for da-en
+2025-05-04 13:49:44 - [✔️]: Translated 400 sents for en-da
+2025-05-04 13:49:44 - [✔️]: Translated 400 sents for el-en
+2025-05-04 13:49:44 - [✔️]: Translated 400 sents for en-el
+2025-05-04 13:49:45 - [✔️]: Translated 400 sents for pt-en
+2025-05-04 13:49:45 - [✔️]: Translated 400 sents for en-pt
+2025-05-04 13:49:45 - [✔️]: Translated 400 sents for sv-en
+2025-05-04 13:49:45 - [✔️]: Translated 400 sents for en-sv
+2025-05-04 13:49:45 - [✔️]: Translated 400 sents for es-en
+2025-05-04 13:49:46 - [✔️]: Translated 400 sents for en-es
+2025-05-04 13:49:46 - [✔️]: Translated 400 sents for fi-en
+2025-05-04 13:49:46 - [✔️]: Translated 400 sents for en-fi
+2025-05-04 13:49:46 - [✔️]: Translated 400 sents for fr-en
+2025-05-04 13:49:46 - [✔️]: Translated 400 sents for en-fr
+2025-05-04 13:49:47 - [✔️]: Translated 400 sents for it-en
+2025-05-04 13:49:47 - [✔️]: Translated 400 sents for en-it
+2025-05-04 13:49:47 - [✔️]: Translated 400 sents for nl-en
+2025-05-04 13:49:47 - [✔️]: Translated 400 sents for en-nl
+2025-05-04 13:49:47 - [🏁]: Task took 4.04s
+2025-05-04 14:06:02 - [🏁]: Starting task 1d4c05dc-8ad8-4cd2-85b8-251b185d34bf on commit 7498a71
+2025-05-04 14:06:02 - [✔️]: Translated 400 sents for en-de
+2025-05-04 14:06:03 - [❌]: Translated 200 sents for en-fr but rejected
+2025-05-04 14:06:03 - [⏲️]: Retrying en-fr...
+2025-05-04 14:06:03 - [❌]: Translated 200 sents for en-fr but rejected
+2025-05-04 14:06:03 - [⏲️]: Retrying en-fr...
+2025-05-04 14:06:03 - [❌]: Translated 200 sents for en-fr but rejected
+2025-05-04 14:06:03 - [⏩]: Failed 2 times, skipping en-fr...
+2025-05-04 14:06:03 - [✔️]: Translated 400 sents for de-en
+2025-05-04 14:06:03 - [⚠️]: Error MockError
+2025-05-04 14:06:03 - Traceback:
+Traceback (most recent call last):
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\task.py", line 173, in run
+    mt_sents = self.client.translate_and_store_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 54, in translate_and_store_document
+    out_text = self.translate_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 271, in translate_document
+    out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 249, in encrypt
+    raise (Exception(f'MockError'))
+Exception: MockError
+2025-05-04 14:06:03 - [⏲️]: Retrying fr-en...
+2025-05-04 14:06:03 - [⚠️]: Error MockError
+2025-05-04 14:06:03 - Traceback:
+Traceback (most recent call last):
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\task.py", line 173, in run
+    mt_sents = self.client.translate_and_store_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 54, in translate_and_store_document
+    out_text = self.translate_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 271, in translate_document
+    out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 249, in encrypt
+    raise (Exception(f'MockError'))
+Exception: MockError
+2025-05-04 14:06:03 - [⏲️]: Retrying fr-en...
+2025-05-04 14:06:03 - [⚠️]: Error MockError
+2025-05-04 14:06:03 - Traceback:
+Traceback (most recent call last):
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\task.py", line 173, in run
+    mt_sents = self.client.translate_and_store_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 54, in translate_and_store_document
+    out_text = self.translate_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 271, in translate_document
+    out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 249, in encrypt
+    raise (Exception(f'MockError'))
+Exception: MockError
+2025-05-04 14:06:03 - [⏩]: Failed 2 times, skipping fr-en...
+2025-05-04 14:06:03 - [🏁]: Task took 1.23s
+2025-05-04 14:15:44 - [🏁]: Starting task 3f01caf6-1d57-4644-a160-8716de6cc4d4 on commit 7498a71
+2025-05-04 14:15:44 - [✔️]: Translated 400 sents for en-fr
+2025-05-04 14:15:44 - [✔️]: Translated 400 sents for de-en
+2025-05-04 14:15:45 - [✔️]: Translated 400 sents for fr-en
+2025-05-04 14:15:45 - [🏁]: Task took 0.64s
+2025-05-04 14:17:45 - [🏁]: Starting task 2472a042-7647-47ec-b6bf-9571e6d50ef6 on commit 7498a71
+2025-05-04 14:17:46 - [✔️]: Translated 400 sents for en-fr
+2025-05-04 14:17:46 - [✔️]: Translated 400 sents for de-en
+2025-05-04 14:17:46 - [✔️]: Translated 400 sents for fr-en
+2025-05-04 14:17:46 - [🏁]: Task took 0.77s
+2025-05-04 14:18:19 - [🚀]: Selected task for opus-100 - gpt
+2025-05-04 14:18:19 - [🏁]: Starting task ad32e3ee-c271-4a0d-a80c-a65bbb7e0845 on commit 7498a71
+2025-05-04 14:18:19 - [⚠️]: Error MockError
+2025-05-04 14:18:19 - Traceback:
+Traceback (most recent call last):
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\task.py", line 173, in run
+    mt_sents = self.client.translate_and_store_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 54, in translate_and_store_document
+    out_text = self.translate_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 271, in translate_document
+    out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 253, in encrypt
+    raise (Exception(f'MockError'))
+Exception: MockError
+2025-05-04 14:18:19 - [⏲️]: Retrying de-en...
+2025-05-04 14:18:20 - [❌]: Translated 200 sents for de-en but rejected
+2025-05-04 14:18:20 - [⏲️]: Retrying de-en...
+2025-05-04 14:18:20 - [✔️]: Translated 400 sents for de-en
+2025-05-04 14:18:20 - [✔️]: Translated 400 sents for en-de
+2025-05-04 14:18:20 - [✔️]: Translated 400 sents for da-en
+2025-05-04 14:18:20 - [✔️]: Translated 400 sents for en-da
+2025-05-04 14:18:20 - [✔️]: Translated 400 sents for el-en
+2025-05-04 14:18:21 - [✔️]: Translated 400 sents for en-el
+2025-05-04 14:18:21 - [✔️]: Translated 400 sents for pt-en
+2025-05-04 14:18:21 - [✔️]: Translated 400 sents for en-pt
+2025-05-04 14:18:21 - [✔️]: Translated 400 sents for sv-en
+2025-05-04 14:18:21 - [✔️]: Translated 400 sents for en-sv
+2025-05-04 14:18:21 - [✔️]: Translated 400 sents for es-en
+2025-05-04 14:18:22 - [✔️]: Translated 400 sents for en-es
+2025-05-04 14:18:22 - [✔️]: Translated 400 sents for fi-en
+2025-05-04 14:18:22 - [✔️]: Translated 400 sents for en-fi
+2025-05-04 14:18:22 - [✔️]: Translated 400 sents for fr-en
+2025-05-04 14:18:22 - [✔️]: Translated 400 sents for en-fr
+2025-05-04 14:18:23 - [✔️]: Translated 400 sents for it-en
+2025-05-04 14:18:23 - [✔️]: Translated 400 sents for en-it
+2025-05-04 14:18:23 - [✔️]: Translated 400 sents for nl-en
+2025-05-04 14:18:23 - [✔️]: Translated 400 sents for en-nl
+2025-05-04 14:18:23 - [🏁]: Task took 3.74s
+2025-05-04 14:18:23 - [🏁]: Starting task 6f2d8f78-9d38-468d-949e-71139d98851e on commit 7498a71
+2025-05-04 14:18:24 - [✔️]: Translated 400 sents for en-de
+2025-05-04 14:18:24 - [❌]: Translated 200 sents for en-fr but rejected
+2025-05-04 14:18:24 - [⏲️]: Retrying en-fr...
+2025-05-04 14:18:24 - [❌]: Translated 200 sents for en-fr but rejected
+2025-05-04 14:18:24 - [⏲️]: Retrying en-fr...
+2025-05-04 14:18:24 - [❌]: Translated 200 sents for en-fr but rejected
+2025-05-04 14:18:24 - [⏩]: Failed 2 times, skipping en-fr...
+2025-05-04 14:18:24 - [✔️]: Translated 400 sents for de-en
+2025-05-04 14:18:24 - [⚠️]: Error MockError
+2025-05-04 14:18:24 - Traceback:
+Traceback (most recent call last):
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\task.py", line 173, in run
+    mt_sents = self.client.translate_and_store_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 54, in translate_and_store_document
+    out_text = self.translate_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 271, in translate_document
+    out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 249, in encrypt
+    raise (Exception(f'MockError'))
+Exception: MockError
+2025-05-04 14:18:24 - [⏲️]: Retrying fr-en...
+2025-05-04 14:18:24 - [⚠️]: Error MockError
+2025-05-04 14:18:24 - Traceback:
+Traceback (most recent call last):
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\task.py", line 173, in run
+    mt_sents = self.client.translate_and_store_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 54, in translate_and_store_document
+    out_text = self.translate_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 271, in translate_document
+    out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 249, in encrypt
+    raise (Exception(f'MockError'))
+Exception: MockError
+2025-05-04 14:18:24 - [⏲️]: Retrying fr-en...
+2025-05-04 14:18:25 - [⚠️]: Error MockError
+2025-05-04 14:18:25 - Traceback:
+Traceback (most recent call last):
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\task.py", line 173, in run
+    mt_sents = self.client.translate_and_store_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 54, in translate_and_store_document
+    out_text = self.translate_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 271, in translate_document
+    out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 249, in encrypt
+    raise (Exception(f'MockError'))
+Exception: MockError
+2025-05-04 14:18:25 - [⏩]: Failed 2 times, skipping fr-en...
+2025-05-04 14:18:25 - [🏁]: Task took 1.11s
+2025-05-04 14:18:25 - [🏁]: Starting task 27937bed-7cd4-4fc2-8a29-645c8bf97b27 on commit 7498a71
+2025-05-04 14:18:25 - [✔️]: Translated 400 sents for en-fr
+2025-05-04 14:18:25 - [✔️]: Translated 400 sents for de-en
+2025-05-04 14:18:25 - [✔️]: Translated 400 sents for fr-en
+2025-05-04 14:18:25 - [🏁]: Task took 0.71s
+2025-05-04 14:19:03 - [🏁]: Starting task 1d22fd6a-41e0-4aa5-b630-bd819d714582 on commit 7498a71
+2025-05-04 14:19:03 - [✔️]: Translated 400 sents for en-fr
+2025-05-04 14:19:03 - [✔️]: Translated 400 sents for de-en
+2025-05-04 14:19:04 - [✔️]: Translated 400 sents for fr-en
+2025-05-04 14:19:04 - [🏁]: Task took 0.74s
+2025-05-04 14:19:15 - [🚀]: Selected task for opus-100 - gpt
+2025-05-04 14:19:15 - [🏁]: Starting task 2de214c6-57e6-493b-a7ec-295c35d4b46c on commit 7498a71
+2025-05-04 14:19:15 - [⚠️]: Error MockError
+2025-05-04 14:19:15 - Traceback:
+Traceback (most recent call last):
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\task.py", line 173, in run
+    mt_sents = self.client.translate_and_store_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 54, in translate_and_store_document
+    out_text = self.translate_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 271, in translate_document
+    out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 253, in encrypt
+    raise (Exception(f'MockError'))
+Exception: MockError
+2025-05-04 14:19:15 - [⏲️]: Retrying de-en...
+2025-05-04 14:19:15 - [❌]: Translated 200 sents for de-en but rejected
+2025-05-04 14:19:15 - [⏲️]: Retrying de-en...
+2025-05-04 14:19:15 - [✔️]: Translated 400 sents for de-en
+2025-05-04 14:19:15 - [✔️]: Translated 400 sents for en-de
+2025-05-04 14:19:15 - [✔️]: Translated 400 sents for da-en
+2025-05-04 14:19:15 - [✔️]: Translated 400 sents for en-da
+2025-05-04 14:19:16 - [✔️]: Translated 400 sents for el-en
+2025-05-04 14:19:16 - [✔️]: Translated 400 sents for en-el
+2025-05-04 14:19:16 - [✔️]: Translated 400 sents for pt-en
+2025-05-04 14:19:16 - [✔️]: Translated 400 sents for en-pt
+2025-05-04 14:19:16 - [✔️]: Translated 400 sents for sv-en
+2025-05-04 14:19:16 - [✔️]: Translated 400 sents for en-sv
+2025-05-04 14:19:17 - [✔️]: Translated 400 sents for es-en
+2025-05-04 14:19:17 - [✔️]: Translated 400 sents for en-es
+2025-05-04 14:19:17 - [✔️]: Translated 400 sents for fi-en
+2025-05-04 14:19:17 - [✔️]: Translated 400 sents for en-fi
+2025-05-04 14:19:17 - [✔️]: Translated 400 sents for fr-en
+2025-05-04 14:19:18 - [✔️]: Translated 400 sents for en-fr
+2025-05-04 14:19:18 - [✔️]: Translated 400 sents for it-en
+2025-05-04 14:19:18 - [✔️]: Translated 400 sents for en-it
+2025-05-04 14:19:18 - [✔️]: Translated 400 sents for nl-en
+2025-05-04 14:19:18 - [✔️]: Translated 400 sents for en-nl
+2025-05-04 14:19:18 - [🏁]: Task took 3.86s
+2025-05-04 14:19:19 - [🏁]: Starting task 8f1e479a-cd7a-4954-9e2b-634b2a572ad2 on commit 7498a71
+2025-05-04 14:19:19 - [✔️]: Translated 400 sents for en-de
+2025-05-04 14:19:19 - [❌]: Translated 200 sents for en-fr but rejected
+2025-05-04 14:19:19 - [⏲️]: Retrying en-fr...
+2025-05-04 14:19:19 - [❌]: Translated 200 sents for en-fr but rejected
+2025-05-04 14:19:19 - [⏲️]: Retrying en-fr...
+2025-05-04 14:19:19 - [❌]: Translated 200 sents for en-fr but rejected
+2025-05-04 14:19:19 - [⏩]: Failed 2 times, skipping en-fr...
+2025-05-04 14:19:19 - [✔️]: Translated 400 sents for de-en
+2025-05-04 14:19:20 - [⚠️]: Error MockError
+2025-05-04 14:19:20 - Traceback:
+Traceback (most recent call last):
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\task.py", line 173, in run
+    mt_sents = self.client.translate_and_store_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 54, in translate_and_store_document
+    out_text = self.translate_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 271, in translate_document
+    out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 249, in encrypt
+    raise (Exception(f'MockError'))
+Exception: MockError
+2025-05-04 14:19:20 - [⏲️]: Retrying fr-en...
+2025-05-04 14:19:20 - [⚠️]: Error MockError
+2025-05-04 14:19:20 - Traceback:
+Traceback (most recent call last):
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\task.py", line 173, in run
+    mt_sents = self.client.translate_and_store_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 54, in translate_and_store_document
+    out_text = self.translate_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 271, in translate_document
+    out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 249, in encrypt
+    raise (Exception(f'MockError'))
+Exception: MockError
+2025-05-04 14:19:20 - [⏲️]: Retrying fr-en...
+2025-05-04 14:19:20 - [⚠️]: Error MockError
+2025-05-04 14:19:20 - Traceback:
+Traceback (most recent call last):
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\task.py", line 173, in run
+    mt_sents = self.client.translate_and_store_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 54, in translate_and_store_document
+    out_text = self.translate_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 271, in translate_document
+    out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 249, in encrypt
+    raise (Exception(f'MockError'))
+Exception: MockError
+2025-05-04 14:19:20 - [⏩]: Failed 2 times, skipping fr-en...
+2025-05-04 14:19:20 - [🏁]: Task took 1.28s
+2025-05-04 14:19:20 - [🏁]: Starting task c989a522-3db7-4442-9610-96f32722412c on commit 7498a71
+2025-05-04 14:19:20 - [✔️]: Translated 400 sents for en-fr
+2025-05-04 14:19:20 - [✔️]: Translated 400 sents for de-en
+2025-05-04 14:19:20 - [✔️]: Translated 400 sents for fr-en
+2025-05-04 14:19:20 - [🏁]: Task took 0.30s
+2025-05-04 14:19:45 - [🚀]: Selected task for opus-100 - gpt
+2025-05-04 14:19:45 - [🏁]: Starting task c0c71680-a456-43f5-8a1f-e93c3d3a4e06 on commit 7498a71
+2025-05-04 14:19:45 - [⚠️]: Error MockError
+2025-05-04 14:19:45 - Traceback:
+Traceback (most recent call last):
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\task.py", line 173, in run
+    mt_sents = self.client.translate_and_store_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 54, in translate_and_store_document
+    out_text = self.translate_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 271, in translate_document
+    out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 253, in encrypt
+    raise (Exception(f'MockError'))
+Exception: MockError
+2025-05-04 14:19:45 - [⏲️]: Retrying de-en...
+2025-05-04 14:19:45 - [❌]: Translated 200 sents for de-en but rejected
+2025-05-04 14:19:45 - [⏲️]: Retrying de-en...
+2025-05-04 14:19:45 - [✔️]: Translated 400 sents for de-en
+2025-05-04 14:19:46 - [✔️]: Translated 400 sents for en-de
+2025-05-04 14:19:46 - [✔️]: Translated 400 sents for da-en
+2025-05-04 14:19:46 - [✔️]: Translated 400 sents for en-da
+2025-05-04 14:19:46 - [✔️]: Translated 400 sents for el-en
+2025-05-04 14:19:46 - [✔️]: Translated 400 sents for en-el
+2025-05-04 14:19:46 - [✔️]: Translated 400 sents for pt-en
+2025-05-04 14:19:47 - [✔️]: Translated 400 sents for en-pt
+2025-05-04 14:19:47 - [✔️]: Translated 400 sents for sv-en
+2025-05-04 14:19:47 - [✔️]: Translated 400 sents for en-sv
+2025-05-04 14:19:47 - [✔️]: Translated 400 sents for es-en
+2025-05-04 14:19:47 - [✔️]: Translated 400 sents for en-es
+2025-05-04 14:19:47 - [✔️]: Translated 400 sents for fi-en
+2025-05-04 14:19:48 - [✔️]: Translated 400 sents for en-fi
+2025-05-04 14:19:48 - [✔️]: Translated 400 sents for fr-en
+2025-05-04 14:19:48 - [✔️]: Translated 400 sents for en-fr
+2025-05-04 14:19:48 - [✔️]: Translated 400 sents for it-en
+2025-05-04 14:19:48 - [✔️]: Translated 400 sents for en-it
+2025-05-04 14:19:49 - [✔️]: Translated 400 sents for nl-en
+2025-05-04 14:19:49 - [✔️]: Translated 400 sents for en-nl
+2025-05-04 14:19:49 - [🏁]: Task took 3.70s
+2025-05-04 14:19:49 - [🏁]: Starting task fbe7fdcc-3e32-4833-8212-bf1b21643eec on commit 7498a71
+2025-05-04 14:19:49 - [✔️]: Translated 400 sents for en-de
+2025-05-04 14:19:49 - [❌]: Translated 200 sents for en-fr but rejected
+2025-05-04 14:19:49 - [⏲️]: Retrying en-fr...
+2025-05-04 14:19:50 - [❌]: Translated 200 sents for en-fr but rejected
+2025-05-04 14:19:50 - [⏲️]: Retrying en-fr...
+2025-05-04 14:19:50 - [❌]: Translated 200 sents for en-fr but rejected
+2025-05-04 14:19:50 - [⏩]: Failed 2 times, skipping en-fr...
+2025-05-04 14:19:50 - [✔️]: Translated 400 sents for de-en
+2025-05-04 14:19:50 - [⚠️]: Error MockError
+2025-05-04 14:19:50 - Traceback:
+Traceback (most recent call last):
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\task.py", line 173, in run
+    mt_sents = self.client.translate_and_store_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 54, in translate_and_store_document
+    out_text = self.translate_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 271, in translate_document
+    out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 249, in encrypt
+    raise (Exception(f'MockError'))
+Exception: MockError
+2025-05-04 14:19:50 - [⏲️]: Retrying fr-en...
+2025-05-04 14:19:50 - [⚠️]: Error MockError
+2025-05-04 14:19:50 - Traceback:
+Traceback (most recent call last):
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\task.py", line 173, in run
+    mt_sents = self.client.translate_and_store_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 54, in translate_and_store_document
+    out_text = self.translate_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 271, in translate_document
+    out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 249, in encrypt
+    raise (Exception(f'MockError'))
+Exception: MockError
+2025-05-04 14:19:50 - [⏲️]: Retrying fr-en...
+2025-05-04 14:19:50 - [⚠️]: Error MockError
+2025-05-04 14:19:50 - Traceback:
+Traceback (most recent call last):
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\task.py", line 173, in run
+    mt_sents = self.client.translate_and_store_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 54, in translate_and_store_document
+    out_text = self.translate_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 271, in translate_document
+    out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 249, in encrypt
+    raise (Exception(f'MockError'))
+Exception: MockError
+2025-05-04 14:19:50 - [⏩]: Failed 2 times, skipping fr-en...
+2025-05-04 14:19:50 - [🏁]: Task took 1.16s
+2025-05-04 14:19:50 - [🏁]: Starting task d2fe5082-9b6a-4ea0-a0ec-c9d0cacad49f on commit 7498a71
+2025-05-04 14:19:50 - [✔️]: Translated 400 sents for en-fr
+2025-05-04 14:19:51 - [✔️]: Translated 400 sents for de-en
+2025-05-04 14:19:51 - [✔️]: Translated 400 sents for fr-en
+2025-05-04 14:19:51 - [🏁]: Task took 0.73s
+2025-05-04 14:20:23 - [🚀]: Selected task for opus-100 - gpt
+2025-05-04 14:20:23 - [🏁]: Starting task a9d64ae5-f2f7-4137-8bde-9e313f41600a on commit 7498a71
+2025-05-04 14:20:23 - [⚠️]: Error MockError
+2025-05-04 14:20:23 - Traceback:
+Traceback (most recent call last):
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\task.py", line 173, in run
+    mt_sents = self.client.translate_and_store_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 54, in translate_and_store_document
+    out_text = self.translate_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 271, in translate_document
+    out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 253, in encrypt
+    raise (Exception(f'MockError'))
+Exception: MockError
+2025-05-04 14:20:23 - [⏲️]: Retrying de-en...
+2025-05-04 14:20:23 - [❌]: Translated 200 sents for de-en but rejected
+2025-05-04 14:20:23 - [⏲️]: Retrying de-en...
+2025-05-04 14:20:23 - [✔️]: Translated 400 sents for de-en
+2025-05-04 14:20:23 - [✔️]: Translated 400 sents for en-de
+2025-05-04 14:20:24 - [✔️]: Translated 400 sents for da-en
+2025-05-04 14:20:24 - [✔️]: Translated 400 sents for en-da
+2025-05-04 14:20:24 - [✔️]: Translated 400 sents for el-en
+2025-05-04 14:20:24 - [✔️]: Translated 400 sents for en-el
+2025-05-04 14:20:24 - [✔️]: Translated 400 sents for pt-en
+2025-05-04 14:20:24 - [✔️]: Translated 400 sents for en-pt
+2025-05-04 14:20:25 - [✔️]: Translated 400 sents for sv-en
+2025-05-04 14:20:25 - [✔️]: Translated 400 sents for en-sv
+2025-05-04 14:20:25 - [✔️]: Translated 400 sents for es-en
+2025-05-04 14:20:25 - [✔️]: Translated 400 sents for en-es
+2025-05-04 14:20:25 - [✔️]: Translated 400 sents for fi-en
+2025-05-04 14:20:25 - [✔️]: Translated 400 sents for en-fi
+2025-05-04 14:20:26 - [✔️]: Translated 400 sents for fr-en
+2025-05-04 14:20:26 - [✔️]: Translated 400 sents for en-fr
+2025-05-04 14:20:26 - [✔️]: Translated 400 sents for it-en
+2025-05-04 14:20:26 - [✔️]: Translated 400 sents for en-it
+2025-05-04 14:20:26 - [✔️]: Translated 400 sents for nl-en
+2025-05-04 14:20:27 - [✔️]: Translated 400 sents for en-nl
+2025-05-04 14:20:27 - [🏁]: Task took 3.83s
+2025-05-04 14:20:27 - [🏁]: Starting task ac94274a-2187-40cc-84dc-aaeb16d0d2b2 on commit 7498a71
+2025-05-04 14:20:27 - [✔️]: Translated 400 sents for en-de
+2025-05-04 14:20:27 - [❌]: Translated 200 sents for en-fr but rejected
+2025-05-04 14:20:27 - [⏲️]: Retrying en-fr...
+2025-05-04 14:20:27 - [❌]: Translated 200 sents for en-fr but rejected
+2025-05-04 14:20:27 - [⏲️]: Retrying en-fr...
+2025-05-04 14:20:28 - [❌]: Translated 200 sents for en-fr but rejected
+2025-05-04 14:20:28 - [⏩]: Failed 2 times, skipping en-fr...
+2025-05-04 14:20:28 - [✔️]: Translated 400 sents for de-en
+2025-05-04 14:20:28 - [⚠️]: Error MockError
+2025-05-04 14:20:28 - Traceback:
+Traceback (most recent call last):
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\task.py", line 173, in run
+    mt_sents = self.client.translate_and_store_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 54, in translate_and_store_document
+    out_text = self.translate_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 271, in translate_document
+    out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 249, in encrypt
+    raise (Exception(f'MockError'))
+Exception: MockError
+2025-05-04 14:20:28 - [⏲️]: Retrying fr-en...
+2025-05-04 14:20:28 - [⚠️]: Error MockError
+2025-05-04 14:20:28 - Traceback:
+Traceback (most recent call last):
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\task.py", line 173, in run
+    mt_sents = self.client.translate_and_store_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 54, in translate_and_store_document
+    out_text = self.translate_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 271, in translate_document
+    out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 249, in encrypt
+    raise (Exception(f'MockError'))
+Exception: MockError
+2025-05-04 14:20:28 - [⏲️]: Retrying fr-en...
+2025-05-04 14:20:28 - [⚠️]: Error MockError
+2025-05-04 14:20:28 - Traceback:
+Traceback (most recent call last):
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\task.py", line 173, in run
+    mt_sents = self.client.translate_and_store_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 54, in translate_and_store_document
+    out_text = self.translate_document(
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 271, in translate_document
+    out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Files\UZH\Semester_6\BA_Thesis\BA_Repo\scripts\translators.py", line 249, in encrypt
+    raise (Exception(f'MockError'))
+Exception: MockError
+2025-05-04 14:20:28 - [⏩]: Failed 2 times, skipping fr-en...
+2025-05-04 14:20:28 - [🏁]: Task took 1.18s
+2025-05-04 14:20:28 - [🏁]: Starting task 098737dc-e303-41b4-96db-79c7ea75045a on commit 7498a71
+2025-05-04 14:20:28 - [✔️]: Translated 400 sents for en-fr
+2025-05-04 14:20:29 - [✔️]: Translated 400 sents for de-en
+2025-05-04 14:20:29 - [✔️]: Translated 400 sents for fr-en
+2025-05-04 14:20:29 - [🏁]: Task took 0.83s
