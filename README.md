@@ -106,25 +106,32 @@ for pair in pairs:
 * `task.py` implements translators and data managers to formulate translation tasks
 * A translation task is defined as the translation of a set of pairs $P$ from a dataset $d$ using a translator $t$, more formally we:
 
-* Define a set of languages as $L = \{de, fr, da, el, es, pt, nl, sv, en, it, fi\}$
-* $P \subseteq \{(x,y)|x\in L, y\in L, x\neq y\}$ 
-* $d \in \{EuroParl, FloresPlus, \textit{Opus100}\}$
-* $t \in \{DeepL, \textit{GPT4.1\}}$
+* Define a set of languages as `L = {de, fr, da, el, es, pt, nl, sv, en, it, fi}`
+* `P ⊆ {(x, y) | x ∈ L, y ∈ L, x ≠ y}`
+* `d ∈ {EuroParl, FloresPlus, Opus100}`
+* `t ∈ {DeepL, GPT4.1}`
+* Then a task `(P, d, t)` mean: *Translate all pairs in $P$ using sentences from $d$ with $t$*
 
 * In addition to this, we can define 
     * how many sentences we want to translate
     * how often we allow to call the API again 
     * what conditions we consider to accept or reject translations in terms of number of translated sentences
+    * if the task is a manual retry task or not (in case a prior task failed to deliever desirable translations despite automatic retry and we have to run it again manually)
 
 ## Procedure
 * `procedure.py` just allows transparent use of `task.py` by creating the tasks for the selected procedure and allowing the user to run the task with CLI interface or Jupyter Notebook. It also accounts for loggings.
 * An example of a procedure could be:
-    * $P=\{(x,y)|x\in L, y\in L, x=en \lor y=en\}$
-    * $D=\{EuroParl, \textit{Opus100}\}$
-    * $T=\{\textit{GPT4.1}\}$
+    * `P = {(x, y) | x ∈ L, y ∈ L, x = en ∨ y = en}`
+    * `D = {EuroParl, Opus100}`
+    * `T = {GPT4.1}`
 
 * *TL;DR*: Translate all pairs that include English as src or tgt using GPT4.1 using text from the EuroParl and Opus100 datasets.
-    * This would amount to 2 tasks, since we have 2 datasets but only 1 translator. The respective procedure script would thus allow the user to execute only two commands to run these tasks. 
+    * The procedure defines two tasks: `(P, EuroParl, GPT4.1)` and `(P, Opus100, GPT4.1)`   
+    * Thus there will be only two cli commands the user can run to run these tasks
+        ```sh
+        python proc.py run --model gpt-4.1 --dataset europarl
+        python proc.py run --model gpt-4.1 --dataset opus100
+        ```	
 
 ## Util
 * Contains utility functions used for various purposes
