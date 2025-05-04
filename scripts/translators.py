@@ -26,6 +26,49 @@ class TranslationClient(ABC):
         '''
         pass
 
+
+    def translate_and_store_document(self, text: list[str], src_lang: str, tgt_lang: str, mt_folder: str | None = None) -> list[str] | None:
+        '''
+        This method returns translations but also stores them in the specified folder
+        If run again by accident, will not call API if the translation is detected in the specified folder
+
+        Args:
+            text: A list of strings (sentences)
+            src_lang: ISO code of source language
+            tgt_lang: ISO code of target language
+            client: A client that has a translate_document method specified by TranslationClient abstract class
+            mt_folder: Path to a folder where translations should be stored
+
+        Returns:
+            A list of translated strings (sentences), will ideally contain the same number of strings as input
+        '''
+        if mt_folder is None:
+            return self.translate_document(
+                text=text,
+                src_lang=src_lang,
+                tgt_lang=tgt_lang
+            )
+
+        out_file = join(mt_folder, f'{src_lang}-{tgt_lang}.txt')
+        if not exists(out_file):
+            out_text = self.translate_document(
+                text=text,
+                src_lang=src_lang,
+                tgt_lang=tgt_lang
+            )
+            store_sents(
+                sents=out_text,
+                folder_path=mt_folder,
+                src_lang=src_lang,
+                tgt_lang=tgt_lang
+            )
+            return out_text
+        else:
+            print(
+                f'Pair {src_lang}-{tgt_lang} has been translated already.')
+            return load_sents(mt_folder, src_lang, tgt_lang)
+
+
 class DeeplClient(TranslationClient):
     TGT_LANGS = {
         # Account for special target language codes
@@ -187,50 +230,6 @@ class GPTClient(TranslationClient):
         user_prompt = self.user_prompt(src_lang, tgt_lang, in_text)
         trans_text = self.chat_complete(sys_prompt, user_prompt)
         return trans_text.splitlines()
-
-
-def translate_document(text: list[str], src_lang: str, tgt_lang: str, client: TranslationClient, mt_folder: str | None = None) -> list[str] | None:
-    '''
-    Main translation function
-    This function returns translations but also stores them in the specified folder
-    If run again by accident, will not call API if the translation is detected in the specified folder
-
-    Args:
-        text: A list of strings (sentences)
-        src_lang: ISO code of source language
-        tgt_lang: ISO code of target language
-        client: A client that has a translate_document method specified by TranslationClient abstract class
-        mt_folder: Path to a folder where translations should be stored
-
-    Returns:
-        A list of translated strings (sentences), will ideally contain the same number of strings as input
-    '''
-    if mt_folder is None:
-        return client.translate_document(
-            text=text,
-            src_lang=src_lang,
-            tgt_lang=tgt_lang
-        )
-
-    out_file = join(mt_folder, f'{src_lang}-{tgt_lang}.txt')
-    if not exists(out_file):
-        out_text = client.translate_document(
-            text=text,
-            src_lang=src_lang,
-            tgt_lang=tgt_lang
-        )
-        store_sents(
-            sents=out_text,
-            folder_path=mt_folder,
-            src_lang=src_lang,
-            tgt_lang=tgt_lang
-        )
-        return out_text
-    else:
-        print(
-            f'Document for pair {src_lang}-{tgt_lang} has been translated already.')
-        return load_sents(mt_folder, src_lang, tgt_lang)
-
 
 class MockClient(TranslationClient):
     def __init__(self, logger=None, model='mock', planned_fails=[], planned_errors=[], scenario=[]):

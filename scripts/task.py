@@ -1,4 +1,4 @@
-from scripts.translators import translate_document, TranslationClient
+from scripts.translators import TranslationClient
 from scripts.data_management import DataManager
 from scripts.util import load_sents, split_sents, get_git_revision_short_hash, get_local_timestamp
 from scripts.logger import MyLogger
@@ -161,12 +161,11 @@ class TranslationTask:
                 self.logger.add_manual_retry_info(pair)
 
             try:
-                mt_sents = translate_document(
+                mt_sents = self.client.translate_and_store_document(
                     text=src_sents,
                     src_lang=src_lang,
                     tgt_lang=tgt_lang,
                     mt_folder=self.store,
-                    client=self.client
                 )
 
                 if self.accept_output(mt_sents, tgt_lang):
