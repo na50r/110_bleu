@@ -1,55 +1,43 @@
-from process import main, proc_parser, Process
+from scripts.procedure import main, proc_parser, Process, logging_config
 from os.path import join
 from scripts.data_management import EuroParlManager, Opus100Manager, FloresPlusManager
 from scripts.task import TranslationTask
-from scripts.logger import MyLogger
-from test_task_and_logger import MockClient
-import sys
-import logging
-
-# Based on https://stackoverflow.com/a/40909549
-level = logging.INFO
-format = '  %(message)s'
-handlers = [logging.FileHandler('phase0.log'), logging.StreamHandler()]
-logging.basicConfig(level=level, format=format, handlers=handlers)
+from scripts.logger import TranslationLogger
+from scripts.translators import GPTClient, DeeplClient
+logging_config('proc1.log')
 
 
-class Phase0(Process):
+class ProcX(Process):
     def __init__(self):
         # Define all English including pairs
-        langs = Opus100Manager.EURO_ISO_2_PAIR.keys()
-        possible = [tuple((lang, 'en')) for lang in sorted(langs)]
-        extended = [(pair[1], pair[0]) for pair in possible]
-        possible.extend(extended)
-        en_pairs = possible
-
+        en_pairs = Opus100Manager.get_pairs()
         # Define folder hierarchy of where translations should be stored
-        main_folder = 'tmp'
-        sub_folder = join(main_folder, 'phase0')
+        main_folder = 'tasks'
+        sub_folder = join(main_folder, 'proc1')
 
         # Define the data managers and folders for translation storage
         dms = [EuroParlManager(), FloresPlusManager(), Opus100Manager()]
-        self.dm_ids = [dm.name.split('/')[-1] for dm in dms]
+        self.dm_ids = [dm.short_name for dm in dm]
         dm_folders = [join(sub_folder, dm_id) for dm_id in self.dm_ids]
         self.tasks = {dm_id: {} for dm_id in self.dm_ids}
 
         # Define the clients and logger
-        logger = MyLogger(logfile=join(main_folder, 'phase0.jsonl'))
+        logger = TranslationLogger(logfile=join(main_folder, 'proc1.jsonl'))
 
-        cli_gpt = MockClient(logger=logger, model='gpt', planned_errors=[('de', 'en')], planned_fails=[('de', 'en')])
-        cli_deepl = MockClient(logger=logger, model='deepl')
+        cli_gpt = GPTClient(logger=logger)
+        cli_deepl = DeeplClient(logger=logger)
         clients = [cli_gpt, cli_deepl]
         self.model_ids = [cli.model for cli in clients]
 
         # Check if we have 20 pairs
         assert len(en_pairs) == 20
-        
+
         # Create tasks
         num_of_tasks = 0
         for dm, folder, dm_id in zip(dms, dm_folders, self.dm_ids):
             for client in clients:
                 task = TranslationTask(
-                    target_pairs=en_pairs,
+                    target_pairs=[en_pairs[0], en_pairs[1]],
                     dm=dm,
                     client=client,
                     logger=logger,
@@ -64,5 +52,9 @@ class Phase0(Process):
 
 
 if __name__ == '__main__':
-    desc = 'Phase 0 Task Manager (Testing Purposes)'
-    main(parser=proc_parser(desc=desc), proc=Phase0())
+    desc = '''Procedure 1 Task Manager
+    Compute translations from and into English for 10 European languages accross 3 Corpora and 2 Translators
+    Implements 6 Tasks distinguished by Dataset and Translator
+    Number of Input sentences: 400, within acceptable range of 360-480 sentences
+    '''
+    main(parser=proc_parser(desc=desc), proc=ProcX())
