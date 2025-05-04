@@ -1,6 +1,6 @@
 from os.path import exists, join
 from scripts.util import get_env_variables, store_sents, load_sents, LANG_ISO
-from scripts.logger import MyLogger
+from scripts.logger import TranslationLogger
 from io import BytesIO
 from abc import ABC, abstractmethod
 from deepl import DeepLClient
@@ -76,7 +76,7 @@ class DeeplClient(TranslationClient):
         'pt': 'PT-PT'
     }
 
-    def __init__(self,  logger: MyLogger | None = None):
+    def __init__(self,  logger: TranslationLogger | None = None):
         api_key = get_env_variables('DEEPL_API_KEY')
         self.client = DeepLClient(auth_key=api_key)
         self.logger = logger
@@ -94,8 +94,7 @@ class DeeplClient(TranslationClient):
             self.logger.start(
                 src_lang=src_lang,
                 tgt_lang=tgt_lang,
-                src_text=in_text,
-                translator=self.model
+                src_text=in_text
             )
 
         resp = self.client.translate_document(
@@ -136,7 +135,7 @@ class GPTClient(TranslationClient):
     HYPER_PARAMS = {'temperature': 0}
 
     def __init__(self, model: str = 'gpt-4.1-2025-04-14',
-                 logger: MyLogger | None = None,
+                 logger: TranslationLogger | None = None,
                  sys_templ: Template | str | None = SYS_TEMPL,
                  usr_templ: Template | str | None = USR_TEMPL,
                  hyper_params : dict[str, Any] = HYPER_PARAMS
@@ -223,8 +222,7 @@ class GPTClient(TranslationClient):
             self.logger.start(
                 src_text=in_text,
                 src_lang=src_lang,
-                tgt_lang=tgt_lang,
-                translator=self.model)
+                tgt_lang=tgt_lang)
 
         sys_prompt = self.sys_prompt(src_lang, tgt_lang)
         user_prompt = self.user_prompt(src_lang, tgt_lang, in_text)
@@ -269,9 +267,7 @@ class MockClient(TranslationClient):
             self.logger.start(
                 src_lang=src_lang,
                 tgt_lang=tgt_lang,
-                src_text=in_text,
-                translator=self.model,
-            )
+                src_text=in_text)
         out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
 
         if (len(self.scenario) > 0 and self.scenario[self.current] == 1) or (src_lang, tgt_lang) in self.planned_fails:
