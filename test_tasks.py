@@ -146,6 +146,14 @@ SCENARIOS = {
         'logs': 4,
         'verdicts': ['accepted', 'rejected', 'accepted', 'rejected'],
         'max_retries': 2
+    },
+    'C': {
+        'dm': Opus100Manager,
+        'pairs': get_sample_pairs(Opus100Manager, k=5),
+        'scenario': [0, 1, 1, 1, 0, 2, 2, 2, 0],
+        'logs': 6,
+        'verdicts': ['accepted', 'rejected', 'rejected', 'rejected', 'accepted', 'accepted'],
+        'max_retries': 3
     }
 }
 
@@ -197,6 +205,33 @@ def test_logging_with_scenario_B():
     assert [log['verdict'] for log in log_data] == SCENARIOS['B']['verdicts']
 
 
+def test_logging_with_scenario_C_and_file_cnt():
+    test_folder = 'tmp_test'
+    dm = SCENARIOS['C']['dm']()
+    pairs = SCENARIOS['C']['pairs']
+    logfile = StringIO()
+    logger = TranslationLogger(logfile=logfile)
+    cli = MockClient(logger=logger, scenario=SCENARIOS['C']['scenario'])
+    task = TranslationTask(
+        target_pairs=pairs,
+        dm=dm,
+        client=cli,
+        logger=logger,
+        mt_folder=test_folder,
+        num_of_sents=400,
+        max_retries=SCENARIOS['C']['max_retries'],
+        retry_delay=0
+    )
+    setup(test_folder)
+    silent_task_run(task.run)
+    files = [f for f in os.listdir(test_folder) if f != 'task.json']
+    assert len(files) == SCENARIOS['C']['logs']
+    log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
+    assert len(log_data) == SCENARIOS['C']['logs']
+    assert [log['verdict'] for log in log_data] == SCENARIOS['C']['verdicts']
+    teardown(test_folder)
+
+
 def test_logging_with_manual_retry():
     test_folder = 'tmp_test'
     dm = Opus100Manager()
@@ -214,17 +249,18 @@ def test_logging_with_manual_retry():
         max_retries=1,
         retry_delay=0
     )
-    
+
     setup_and_teardown(test_folder, lambda: silent_task_run(task1.run))
     log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
     assert len(log_data) == 4
     logA = log_data[0]
     logB = log_data[-1]
-    
+
     retry_pairs = [pairs[0], pairs[-1]]
     retry_log_ids = [logA['id'], logB['id']]
     retry_reasons = ['BLEU score unnaturally low', 'Returned Src text']
-    retry_log = RetryLog(pairs=retry_pairs, log_ids=retry_log_ids, reasons=retry_reasons)
+    retry_log = RetryLog(
+        pairs=retry_pairs, log_ids=retry_log_ids, reasons=retry_reasons)
     new_logger = TranslationLogger(logfile=logfile, retry_log=retry_log)
     cli = MockClient(logger=new_logger)
     task2 = TranslationTask(
@@ -243,6 +279,9 @@ def test_logging_with_manual_retry():
     assert len(log_data) == 6
     assert [log['manual_retry']['reason']
             for log in log_data[-2:]] == retry_reasons
-    assert [log['manual_retry']['prev_id'] for log in log_data[-2:]] == retry_log_ids
-    assert [log['src_lang'] for log in log_data[-2:]] == [p[0] for p in retry_pairs]
-    assert [log['tgt_lang'] for log in log_data[-2:]] == [p[1] for p in retry_pairs]
+    assert [log['manual_retry']['prev_id']
+            for log in log_data[-2:]] == retry_log_ids
+    assert [log['src_lang'] for log in log_data[-2:]] == [p[0]
+                                                          for p in retry_pairs]
+    assert [log['tgt_lang'] for log in log_data[-2:]] == [p[1]
+                                                          for p in retry_pairs]
