@@ -3,7 +3,7 @@ from os.path import join
 from scripts.data_management import EuroParlManager, Opus100Manager, FloresPlusManager
 from scripts.task import TranslationTask
 from scripts.logger import TranslationLogger
-from test_task_and_logger import MockClient
+from test_tasks import MockClient
 
 logging_config('proc0.log')
 
@@ -53,5 +53,5 @@ class Proc0(Process):
 
 
 if __name__ == '__main__':
-    desc = 'Phase 0 Task Manager (Testing Purposes)'
+    desc = 'Procedure 0 Task Manager (Testing Purposes)'
     main(parser=proc_parser(desc=desc), proc=Proc0())
