@@ -18,9 +18,10 @@ class TranslationTask:
     This class is used to run the translation task in batches. 
     Selection of language pairs, dataset, number of sentences and translator are the main configurable arguments.
     It is not possible to run tasks involving multiple datasets or multiple translators with this implementation.
-    Error handling and rejection of insufficient or potentially malformed output is also handled.
+    Error handling and rejection of insufficient or potentially malformed output is handled.
     In such cases, the API is called again automatically after specified delay for a specified number of times.
     '''
+
     def __init__(self, target_pairs: list[tuple[str, str]],
                  dm: DataManager,
                  client: TranslationClient,
@@ -65,7 +66,7 @@ class TranslationTask:
 
         self._retries = -1
         self._retry_pair = None
-        self._failure = defaultdict(int)
+        self._fail_count = defaultdict(int)
         self._task_duration = None
         self._counter = 0
 
@@ -118,12 +119,12 @@ class TranslationTask:
 
     def mark_failure(self, pair: tuple[str, str]):
         '''
-        Renames files stored by translate_document for a given pair. to avoid file conflicts when retrying.
+        Renames files stored by translate_and_store_document for a given pair, to avoid file conflicts when retrying.
         '''
-        self._failure[pair] += 1
+        self._fail_count[pair] += 1
         filename = join(self.store, f'{pair[0]}-{pair[1]}.txt')
         new_filename = join(
-            self.store, f'{pair[0]}-{pair[1]}_fail{self._failure[pair]}.txt')
+            self.store, f'{pair[0]}-{pair[1]}_fail{self._fail_count[pair]}.txt')
         if exists(filename):
             os.rename(filename, new_filename)
 
@@ -134,7 +135,7 @@ class TranslationTask:
         task_info = self.get_task_info()
         task_info['duration'] = self.duration
         with open(join(self.store, 'task.json'), 'w') as f:
-            print(json.dumps(task_info), file=f)
+            json.dump(task_info, f, indent=4)
         logging.info(
             f'[🏁]: Task took {self.duration:.2f}s')
 
@@ -164,7 +165,7 @@ class TranslationTask:
                     translator=self.client.model, dataset=self.dm.name)
                 if self.manual_retry:
                     self.tl_logger.add_manual_retry_info(pair)
-                
+
                 if self.accept_output(mt_sents, tgt_lang):
                     logging.info(
                         f'[✔️]: Translated {len(mt_sents)} sents for {src_lang}-{tgt_lang}')

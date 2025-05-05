@@ -240,7 +240,7 @@ class MockClient(TranslationClient):
             self.planned_rejects = []
             self.planned_errors = []
 
-    def encrypt(self, text, key=13, direction=1, error_pair=None):
+    def encrypt(self, text: str, key: int = 13, direction: int = 1, error_pair: tuple[str, str] = None):
         if len(self.scenario) > 0 and self.scenario[self.current] == 2:
             self.current += 1  # an error log will be created in the except statement, so we increment the current translation here
             raise (Exception(f'MockError'))
