@@ -1,4 +1,4 @@
-from scripts.procedure import main, proc_parser, Process, logging_config
+from scripts.procedure import main, proc_parser, Procedure, logging_config
 from os.path import join
 from scripts.data_management import EuroParlManager, Opus100Manager, FloresPlusManager
 from scripts.task import TranslationTask
@@ -7,7 +7,7 @@ from scripts.translators import GPTClient, DeeplClient
 logging_config('proc1.log')
 
 
-class ProcX(Process):
+class ProcX(Procedure):
     def __init__(self):
         # Define all English including pairs
         en_pairs = Opus100Manager.get_pairs()

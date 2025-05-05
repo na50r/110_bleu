@@ -8,6 +8,7 @@ import os
 import shutil
 import json
 
+
 def get_sample_pairs(dm, k=2):
     pairs = dm.get_pairs()
     pairs = sample(pairs, k=k)
@@ -32,6 +33,7 @@ def setup_and_teardown(foldername, func):
     finally:
         teardown(foldername)
 
+
 def test_task():
     test_folder = 'tmp_test'
     dms = [EuroParlManager, Opus100Manager]
@@ -51,13 +53,14 @@ def test_task():
     )
     setup_and_teardown(test_folder, task.run)
 
+
 def test_retry_and_fail_files():
     test_folder = 'tmp_test'
     pairs = get_sample_pairs(Opus100Manager, k=4)
     dm = Opus100Manager()
     logfile = StringIO()
     logger = TranslationLogger(logfile=logfile)
-    cli = MockClient(logger=logger, planned_fails=[
+    cli = MockClient(logger=logger, planned_rejects=[
                      pairs[1], pairs[1], pairs[3]])
     task = TranslationTask(
         target_pairs=pairs,
@@ -219,7 +222,7 @@ def test_logging_with_manual_retry():
     pairs = get_sample_pairs(Opus100Manager, k=4)
     logfile = StringIO()
     logger = TranslationLogger(logfile=logfile)
-    cli = MockClient(logger=logger)
+    cli = MockClient(logger=logger, planned_rejects=[pairs[-1], pairs[-1]])
     task1 = TranslationTask(
         target_pairs=pairs,
         dm=dm,
@@ -233,13 +236,15 @@ def test_logging_with_manual_retry():
 
     setup_and_teardown(test_folder, task1.run)
     log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
-    assert len(log_data) == 4
+    # log_data == 5 because pair[-1] has been rejected twice and rejections are logged
+    # thus, 3 successes and 2 rejects = 5 logs
+    assert len(log_data) == 5
     logA = log_data[0]
     logB = log_data[-1]
 
     retry_pairs = [pairs[0], pairs[-1]]
     retry_log_ids = [logA['id'], logB['id']]
-    retry_reasons = ['BLEU score unnaturally low', 'Returned Src text']
+    retry_reasons = ['returned src text', 'no accepted translation yet']
     retry_log = RetryLog(
         pairs=retry_pairs, log_ids=retry_log_ids, reasons=retry_reasons)
     new_logger = TranslationLogger(logfile=logfile, retry_log=retry_log)
@@ -257,7 +262,7 @@ def test_logging_with_manual_retry():
     )
     setup_and_teardown(test_folder, task2.run)
     log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
-    assert len(log_data) == 6
+    assert len(log_data) == 7
     assert [log['manual_retry']['reason']
             for log in log_data[-2:]] == retry_reasons
     assert [log['manual_retry']['prev_id']

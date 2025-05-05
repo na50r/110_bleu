@@ -1,4 +1,4 @@
-from scripts.procedure import main, proc_parser, logging_config, Process
+from scripts.procedure import main, proc_parser, logging_config, Procedure
 from os.path import join
 from scripts.data_management import EuroParlManager, Opus100Manager, FloresPlusManager
 from scripts.task import TranslationTask
@@ -7,7 +7,7 @@ from test_tasks import MockClient
 
 logging_config('proc0.log')
 
-class Proc0(Process):
+class Proc0(Procedure):
     def __init__(self):
         # Define all English including pairs
         en_pairs = Opus100Manager.get_pairs()
@@ -25,7 +25,7 @@ class Proc0(Process):
         # Define the clients and logger
         logger = TranslationLogger(logfile=join(main_folder, 'proc0.jsonl'))
 
-        cli_gpt = MockClient(logger=logger, model='gpt', planned_errors=[('de', 'en')], planned_fails=[('de', 'en')])
+        cli_gpt = MockClient(logger=logger, model='gpt', planned_errors=[('de', 'en')], planned_rejects=[('de', 'en')])
         cli_deepl = MockClient(logger=logger, model='deepl')
         clients = [cli_gpt, cli_deepl]
         self.model_ids = [cli.model for cli in clients]
