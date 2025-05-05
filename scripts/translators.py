@@ -122,7 +122,6 @@ class DeeplClient(TranslationClient):
 class GPTClient(TranslationClient):
     # Using Templates for prompt for development purposes
     # Based on: https://stackoverflow.com/questions/11630106/advanced-string-formatting-vs-template-strings
-
     SYS_TEMPL = 'You are a professional translation system.'
 
     USR_TEMPL = Template(
@@ -230,17 +229,28 @@ class GPTClient(TranslationClient):
         return trans_text.splitlines()
 
 class MockClient(TranslationClient):
-    def __init__(self, logger=None, model='mock', planned_fails=[], planned_errors=[], scenario=[]):
+    '''
+    MockClient is a client that can be used for testing purposes. It can be used to simulate errors and rejections.
+    '''
+    def __init__(self, logger=None, model='mock', planned_rejects=[], planned_errors=[], scenario=[]):
+        '''
+        Args:
+            logger: A TranslationLogger that logs translation specific information
+            model: A string that can be used to use to identify the same client as other clients
+            planned_rejects: A list of tuples of source and target language ISO codes that will be rejected
+            planned_errors: A list of tuples of source and target language ISO codes that will raise an error
+            scenario: A list of integers that represents the scenario to be simulated (0: accepted, 1: rejected, 2: error)
+        '''
         self.client = None
         self.logger = logger
         self.model = model
-        self.planned_fails = planned_fails
+        self.planned_rejects = planned_rejects
         self.planned_errors = planned_errors
         self.scenario = scenario
         self.current = 0
 
         if len(self.scenario) > 0:
-            self.planned_fails = []
+            self.planned_rejects = []
             self.planned_errors = []
 
     def encrypt(self, text, key=13, direction=1, error_pair=None):
@@ -260,7 +270,7 @@ class MockClient(TranslationClient):
             ascii_letters, ascii_lowercase[key:] + ascii_lowercase[:key] + ascii_uppercase[key:] + ascii_uppercase[:key])
         return text.translate(trans)
 
-    def translate_document(self, text, src_lang, tgt_lang):
+    def translate_document(self, text: list[str], src_lang: str, tgt_lang: str) -> list[str]:
         in_text = '\n'.join(text)
 
         if self.logger:
@@ -270,15 +280,15 @@ class MockClient(TranslationClient):
                 src_text=in_text)
         out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
 
-        if (len(self.scenario) > 0 and self.scenario[self.current] == 1) or (src_lang, tgt_lang) in self.planned_fails:
+        if (len(self.scenario) > 0 and self.scenario[self.current] == 1) or (src_lang, tgt_lang) in self.planned_rejects:
             tmp = out_text.splitlines()
             tmp = tmp[:round(len(tmp)/2)]
             out_text = '\n'.join(tmp)
-            if (src_lang, tgt_lang) in self.planned_fails:
-                self.planned_fails.remove((src_lang, tgt_lang))
+            if (src_lang, tgt_lang) in self.planned_rejects:
+                self.planned_rejects.remove((src_lang, tgt_lang))
 
         if self.logger:
             self.logger.finish(tgt_text=out_text)
-            # both rejected & accepted translation get the same log, difference only verdict
+            # both rejected & accepted translation get the same log, only verdict differs
             self.current += 1
         return out_text.splitlines()

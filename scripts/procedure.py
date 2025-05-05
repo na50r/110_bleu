@@ -3,7 +3,7 @@ import argparse
 import logging
 
 # Based on https://stackoverflow.com/a/40909549
-# Adjusted with the help of ChatGPT
+# Adjusted with the help of ChatGPT due to unfamiliarity with logging
 def logging_config(logfile='tmp.log'):
     fmt = '%(levelname)s: %(asctime)s - %(message)s'
     datefmt = '%Y-%m-%d %H:%M:%S'
@@ -20,7 +20,7 @@ def logging_config(logfile='tmp.log'):
 
 
 
-class Process:
+class Procedure:
     '''
     Template class for processes.
     A process is simply put running the specified tasks associated with the specified model and dataset.
@@ -48,7 +48,8 @@ class Process:
         print(f"Task details for {dataset} - {model}:")
         task_vars = vars(self.tasks[dataset][model])
         for key, value in task_vars.items():
-            print(f"  {key}: {value}")
+            if not key.startswith('_'):
+                print(f"  {key}: {value}")
 
     def show_options(self):
         print('Available datasets:', self.dm_ids)
@@ -71,10 +72,10 @@ def show_commands():
     print('inputs: Show available datasets and models')
     print('task: Show detailed information about a task')
     print(
-        'task -model $model -dataset $dataset: Show detailed information about a task')
-    print('run -model $model -dataset $dataset: Run a task')
+        'task --model $model --dataset $dataset: Show detailed information about a task')
+    print('run --model $model --dataset $dataset: Run a task')
 
-
+# Adjusted with the help of ChatGPT due to unfamiliarity with argparse
 def proc_parser(desc='Process Template'):
     parser = argparse.ArgumentParser(
         description=desc)
@@ -96,7 +97,7 @@ def proc_parser(desc='Process Template'):
     return parser
 
 
-def main(parser=proc_parser(), proc=Process()):
+def main(parser=proc_parser(), proc=Procedure()):
     args = parser.parse_args()
     if args.command is None:
         show_commands()
