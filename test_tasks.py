@@ -7,7 +7,6 @@ from io import StringIO
 import os
 import shutil
 import json
-import sys
 
 def get_sample_pairs(dm, k=2):
     pairs = dm.get_pairs()

@@ -1,8 +1,10 @@
 # Project
-Inspired by Philip Kohen's BLEU score matrix in [this paper](https://aclanthology.org/2005.mtsummit-papers.11/), we try to recreate a similar matrix by evaluating modern MT systems, namely DeepL and GPT4.1. This requires us to set some rules for ourselves, choose datasets, define configurations for the respective systems and set them in stone before the translation process; so no change of translation, pre-processing or data management related code mid-translation. Mainly because translation costs money. We try to ensure this by keeping this code readable and documenting each translation task automatically, including the commit hash. 
+This repository is accompanying a Bachelor thesis on machine translation evaluation, it contains the code used to obtain translations and evaluate them.
+
+Inspired by the BLEU score matrix shown in Phillip Koehn's [Europarl Statistical Machine Translation paper](https://aclanthology.org/2005.mtsummit-papers.11/), we try to recreate a similar matrix by obtaining translations from two modern machine translation systems, namely DeepL and GPT4.1 and evaluating them. 
 
 **NOTE**:
-This codebase is NOT an API nor a Python Package. Type annotation and docstrings were added merely for readability and intepretability's sake, for project evaluators. The most relevant functions and classes received them, whereas private methods or utility function should be understandable by just reading the code (variable names, see how their used, etc.)
+This codebase is NOT an API nor a Python Package. Type annotation and docstrings were added merely for readability and intepretability's sake, for project evaluators. Only relevant functions/methods and classes received them, whereas private methods or utility function should be understandable by just reading the code (variable names, see how their used, etc.)
 
 ## Installation
 If you want to install it directly, you may use Conda:
@@ -42,16 +44,19 @@ EUROPARL_STORE=
 ```sh
 FLORES_STORE=C:\Files\Storage\Flores
 ```
-Then make sure that Flores folder exists
+Then make sure that this folder exists
 ```sh
 mkdir C:\Files\Storage\Flores
 ```
 
 ## Data Managers
 * Contains dataset wrappers, makes it easier to get sentence pairs from the respective datasets
-* `EuroParlManager` is a wrapper around [Helsinki-NLP/europarl](https://huggingface.co/datasets/Helsinki-NLP/europarl)
-* `FloresPlusManager` is a wrapper around [openlanguagedata/flores_plus](https://huggingface.co/datasets/openlanguagedata/flores_plus)
-* `Opus100Manager` is a wrapper around [Helsinki-NLP/opus-100](https://huggingface.co/datasets/Helsinki-NLP/opus-100)
+* Every DataManager must implement a `get_sentence_pairs` method, how it is implemented can differ based on how the HuggingFace dataset is structured/should be used.
+    * `EuroParlManager` is a wrapper around [Helsinki-NLP/europarl](https://huggingface.co/datasets/Helsinki-NLP/europarl)
+    * `FloresPlusManager` is a wrapper around [openlanguagedata/flores_plus](https://huggingface.co/datasets/openlanguagedata/flores_plus)
+    * `Opus100Manager` is a wrapper around [Helsinki-NLP/opus-100](https://huggingface.co/datasets/Helsinki-NLP/opus-100)
+* **Note:** All datasets support more language pairs than required for this project but here, we restrict ourselves to 110 pairs of the 11 European languages used in Phillip Koehn's paper, namely: English, German, Danish, Greek, Spanish, Portuguese, Dutch, Swedish, French, Italian, Finnish.
+    * The `Opus100Manager` is English-centric, thus only supports a subset of 20 pairs
 
 ### Usage
 * Getting sentence pairs from a dataset:
@@ -110,7 +115,7 @@ for pair in pairs:
 * `P ⊆ {(x, y) | x ∈ L, y ∈ L, x ≠ y}`
 * `d ∈ {EuroParl, FloresPlus, Opus100}`
 * `t ∈ {DeepL, GPT4.1}`
-* Then a task `(P, d, t)` mean: *Translate all pairs in **P** using sentences from **d** with **t***
+* Then a task `(P, d, t)` means: *Translate all pairs in **P** using sentences from **d** with **t***
 
 * In addition to this, we can define 
     * how many sentences we want to translate
@@ -119,7 +124,7 @@ for pair in pairs:
     * if the task is a manual retry task or not (in case a prior task failed to deliever desirable translations despite automatic retry and we have to run it again manually)
 
 ## Procedure
-* `procedure.py` just allows transparent use of `task.py` by creating the tasks for the selected procedure and allowing the user to run the task with CLI interface or Jupyter Notebook. It also accounts for loggings.
+* `procedure.py` just allows transparent use of `task.py` by creating the tasks for the selected procedure and allowing the user to run the task with CLI or Jupyter Notebook. It also accounts for loggings.
 * An example of a procedure could be:
     * `P = {(x, y) | x ∈ L, y ∈ L, x = en ∨ y = en}`
     * `D = {EuroParl, Opus100}`
