@@ -7,6 +7,7 @@ from deepl import DeepLClient
 from openai import OpenAI
 from string import Template, ascii_letters, ascii_uppercase, ascii_lowercase
 from typing import Any
+import logging
 
 
 class TranslationClient(ABC):
@@ -15,19 +16,9 @@ class TranslationClient(ABC):
 
     @abstractmethod
     def translate_document(self, text: list[str], src_lang: str, tgt_lang: str) -> list[str]:
-        '''
-        Args:
-            text: A list of strings (sentences)
-            src_lang: ISO code of source language
-            tgt_lang: ISO code of target language
-
-        Returns:
-            A list of translated strings (sentences), will ideally contain the same number of strings as input
-        '''
         pass
 
-
-    def translate_and_store_document(self, text: list[str], src_lang: str, tgt_lang: str, mt_folder: str | None = None) -> list[str] | None:
+    def translate_and_store_document(self, text: list[str], src_lang: str, tgt_lang: str, mt_folder: str | None = None) -> list[str]:
         '''
         This method returns translations but also stores them in the specified folder
         If run again by accident, will not call API if the translation is detected in the specified folder
@@ -64,8 +55,8 @@ class TranslationClient(ABC):
             )
             return out_text
         else:
-            print(
-                f'Pair {src_lang}-{tgt_lang} has been translated already.')
+            logging.info(
+                f'[ℹ️]: Pair {src_lang}-{tgt_lang} has been translated already.')
             return load_sents(mt_folder, src_lang, tgt_lang)
 
 
@@ -130,14 +121,14 @@ class GPTClient(TranslationClient):
         "You are not allowed to omit anything.\n"
         "Here is the text:\n"
         "$text")
-    
+
     HYPER_PARAMS = {'temperature': 0}
 
     def __init__(self, model: str = 'gpt-4.1-2025-04-14',
                  logger: TranslationLogger | None = None,
                  sys_templ: Template | str | None = SYS_TEMPL,
                  usr_templ: Template | str | None = USR_TEMPL,
-                 hyper_params : dict[str, Any] = HYPER_PARAMS
+                 hyper_params: dict[str, Any] = HYPER_PARAMS
                  ):
         api_key = get_env_variables('OPENAI_API_KEY')
         self.client = OpenAI(api_key=api_key)
@@ -146,7 +137,6 @@ class GPTClient(TranslationClient):
         self.sys_templ = sys_templ
         self.usr_templ = usr_templ
         self.hyper_params = hyper_params
-
 
     def sys_prompt(self, src_lang: str, tgt_lang: str) -> str | None:
         if self.sys_templ is None:
@@ -228,10 +218,8 @@ class GPTClient(TranslationClient):
         trans_text = self.chat_complete(sys_prompt, user_prompt)
         return trans_text.splitlines()
 
+
 class MockClient(TranslationClient):
-    '''
-    MockClient is a client that can be used for testing purposes. It can be used to simulate errors and rejections.
-    '''
     def __init__(self, logger=None, model='mock', planned_rejects=[], planned_errors=[], scenario=[]):
         '''
         Args:
@@ -241,7 +229,6 @@ class MockClient(TranslationClient):
             planned_errors: A list of tuples of source and target language ISO codes that will raise an error
             scenario: A list of integers that represents the scenario to be simulated (0: accepted, 1: rejected, 2: error)
         '''
-        self.client = None
         self.logger = logger
         self.model = model
         self.planned_rejects = planned_rejects
