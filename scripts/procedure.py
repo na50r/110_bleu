@@ -5,7 +5,7 @@ import logging
 # Based on https://stackoverflow.com/a/40909549
 # Adjusted with the help of ChatGPT
 def logging_config(logfile='tmp.log'):
-    fmt = '%(asctime)s - %(message)s'
+    fmt = '%(levelname)s: %(asctime)s - %(message)s'
     datefmt = '%Y-%m-%d %H:%M:%S'
     file_handler = logging.FileHandler(logfile)
     file_handler.setLevel(logging.DEBUG)
