@@ -123,13 +123,13 @@ for pair in pairs:
 ## Task
 
 * `task.py` implements translators and data managers to formulate translation tasks
-* A translation task is defined as the translation of a set of pairs $P$ from a dataset $d$ using a translator $t$, more formally we:
+* A translation task is defined as the translation of a set of pairs *P* from a dataset *d* using a translator *t*, more formally we:
 
 * Define a set of languages as `L = {de, fr, da, el, es, pt, nl, sv, en, it, fi}`
 * `P ⊆ {(x, y) | x ∈ L, y ∈ L, x ≠ y}`
-* `d ∈ {EuroParl, FloresPlus, Opus100}`
-* `t ∈ {DeepL, GPT4.1}`
-* Then a task `(P, d, t)` means: *Translate all pairs in **P** using sentences from **d** with **t***
+* `d ∈ {europarl, flores_plus, opus-100}`
+* `t ∈ {deepl_document, gpt-4.1-2025-04-14}`
+* Then a task `(P, d, t)` means: *Translate all pairs in **P** using their resp. sentences from **d** with **t***
 
 * In addition to this, we can define 
     - how many sentences we want to translate
@@ -146,7 +146,7 @@ for pair in pairs:
     - `D = {europarl, opus-100}`
     - `T = {gpt-4.1-2025-04-14}`
 
-* *TL; DR*: Translate all pairs that include English as src or tgt using GPT4.1 using text from the EuroParl and Opus100 datasets.
+* *TL; DR*: Translate all pairs that include English as src or tgt using GPT4.1 using sentences from the EuroParl and Opus100 datasets.
     - The procedure defines two tasks: `(P, europarl, gpt-4.1-2025-04-14)` and `(P, opus-100, gpt-4.1-2025-04-14)`   
     - Thus there will be only two cli commands the user can run to run these tasks
         
@@ -174,22 +174,17 @@ python proc.py task -m gpt-4.1-2025-04-14 -d europarl
 
 ```
 Task details for europarl - gpt-4.1-2025-04-14:
+  id: 2a9a89c4-813e-4285-a8ef-55d0815a18b9
   store: tmp\proc\europarl\gpt-4.1-2025-04-14
-  pairs: [('es', 'en'), ('it', 'en'), ('nl', 'en'), ('da', 'en'), ('en', 'pt'), ('pt', 'en'), ('en', 'sv'), ('en', 'fi'), ('en', 'it'), ('en', 'da'), ('fr', 'en'), ('en', 'de'), ('en', 'es'), ('fi', 'en'), ('en', 'el'), ('el', 'en'), ('de', 'en'), ('sv', 'en'), ('en', 'nl'), ('en', 'fr')]
-  dm: <scripts.data_management.EuroParlManager object at 0x0000018796633F80>
-  tl_logger: <scripts.logger.TranslationLogger object at 0x000001879658EC90>
+  pairs: [('en', 'fi'), ('en', 'fr'), ('de', 'en'), ('es', 'en'), ('en', 'el'), ('fi', 'en'), ('en', 'pt'), ('en', 'da'), ('en', 'nl'), ('fr', 'en'), ('en', 'es'), ('da', 'en'), ('it', 'en'), ('en', 'sv'), ('nl', 'en'), ('pt', 'en'), ('en', 'it'), ('sv', 'en'), ('el', 'en'), ('en', 'de')]
+  dm: <scripts.data_management.EuroParlManager object at 0x000001CDC00AC7D0>
+  tl_logger: <scripts.logger.TranslationLogger object at 0x000001CDC01DF4A0>
   num_of_sents: 10
-  client: <scripts.translators.GPTClient object at 0x000001879650B110>
+  client: <scripts.translators.GPTClient object at 0x000001CDC020C560>
   acceptable_range: (5, 15)
   manual_retry: False
   max_retries: 3
   retry_delay: 0
-  retries: -1
-  retry_pair: None
-  failure: defaultdict(<class 'int'>, {})
-  id: d1775fc0-d38f-40f4-9f18-554b470b15d5
-  task_duration: None
-  counter: 0
 ```
 
 * For more use cases, please view [Demo.ipynb](https://github.com/na50r/110_bleu/blob/main/Demo.ipynb)
