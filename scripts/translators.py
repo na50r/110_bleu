@@ -8,6 +8,7 @@ from openai import OpenAI
 from string import Template, ascii_letters, ascii_uppercase, ascii_lowercase
 from typing import Any
 import logging
+from scripts.data_management import DataManager
 
 
 class TranslationClient(ABC):
@@ -238,9 +239,11 @@ class MockClient(TranslationClient):
         self.scenario = scenario
         self.current = 0
 
-        if len(self.scenario) > 0:
-            self.planned_rejects = []
-            self.planned_errors = []
+        opt1 = len(self.scenario) >= 0 and len(
+            self.planned_errors) == 0 and len(self.planned_rejects) == 0
+        opt2 = len(self.scenario) == 0 and len(
+            self.planned_errors) >= 0 and len(self.planned_rejects) >= 0
+        assert opt1 or opt2
 
     def encrypt(self, text: str, key: int = 13, direction: int = 1, error_pair: tuple[str, str] = None):
         if len(self.scenario) > 0 and self.scenario[self.current] == 2:
@@ -260,6 +263,7 @@ class MockClient(TranslationClient):
         return text.translate(trans)
 
     def translate_document(self, text: list[str], src_lang: str, tgt_lang: str) -> list[str]:
+        pair = (src_lang, tgt_lang)
         in_text = '\n'.join(text)
 
         if self.logger:
@@ -267,17 +271,65 @@ class MockClient(TranslationClient):
                 src_lang=src_lang,
                 tgt_lang=tgt_lang,
                 src_text=in_text)
-        out_text = self.encrypt(in_text, error_pair=(src_lang, tgt_lang))
+        out_text = self.encrypt(in_text, error_pair=pair)
 
-        if (len(self.scenario) > 0 and self.scenario[self.current] == 1) or (src_lang, tgt_lang) in self.planned_rejects:
+        if (len(self.scenario) > 0 and self.scenario[self.current] == 1) or pair in self.planned_rejects:
             tmp = out_text.splitlines()
             tmp = tmp[:round(len(tmp)/2)]
             out_text = '\n'.join(tmp)
-            if (src_lang, tgt_lang) in self.planned_rejects:
-                self.planned_rejects.remove((src_lang, tgt_lang))
+            if pair in self.planned_rejects:
+                self.planned_rejects.remove(pair)
 
         if self.logger:
             self.logger.finish(tgt_text=out_text)
             # both rejected & accepted translation get the same log, only verdict differs
+            self.current += 1
+        return out_text.splitlines()
+
+
+class MockClient2(TranslationClient):
+    def __init__(self, dm: DataManager, logger=None, model='dm', planned_rejects=[], planned_errors=[], scenario=[]):
+        self.dm = dm
+        self.logger = logger
+        self.model = model
+        self.planned_rejects = planned_rejects
+        self.planned_errors = planned_errors
+        self.scenario = scenario
+        self.current = 0
+        opt1 = len(self.scenario) >= 0 and len(self.planned_errors) == 0 and len(self.planned_rejects) == 0
+        opt2 = len(self.scenario) == 0 and len(self.planned_errors) >= 0 and len(self.planned_rejects) >= 0
+        assert opt1 or opt2
+        
+    def get_pairs(self, src_lang, tgt_lang, num_of_sents=400):
+        pair = (src_lang, tgt_lang)
+        if len(self.scenario) > 0 and self.scenario[self.current] == 2:
+            self.current += 1  # an error log will be created in the except statement, so we increment the current translation here
+            raise (Exception(f'MockError'))
+
+        if pair in self.planned_errors:
+            self.planned_errors.remove(pair)
+            raise (Exception(f'MockError'))
+        
+        if (len(self.scenario) > 0 and self.scenario[self.current] == 1) or pair in self.planned_rejects:
+            if pair in self.planned_rejects:
+                self.planned_rejects.remove(pair)
+            num_of_sents = round(num_of_sents/2)
+        
+        if len(self.scenario) > 0 and self.scenario[self.current] == 3:
+            src_lang, tgt_lang = tgt_lang, src_lang
+            print('Switched')
+        _, out_text = self.dm.get_sentence_pairs(src_lang, tgt_lang, num_of_sents=num_of_sents)
+        return '\n'.join(out_text)
+
+    def translate_document(self, text: list[str], src_lang: str, tgt_lang: str) -> list[str]:
+        in_text = '\n'.join(text)
+        if self.logger:
+            self.logger.start(
+                src_lang=src_lang,
+                tgt_lang=tgt_lang,
+                src_text=in_text)
+        out_text = self.get_pairs(src_lang, tgt_lang, num_of_sents=len(text))
+        if self.logger:
+            self.logger.finish(tgt_text=out_text)
             self.current += 1
         return out_text.splitlines()

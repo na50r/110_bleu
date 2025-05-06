@@ -1,6 +1,6 @@
 from scripts.translators import TranslationClient
 from scripts.data_management import DataManager
-from scripts.util import load_sents, split_sents, get_git_revision_short_hash, get_local_timestamp
+from scripts.util import split_sents, get_git_revision_short_hash, get_local_timestamp
 from scripts.logger import TranslationLogger
 import os
 import time
@@ -9,6 +9,7 @@ from collections import defaultdict
 import uuid
 import logging
 import json
+import langdetect
 
 
 class TranslationTask:
@@ -31,7 +32,9 @@ class TranslationTask:
                  manual_retry: bool = False,
                  max_retries: int = 3,
                  retry_delay: int = 30,
-                 acceptable_range: tuple[int, int] | None = None):
+                 acceptable_range: tuple[int, int] | None = None,
+                 langdetection : bool = True,
+                 ):
         '''
         Args:
             target_pairs: Selection of language pair to be translated
@@ -51,6 +54,7 @@ class TranslationTask:
         self.pairs = [pair for pair in reversed(target_pairs)]
         self.dm = dm
         self.tl_logger = logger
+        self.langdetection = langdetection
 
         self.num_of_sents = num_of_sents
         self.client = client
@@ -85,16 +89,42 @@ class TranslationTask:
         task_info['retry_delay'] = self.retry_delay
         return task_info
 
-    def accept_output(self, mt_sents: list[str], tgt_lang: str):
+    def accept_output(self, mt_sents: list[str], src_lang: str, tgt_lang: str) -> bool:
+        mt_len = len(mt_sents)
+        msg = f'[❌]: Translated {mt_len} sents for {src_lang}-{tgt_lang} but rejected'
         min_cnt = self.acceptable_range[0]
         max_cnt = self.acceptable_range[1]
 
         real_sents = split_sents(text='\n'.join(mt_sents), lang=tgt_lang)
         sent_cnt = len(real_sents)
 
-        cond1 = len(mt_sents) >= min_cnt and len(mt_sents) <= max_cnt
+        cond1 = mt_len >= min_cnt and mt_len <= max_cnt
         cond2 = sent_cnt >= min_cnt and sent_cnt <= max_cnt
-        return cond1 or cond2
+
+        verdict1 = cond1 or cond2
+        if verdict1 == False:
+            sub_msg = 'outside acceptable range'
+            logging.info(f'{msg}, {sub_msg}')
+            return False
+        
+        if self.langdetection == False:
+            return True
+
+        try:
+            mt_lang = langdetect.detect('\n'.join(mt_sents))
+            verdict2 = mt_lang == tgt_lang
+            if verdict2 == False:
+                sub_msg = f'wrong language {mt_lang} detected'
+                msg = f'{msg}, {sub_msg}'
+                logging.info(msg)
+                return False
+        except Exception as e:
+            logging.info(f'{msg}, could not detect language')
+            logging.error(f'[🔥]: Error {str(e)}')
+            logging.debug("Traceback:", exc_info=True)
+            return False
+
+        return True
 
     def retry_loop(self, pair: tuple[str, str]):
         '''
@@ -168,16 +198,13 @@ class TranslationTask:
                 if self.manual_retry:
                     self.tl_logger.add_manual_retry_info(pair)
 
-                if self.accept_output(mt_sents, tgt_lang):
+                if self.accept_output(mt_sents, src_lang, tgt_lang):
                     logging.info(
                         f'[✔️]: Translated {len(mt_sents)} sents for {src_lang}-{tgt_lang}')
-                    mt_sents = load_sents(self.store, src_lang, tgt_lang)
                     self.tl_logger.write_log()
                     continue
 
                 else:
-                    logging.info(
-                        f'[❌]: Translated {len(mt_sents)} sents for {src_lang}-{tgt_lang} but rejected')
                     self.tl_logger.write_log(verdict=False)
                     self.retry_loop(pair)
                     continue

@@ -230,5 +230,5 @@ python -m pytest -o log_cli=true -o log_cli_level=INFO test_tasks.py
 * If you want to run individual tests, run:
 
 ```sh
-python -m pytest test_tasks.py::test_logging_with_scenario_B
+python -m pytest test_tasks.py::test_logging_with_scenario
 ```
