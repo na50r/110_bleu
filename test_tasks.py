@@ -2,6 +2,7 @@ from scripts.translators import MockClient, MockClient
 from scripts.task import TranslationTask
 from scripts.logger import TranslationLogger, RetryLog
 from scripts.data_management import Opus100Manager, EuroParlManager
+from scripts.constants import N, R1, R2, R3, E
 from random import choice, sample
 from io import StringIO
 import os
@@ -124,7 +125,7 @@ SCENARIOS = {
     'A': {
         'dm': Opus100Manager,
         'pairs': get_sample_pairs(Opus100Manager, k=4),
-        'scenario': [0, 1, 1, 0, 0, 2, 2, 2],
+        'scenario': [N, R1, R1, N, N, E, E, E],
         'logs': 5,
         'verdicts': ['accepted', 'rejected', 'rejected', 'accepted', 'accepted'],
         'max_retries': 2
@@ -132,7 +133,7 @@ SCENARIOS = {
     'B': {
         'dm': EuroParlManager,
         'pairs': get_sample_pairs(EuroParlManager, k=4),
-        'scenario': [2, 2, 2, 0, 2, 1, 0, 1, 2, 2],
+        'scenario': [E, E, E, N, E, R1, N, R1, E, E],
         'logs': 4,
         'verdicts': ['accepted', 'rejected', 'accepted', 'rejected'],
         'max_retries': 2
@@ -140,7 +141,7 @@ SCENARIOS = {
     'C': {
         'dm': Opus100Manager,
         'pairs': get_sample_pairs(Opus100Manager, k=3),
-        'scenario': [1, 1, 1, 0, 0, 2, 2, 2, 0],
+        'scenario': [R1, R1, R1, N, N, E, E, E, N],
         'logs': 6,
         'verdicts': ['rejected', 'rejected', 'rejected', 'accepted', 'accepted', 'accepted'],
         'max_retries': 3
@@ -148,7 +149,7 @@ SCENARIOS = {
     'D': {
         'dm': EuroParlManager,
         'pairs': get_sample_pairs(EuroParlManager, k=2),
-        'scenario': [2, 2, 2, 2],
+        'scenario': [E, E, E, E],
         'logs': 0,
         'verdicts': [],
         'max_retries': 1
@@ -156,7 +157,7 @@ SCENARIOS = {
     'E': {
         'dm': Opus100Manager,
         'pairs': get_sample_pairs(Opus100Manager, k=2),
-        'scenario': [0, 0],
+        'scenario': [N, N],
         'logs': 2,
         'verdicts': ['accepted'] * 2,
         'max_retries': 0
@@ -164,7 +165,7 @@ SCENARIOS = {
     'F': {
         'dm': EuroParlManager,
         'pairs': get_sample_pairs(EuroParlManager, k=2),
-        'scenario': [1, 1, 1, 1],
+        'scenario': [R1, R1, R1, R1],
         'logs': 4,
         'verdicts': ['rejected'] * 4,
         'max_retries': 1
@@ -172,7 +173,7 @@ SCENARIOS = {
     'G': {
         'dm': Opus100Manager,
         'pairs': get_sample_pairs(Opus100Manager, k=4),
-        'scenario': [0, 1, 1, 0, 0, 3, 3, 3],
+        'scenario': [N, R1, R1, N, N, R2, R2, R2],
         'logs': 8,
         'verdicts': ['accepted', 'rejected', 'rejected', 'accepted', 'accepted', 'rejected', 'rejected', 'rejected'],
         'max_retries': 2
@@ -180,7 +181,7 @@ SCENARIOS = {
     'H': {
         'dm': EuroParlManager,
         'pairs': get_sample_pairs(EuroParlManager, k=4),
-        'scenario': [2, 2, 2, 0, 2, 3, 0, 3, 2, 2],
+        'scenario': [E, E, E, N, E, R2, N, R2, E, E],
         'logs': 4,
         'verdicts': ['accepted', 'rejected', 'accepted', 'rejected'],
         'max_retries': 2
@@ -188,7 +189,7 @@ SCENARIOS = {
     'I': {
         'dm': Opus100Manager,
         'pairs': get_sample_pairs(Opus100Manager, k=3),
-        'scenario':[2, 2, 2, 3, 3, 3, 0, 1, 1, 0],
+        'scenario': [E, E, E, R2, R3, R2, N, R1, R1, N],
         'logs': 7,
         'verdicts': ['rejected', 'rejected', 'rejected', 'accepted', 'rejected', 'rejected', 'accepted'],
         'max_retries': 3
@@ -233,7 +234,7 @@ def test_logging_with_manual_retry():
     logfile = StringIO()
     logger = TranslationLogger(logfile=logfile)
     cli = MockClient(logger=logger, dm=dm, planned_rejects=[
-                      pairs[-1], pairs[-1]])
+        pairs[-1], pairs[-1]])
     task1 = TranslationTask(
         target_pairs=pairs,
         dm=dm,

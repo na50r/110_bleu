@@ -9,6 +9,7 @@ from string import Template, ascii_letters, ascii_uppercase, ascii_lowercase
 from typing import Any
 import logging
 from scripts.data_management import DataManager
+from scripts.constants import R1, R2, R3, E
 
 
 class TranslationClient(ABC):
@@ -231,6 +232,7 @@ class MockClient(TranslationClient):
             planned_errors: A list of tuples of source and target language ISO codes that will raise an error
             scenario: A list of integers that represents the scenario to be simulated (0: accepted, 1: rejected (output size), 2: error, 3: rejected (wrong lang))
         '''
+
     def __init__(self, dm: DataManager, logger=None, model='dm', planned_rejects=[], planned_errors=[], scenario=[]):
         self.dm = dm
         self.logger = logger
@@ -239,28 +241,36 @@ class MockClient(TranslationClient):
         self.planned_errors = planned_errors
         self.scenario = scenario
         self.current = 0
-        opt1 = len(self.scenario) >= 0 and len(self.planned_errors) == 0 and len(self.planned_rejects) == 0
-        opt2 = len(self.scenario) == 0 and len(self.planned_errors) >= 0 and len(self.planned_rejects) >= 0
-        assert opt1 or opt2
-        
+        opt1 = len(self.scenario) >= 0 and len(
+            self.planned_errors) == 0 and len(self.planned_rejects) == 0,
+        opt2 = len(self.scenario) == 0 and len(
+            self.planned_errors) >= 0 and len(self.planned_rejects) >= 0,
+        assert opt1 or opt2, 'Please provide either a scenario alone or planned rejects and errors'
+
     def get_pairs(self, src_lang, tgt_lang, num_of_sents=400):
         pair = (src_lang, tgt_lang)
-        if len(self.scenario) > 0 and self.scenario[self.current] == 2:
+        if len(self.scenario) > 0 and self.scenario[self.current] == E:
             self.current += 1  # an error log will be created in the except statement, so we increment the current translation here
             raise (Exception(f'MockError'))
 
         if pair in self.planned_errors:
             self.planned_errors.remove(pair)
             raise (Exception(f'MockError'))
-        
-        if (len(self.scenario) > 0 and self.scenario[self.current] == 1) or pair in self.planned_rejects:
+
+        if (len(self.scenario) > 0 and self.scenario[self.current] == R1) or pair in self.planned_rejects:
             if pair in self.planned_rejects:
                 self.planned_rejects.remove(pair)
             num_of_sents = round(num_of_sents/2)
-        
-        if len(self.scenario) > 0 and self.scenario[self.current] == 3:
+
+        if len(self.scenario) > 0 and self.scenario[self.current] == R2:
             src_lang, tgt_lang = tgt_lang, src_lang
-        _, out_text = self.dm.get_sentence_pairs(src_lang, tgt_lang, num_of_sents=num_of_sents)
+
+        if len(self.scenario) > 0 and self.scenario[self.current] == R3:
+            out_text = 'a\n'*400
+            return out_text
+        
+        _, out_text = self.dm.get_sentence_pairs(
+            src_lang, tgt_lang, num_of_sents=num_of_sents)
         return '\n'.join(out_text)
 
     def translate_document(self, text: list[str], src_lang: str, tgt_lang: str) -> list[str]:
