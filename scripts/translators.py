@@ -122,7 +122,7 @@ class GPTClient(TranslationClient):
         "Here is the text:\n"
         "$text")
 
-    HYPER_PARAMS = {'temperature': 0}
+    HYPER_PARAMS = {'temperature': 0, 'seed': 42}
 
     def __init__(self, model: str = 'gpt-4.1-2025-04-14',
                  logger: TranslationLogger | None = None,
@@ -193,13 +193,15 @@ class GPTClient(TranslationClient):
             messages=msgs,
             **self.hyper_params
         )
+        logging.debug(f'HTTP Response: {resp.model_dump()}')
         # Logs real GPT tokens & GPT specific resp messages
         if self.logger and resp.usage is not None:
             self.logger.finish(
                 tgt_text=resp.choices[0].message.content,
                 in_model_tokens=resp.usage.prompt_tokens,
                 out_model_tokens=resp.usage.completion_tokens,
-                finish_reason=resp.choices[0].finish_reason)
+                finish_reason=resp.choices[0].finish_reason,
+                system_fingerprint=resp.system_fingerprint)
         return resp.choices[0].message.content
 
     def translate_document(self, text: list[str], src_lang: str, tgt_lang: str) -> list[str]:
