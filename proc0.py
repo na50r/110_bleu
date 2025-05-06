@@ -25,8 +25,8 @@ class Proc0(Procedure):
         # Define the clients and logger
         logger = TranslationLogger(logfile=join(main_folder, 'proc0.jsonl'))
 
-        cli_gpt = MockClient(logger=logger, model='gpt', planned_errors=[('de', 'en')], planned_rejects=[('de', 'en')])
-        cli_deepl = MockClient(logger=logger, model='deepl')
+        cli_gpt = MockClient(logger=logger, model='gpt-4.1-2025-04-14', planned_errors=[('de', 'en')], planned_rejects=[('de', 'en')])
+        cli_deepl = MockClient(logger=logger, model='deepl_document')
         clients = [cli_gpt, cli_deepl]
         self.model_ids = [cli.model for cli in clients]
 

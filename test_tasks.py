@@ -7,8 +7,9 @@ from io import StringIO
 import os
 import shutil
 import json
+import pytest
 
-
+# Test utils
 def get_sample_pairs(dm, k=2):
     pairs = dm.get_pairs()
     pairs = sample(pairs, k=k)
@@ -33,7 +34,7 @@ def setup_and_teardown(foldername, func):
     finally:
         teardown(foldername)
 
-
+# Tests
 def test_task():
     test_folder = 'tmp_test'
     dms = [EuroParlManager, Opus100Manager]
@@ -135,21 +136,46 @@ SCENARIOS = {
     'C': {
         'dm': Opus100Manager,
         'pairs': get_sample_pairs(Opus100Manager, k=3),
-        'scenario': [0, 1, 1, 1, 0, 2, 2, 2, 0],
+        'scenario': [1, 1, 1, 0, 0, 2, 2, 2, 0],
         'logs': 6,
-        'verdicts': ['accepted', 'rejected', 'rejected', 'rejected', 'accepted', 'accepted'],
+        'verdicts': ['rejected', 'rejected', 'rejected', 'accepted', 'accepted', 'accepted'],
         'max_retries': 3
+    },
+    'D': {
+        'dm': EuroParlManager,
+        'pairs': get_sample_pairs(EuroParlManager, k=2),
+        'scenario': [2, 2, 2, 2],
+        'logs': 0,
+        'verdicts': [],
+        'max_retries': 1
+    },
+    'E': {
+        'dm': Opus100Manager,
+        'pairs': get_sample_pairs(Opus100Manager, k=2),
+        'scenario': [0, 0],
+        'logs': 2,
+        'verdicts': ['accepted'] * 2,
+        'max_retries': 0
+    },
+    'F': {
+        'dm': EuroParlManager,
+        'pairs': get_sample_pairs(EuroParlManager, k=2),
+        'scenario': [1, 1, 1, 1],
+        'logs': 4,
+        'verdicts': ['rejected'] * 4,
+        'max_retries': 1
     }
 }
 
-
-def test_logging_with_scenario_A():
+@pytest.mark.parametrize("scenario_key", ["A", "B", "C", "D", "E", "F"])
+def test_logging_with_scenario(scenario_key):
     test_folder = 'tmp_test'
-    dm = SCENARIOS['A']['dm']()
-    pairs = SCENARIOS['A']['pairs']
+    scenario = SCENARIOS[scenario_key]
+    dm = scenario['dm']()
+    pairs = scenario['pairs']
     logfile = StringIO()
     logger = TranslationLogger(logfile=logfile)
-    cli = MockClient(logger=logger, scenario=SCENARIOS['A']['scenario'])
+    cli = MockClient(logger=logger, scenario=scenario['scenario'])
 
     task = TranslationTask(
         target_pairs=pairs,
@@ -158,63 +184,17 @@ def test_logging_with_scenario_A():
         logger=logger,
         mt_folder=test_folder,
         num_of_sents=400,
-        max_retries=SCENARIOS['A']['max_retries'],
-        retry_delay=0
-    )
-    setup_and_teardown(test_folder, task.run)
-    log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
-    assert len(log_data) == SCENARIOS['A']['logs']
-    assert [log['verdict'] for log in log_data] == SCENARIOS['A']['verdicts']
-
-
-def test_logging_with_scenario_B():
-    test_folder = 'tmp_test'
-    dm = SCENARIOS['B']['dm']()
-    pairs = SCENARIOS['B']['pairs']
-    logfile = StringIO()
-    logger = TranslationLogger(logfile=logfile)
-    cli = MockClient(logger=logger, scenario=SCENARIOS['B']['scenario'])
-    task = TranslationTask(
-        target_pairs=pairs,
-        dm=dm,
-        client=cli,
-        logger=logger,
-        mt_folder=test_folder,
-        num_of_sents=400,
-        max_retries=SCENARIOS['B']['max_retries'],
-        retry_delay=0
-    )
-    setup_and_teardown(test_folder, task.run)
-    log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
-    assert len(log_data) == SCENARIOS['B']['logs']
-    assert [log['verdict'] for log in log_data] == SCENARIOS['B']['verdicts']
-
-
-def test_logging_with_scenario_C_and_file_cnt():
-    test_folder = 'tmp_test'
-    dm = SCENARIOS['C']['dm']()
-    pairs = SCENARIOS['C']['pairs']
-    logfile = StringIO()
-    logger = TranslationLogger(logfile=logfile)
-    cli = MockClient(logger=logger, scenario=SCENARIOS['C']['scenario'])
-    task = TranslationTask(
-        target_pairs=pairs,
-        dm=dm,
-        client=cli,
-        logger=logger,
-        mt_folder=test_folder,
-        num_of_sents=400,
-        max_retries=SCENARIOS['C']['max_retries'],
+        max_retries=scenario['max_retries'],
         retry_delay=0
     )
     setup(test_folder)
     task.run()
     files = [f for f in os.listdir(test_folder) if f != 'task.json']
-    assert len(files) == SCENARIOS['C']['logs']
-    log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
-    assert len(log_data) == SCENARIOS['C']['logs']
-    assert [log['verdict'] for log in log_data] == SCENARIOS['C']['verdicts']
+    assert len(files) == scenario['logs']
     teardown(test_folder)
+    log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
+    assert len(log_data) == scenario['logs']
+    assert [log['verdict'] for log in log_data] == scenario['verdicts']
 
 
 def test_logging_with_manual_retry():

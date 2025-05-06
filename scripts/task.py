@@ -81,6 +81,8 @@ class TranslationTask:
         task_info['acceptable_range'] = self.acceptable_range
         task_info['timestamp'] = get_local_timestamp()
         task_info['manual_retry'] = self.manual_retry
+        task_info['max_retries'] = self.max_retries
+        task_info['retry_delay'] = self.retry_delay
         return task_info
 
     def accept_output(self, mt_sents: list[str], tgt_lang: str):
@@ -113,7 +115,7 @@ class TranslationTask:
             self.mark_failure(pair)
         else:
             logging.info(
-                f'[⏭]: Failed {self.max_retries} times, skipping {pair[0]}-{pair[1]}...')
+                f'[⏭️]: Failed {self.max_retries} times, skipping {pair[0]}-{pair[1]}...')
             self.mark_failure(pair)
             self._retries = -1
 
