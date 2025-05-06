@@ -5,7 +5,7 @@ from io import BytesIO
 from abc import ABC, abstractmethod
 from deepl import DeepLClient
 from openai import OpenAI
-from string import Template, ascii_letters, ascii_uppercase, ascii_lowercase
+from string import Template
 from typing import Any
 import logging
 from scripts.data_management import DataManager
@@ -266,7 +266,7 @@ class MockClient(TranslationClient):
             src_lang, tgt_lang = tgt_lang, src_lang
 
         if len(self.scenario) > 0 and self.scenario[self.current] == R3:
-            out_text = 'a\n'*400
+            out_text = '\n'.join(['.']*400) # edge case that triggers error
             return out_text
         
         _, out_text = self.dm.get_sentence_pairs(
