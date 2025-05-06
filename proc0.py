@@ -1,8 +1,8 @@
-from scripts.procedure import main, proc_parser, logging_config, Procedure
+from scripts.procedure import main, proc_parser, Procedure
 from os.path import join
 from scripts.data_management import EuroParlManager, Opus100Manager, FloresPlusManager
 from scripts.task import TranslationTask
-from scripts.logger import TranslationLogger
+from scripts.logger import TranslationLogger, logging_config
 from test_tasks import MockClient
 
 logging_config('proc0.log')

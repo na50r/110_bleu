@@ -2,24 +2,6 @@ import random
 import argparse
 import logging
 
-# Based on https://stackoverflow.com/a/40909549
-# Adjusted with the help of ChatGPT due to unfamiliarity with logging
-def logging_config(logfile='tmp.log'):
-    fmt = '%(levelname)s: %(asctime)s - %(message)s'
-    datefmt = '%Y-%m-%d %H:%M:%S'
-    file_handler = logging.FileHandler(logfile)
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(logging.Formatter(fmt, datefmt))
-
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
-    console_handler.setFormatter(logging.Formatter(fmt, datefmt))
-
-    logging.basicConfig(level=logging.DEBUG, handlers=[
-                        file_handler, console_handler])
-
-
-
 class Procedure:
     '''
     Template class for processes.

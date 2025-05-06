@@ -1,8 +1,8 @@
-from scripts.procedure import main, proc_parser, Procedure, logging_config
+from scripts.procedure import main, proc_parser, Procedure
 from os.path import join
 from scripts.data_management import EuroParlManager, Opus100Manager, FloresPlusManager
 from scripts.task import TranslationTask
-from scripts.logger import TranslationLogger
+from scripts.logger import TranslationLogger, logging_config
 from scripts.translators import GPTClient, DeeplClient
 logging_config('proc1.log')
 
