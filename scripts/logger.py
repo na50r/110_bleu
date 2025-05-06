@@ -7,6 +7,8 @@ import logging
 
 # Based on https://stackoverflow.com/a/40909549
 # Adjusted with the help of ChatGPT due to unfamiliarity with logging
+
+
 def logging_config(logfile='tmp.log'):
     fmt = '%(levelname)s: %(asctime)s - %(message)s'
     datefmt = '%Y-%m-%d %H:%M:%S'
@@ -20,6 +22,20 @@ def logging_config(logfile='tmp.log'):
 
     logging.basicConfig(level=logging.DEBUG, handlers=[
                         file_handler, console_handler])
+
+
+# Based on: https://stackoverflow.com/a/13638084
+TL_LEVEL = 15  # Higher than DEBUG but lower than INFO
+LVL_NAME = 'TRANSLATION'
+logging.addLevelName(level=TL_LEVEL, levelName=LVL_NAME)
+
+
+def translation(self, message, *args, **kws):
+    if self.isEnabledFor(TL_LEVEL):
+        if isinstance(message, dict):
+            message = json.dumps(message)
+        self._log(TL_LEVEL, message, args, **kws)
+logging.Logger.translation = translation
 
 
 class RetryLog:
@@ -39,13 +55,14 @@ class TranslationLogger:
         self.logfile = logfile
         self.is_path = isinstance(logfile, str)
         self.retry_log = retry_log
-        self.current_log = None
+        self.curr_log = None
         self.enc = tiktoken.encoding_for_model(tokenizer)
-        
+        self.logger = logging.getLogger()
+
     def add_entry(self, **kwargs):
-        if self.current_log is None:
+        if self.curr_log is None:
             return
-        self.current_log.update(kwargs)
+        self.curr_log.update(kwargs)
 
     def add_manual_retry_info(self, pair: tuple[str, str]):
         retry_log = {
@@ -60,33 +77,34 @@ class TranslationLogger:
             'tgt_lang': tgt_lang,
             'start': time.time(),
             'in_lines': len(src_text.splitlines()),
-            'in_sents' : len(split_sents(src_text, lang=src_lang)),
+            'in_sents': len(split_sents(src_text, lang=src_lang)),
             'in_chars':  len(src_text),
             'in_tokens': len(self.enc.encode(src_text)),
         }
-        self.current_log = log
-        return self.current_log
+        self.curr_log = log
+        return self.curr_log
 
     def finish(self, tgt_text: str, **kwargs):
-        if self.current_log is not None:
-            self.current_log['end'] = time.time()
-            self.current_log['out_chars'] = len(tgt_text)
-            self.current_log['out_lines'] = len(tgt_text.splitlines())
-            self.current_log['out_sents'] = len(split_sents(tgt_text, lang=self.current_log['tgt_lang']))
-            self.current_log['out_tokens'] = len(self.enc.encode(tgt_text))
-            self.current_log.update(kwargs)
+        if self.curr_log is not None:
+            self.curr_log['end'] = time.time()
+            self.curr_log['out_chars'] = len(tgt_text)
+            self.curr_log['out_lines'] = len(tgt_text.splitlines())
+            self.curr_log['out_sents'] = len(split_sents(
+                tgt_text, lang=self.curr_log['tgt_lang']))
+            self.curr_log['out_tokens'] = len(self.enc.encode(tgt_text))
+            self.curr_log.update(kwargs)
 
     def write_log(self, verdict: bool = True):
-        if self.current_log is None:
+        if self.curr_log is None:
             return
         if verdict:
-            self.current_log['verdict'] = 'accepted'
+            self.curr_log['verdict'] = 'accepted'
         else:
-            self.current_log['verdict'] = 'rejected'       
+            self.curr_log['verdict'] = 'rejected'
+        self.logger.translation(self.curr_log)  # Store in .log file
         if self.is_path:
             with open(self.logfile, 'a') as f:
-                print(json.dumps(self.current_log), file=f)
+                print(json.dumps(self.curr_log), file=f)
         else:
-            print(json.dumps(self.current_log), file=self.logfile)
-        self.current_log = None
-
+            print(json.dumps(self.curr_log), file=self.logfile)
+        self.curr_log = None

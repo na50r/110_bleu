@@ -231,3 +231,4 @@ python -m pytest test_tasks.py::test_logging_with_scenario_B
     - number of input and output model tokens (Only for GPT4.1, found in the response body of the API)
     - start and end time of translation (Unix time)
 * This information is stored for analysis purposes, such as computing the exact time per translation or comparing estimated tokens to actual tokens (again, only possible for GPT4.1 as DeepL computes per characters)
+* This information can be found in the .log file as well prefixed with a custom level called 'TRANSLATION'
