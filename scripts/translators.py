@@ -223,71 +223,14 @@ class GPTClient(TranslationClient):
 
 
 class MockClient(TranslationClient):
-    def __init__(self, logger=None, model='mock', planned_rejects=[], planned_errors=[], scenario=[]):
-        '''
+    '''
         Args:
             logger: A TranslationLogger that logs translation specific information
             model: A string that can be used to use to identify the same client as other clients
             planned_rejects: A list of tuples of source and target language ISO codes that will be rejected
             planned_errors: A list of tuples of source and target language ISO codes that will raise an error
-            scenario: A list of integers that represents the scenario to be simulated (0: accepted, 1: rejected, 2: error)
+            scenario: A list of integers that represents the scenario to be simulated (0: accepted, 1: rejected (output size), 2: error, 3: rejected (wrong lang))
         '''
-        self.logger = logger
-        self.model = model
-        self.planned_rejects = planned_rejects
-        self.planned_errors = planned_errors
-        self.scenario = scenario
-        self.current = 0
-
-        opt1 = len(self.scenario) >= 0 and len(
-            self.planned_errors) == 0 and len(self.planned_rejects) == 0
-        opt2 = len(self.scenario) == 0 and len(
-            self.planned_errors) >= 0 and len(self.planned_rejects) >= 0
-        assert opt1 or opt2
-
-    def encrypt(self, text: str, key: int = 13, direction: int = 1, error_pair: tuple[str, str] = None):
-        if len(self.scenario) > 0 and self.scenario[self.current] == 2:
-            self.current += 1  # an error log will be created in the except statement, so we increment the current translation here
-            raise (Exception(f'MockError'))
-
-        if error_pair in self.planned_errors:
-            self.planned_errors.remove(error_pair)
-            raise (Exception(f'MockError'))
-
-        # Code from: https://stackoverflow.com/a/34734063
-        if direction == -1:
-            key = 26 - key
-
-        trans = str.maketrans(
-            ascii_letters, ascii_lowercase[key:] + ascii_lowercase[:key] + ascii_uppercase[key:] + ascii_uppercase[:key])
-        return text.translate(trans)
-
-    def translate_document(self, text: list[str], src_lang: str, tgt_lang: str) -> list[str]:
-        pair = (src_lang, tgt_lang)
-        in_text = '\n'.join(text)
-
-        if self.logger:
-            self.logger.start(
-                src_lang=src_lang,
-                tgt_lang=tgt_lang,
-                src_text=in_text)
-        out_text = self.encrypt(in_text, error_pair=pair)
-
-        if (len(self.scenario) > 0 and self.scenario[self.current] == 1) or pair in self.planned_rejects:
-            tmp = out_text.splitlines()
-            tmp = tmp[:round(len(tmp)/2)]
-            out_text = '\n'.join(tmp)
-            if pair in self.planned_rejects:
-                self.planned_rejects.remove(pair)
-
-        if self.logger:
-            self.logger.finish(tgt_text=out_text)
-            # both rejected & accepted translation get the same log, only verdict differs
-            self.current += 1
-        return out_text.splitlines()
-
-
-class MockClient2(TranslationClient):
     def __init__(self, dm: DataManager, logger=None, model='dm', planned_rejects=[], planned_errors=[], scenario=[]):
         self.dm = dm
         self.logger = logger
@@ -317,7 +260,6 @@ class MockClient2(TranslationClient):
         
         if len(self.scenario) > 0 and self.scenario[self.current] == 3:
             src_lang, tgt_lang = tgt_lang, src_lang
-            print('Switched')
         _, out_text = self.dm.get_sentence_pairs(src_lang, tgt_lang, num_of_sents=num_of_sents)
         return '\n'.join(out_text)
 
