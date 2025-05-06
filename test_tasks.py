@@ -89,7 +89,8 @@ def test_meta_data_in_log():
     dm = Opus100Manager()
     logfile = StringIO()
     logger = TranslationLogger(logfile=logfile)
-    cli = MockClient(logger=logger, model='gpt-4.1-2077-01-01')
+    model = 'gpt-4.1-2077-01-01'
+    cli = MockClient(logger=logger, model=model)
 
     task = TranslationTask(
         target_pairs=pairs,
@@ -110,7 +111,7 @@ def test_meta_data_in_log():
     assert [log['id'] for log in log_data] == [
         f'{task.id}-{i:04d}' for i in range(1, 5)]
     assert [log['translator']
-            for log in log_data] == ['gpt-4.1-2077-01-01'] * 4
+            for log in log_data] == [model] * 4
     assert [log['dataset'] for log in log_data] == [dm.name] * 4
 
 

@@ -193,26 +193,6 @@ Task details for europarl - gpt-4.1-2025-04-14:
 
 * Contains utility functions used for various purposes
 
-## Testing
-
-Simple unit tests were implemented to confirm the functionality of the data managers and the translation task as a whole. 
-
-```sh
-python -m pytest test_tasks.py test_datamanagers.py
-```
-
-* If you want to see the logs, run:
-
-```sh
-python -m pytest -o log_cli=true -o log_cli_level=INFO test_tasks.py
-```
-
-* If you want to run individual tests, run:
-
-```sh
-python -m pytest test_tasks.py::test_logging_with_scenario_B
-```
-
 ## Logging
 
 * This code employs Python's `logging` package to log information of translation tasks.
@@ -232,3 +212,23 @@ python -m pytest test_tasks.py::test_logging_with_scenario_B
     - start and end time of translation (Unix time)
 * This information is stored for analysis purposes, such as computing the exact time per translation or comparing estimated tokens to actual tokens (again, only possible for GPT4.1 as DeepL computes per characters)
 * This information can be found in the .log file as well prefixed with a custom level called 'TRANSLATION'
+
+## Testing
+
+Simple unit tests were implemented to confirm the functionality of the data managers and the translation task as a whole. 
+
+```sh
+python -m pytest test_tasks.py test_datamanagers.py
+```
+
+* If you want to see the logs, run:
+
+```sh
+python -m pytest -o log_cli=true -o log_cli_level=INFO test_tasks.py
+```
+
+* If you want to run individual tests, run:
+
+```sh
+python -m pytest test_tasks.py::test_logging_with_scenario_B
+```

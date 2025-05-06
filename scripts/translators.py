@@ -56,7 +56,7 @@ class TranslationClient(ABC):
             return out_text
         else:
             logging.info(
-                f'[ℹ️]: Pair {src_lang}-{tgt_lang} has been translated already.')
+                f'[📋]: Pair {src_lang}-{tgt_lang} has been translated already.')
             return load_sents(mt_folder, src_lang, tgt_lang)
 
 

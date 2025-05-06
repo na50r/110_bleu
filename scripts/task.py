@@ -15,10 +15,10 @@ class TranslationTask:
     '''
     Implementation of Translation Task for 110 BLEU project
 
-    This class is used to run the translation task in batches. 
+    This class is used to run the translations in batches 
     Selection of language pairs, dataset, number of sentences and translator are the main configurable arguments.
     It is not possible to run tasks involving multiple datasets or multiple translators with this implementation.
-    Error handling and rejection of insufficient or potentially malformed output is handled.
+    Error handling and rejection of (specified) insufficient or potentially malformed output is handled.
     In such cases, the API is called again automatically after specified delay for a specified number of times.
     '''
 
@@ -106,14 +106,14 @@ class TranslationTask:
             self._retries += 1
 
         if self._retries < self.max_retries:
-            logging.info(f'[⏲️]: Retrying {pair[0]}-{pair[1]}...')
+            logging.info(f'[🕒]: Retrying {pair[0]}-{pair[1]}...')
             time.sleep(self.retry_delay)
             self._retries += 1
             self.pairs.append(pair)
             self.mark_failure(pair)
         else:
             logging.info(
-                f'[⏩]: Failed {self.max_retries} times, skipping {pair[0]}-{pair[1]}...')
+                f'[⏭]: Failed {self.max_retries} times, skipping {pair[0]}-{pair[1]}...')
             self.mark_failure(pair)
             self._retries = -1
 
@@ -181,7 +181,7 @@ class TranslationTask:
                     continue
 
             except Exception as e:
-                logging.error(f'[⚠️]: Error {str(e)}')
+                logging.error(f'[🔥]: Error {str(e)}')
                 logging.debug("Traceback:", exc_info=True)
                 self.retry_loop(pair)
                 continue
