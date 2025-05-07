@@ -4,6 +4,8 @@ from sentence_splitter import SentenceSplitter
 from dotenv import load_dotenv
 import subprocess
 from datetime import datetime
+import logging
+from langdetect import detect
 
 # Use override=True: https://docs.smith.langchain.com/observability/how_to_guides/toubleshooting_variable_caching
 # Important when dealing with older API keys in Jupyter Notebook cache
@@ -49,6 +51,24 @@ def split_sents(text: str, lang: str) -> list[str]:
     else:
         raise Exception(f'The language {LANG_ISO[lang]} is not supported yet')
 
+def safe_split_sents(text: str, lang: str) -> list[str]:
+    try:
+        sents = split_sents(text, lang)
+        return sents
+    except Exception as e:
+        logging.error(f'[🔥]: Error {str(e)}')
+        logging.debug("Traceback:", exc_info=True)
+        return None
+
+
+def safe_detect(text: str) -> str:
+    try:
+        lang = detect(text)
+        return lang
+    except Exception as e:
+        logging.error(f'[🔥]: Error {str(e)}')
+        logging.debug("Traceback:", exc_info=True)
+        return None
 
 def store_sents(sents: list[str], folder_path: str, src_lang: str, tgt_lang: str):
     filename = f'{src_lang}-{tgt_lang}.txt'

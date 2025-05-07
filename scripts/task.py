@@ -1,6 +1,6 @@
 from scripts.translators import TranslationClient
 from scripts.data_management import DataManager
-from scripts.util import split_sents, get_git_revision_short_hash, get_local_timestamp
+from scripts.util import safe_detect, safe_split_sents, get_git_revision_short_hash, get_local_timestamp
 from scripts.logger import TranslationLogger
 import os
 import time
@@ -95,35 +95,36 @@ class TranslationTask:
         min_cnt = self.acceptable_range[0]
         max_cnt = self.acceptable_range[1]
 
-        real_sents = split_sents(text='\n'.join(mt_sents), lang=tgt_lang)
+        real_sents = safe_split_sents(text='\n'.join(mt_sents), lang=tgt_lang)
+        if real_sents is None:
+            logging.info(msg)
+            return False
+    
         sent_cnt = len(real_sents)
-
         cond1 = mt_len >= min_cnt and mt_len <= max_cnt
         cond2 = sent_cnt >= min_cnt and sent_cnt <= max_cnt
 
         verdict1 = cond1 or cond2
         if verdict1 == False:
-            sub_msg = 'outside acceptable range'
-            logging.info(f'{msg}, {sub_msg}')
+            sub_msg1 = f'[❌]: Outside acceptable range'
+            logging.info(msg)
+            logging.info(sub_msg1)
             return False
         
         if self.langdetection == False:
             return True
 
-        try:
-            mt_lang = langdetect.detect('\n'.join(mt_sents))
-            verdict2 = mt_lang == tgt_lang
-            if verdict2 == False:
-                sub_msg = f'wrong language {mt_lang} detected'
-                msg = f'{msg}, {sub_msg}'
-                logging.info(msg)
-                return False
-        except Exception as e:
-            logging.info(f'{msg}, could not detect language')
-            logging.error(f'[🔥]: Error {str(e)}')
-            logging.debug("Traceback:", exc_info=True)
+        mt_text = '\n'.join(mt_sents)
+        mt_lang = safe_detect(mt_text)
+        if mt_lang is None:
+            logging.info(msg)
             return False
-
+        
+        if mt_lang != tgt_lang:
+            sub_msg2 = f'[❌]: Unexpected lang detected {mt_lang}!={tgt_lang}'
+            logging.info(msg)
+            logging.info(sub_msg2)
+            return False
         return True
 
     def retry_loop(self, pair: tuple[str, str]):
