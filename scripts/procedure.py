@@ -1,6 +1,7 @@
 import random
-import argparse
 import logging
+from argparse import ArgumentParser
+
 
 class Procedure:
     '''
@@ -21,7 +22,7 @@ class Procedure:
         self.tasks = None
         self.model_ids = None
 
-    def show_task_detailed(self, model=None, dataset=None):
+    def show_task_detailed(self, model: str = None, dataset: str = None):
         if model is None:
             model = random.choice(self.model_ids)
         if dataset is None:
@@ -37,7 +38,7 @@ class Procedure:
         print('Available datasets:', self.dm_ids)
         print('Available models:', self.model_ids)
 
-    def check_model_dataset(self, model, dataset):
+    def check_model_dataset(self, model: str, dataset: str):
         '''Check if model and dataset are valid'''
         if dataset not in self.dm_ids:
             print(f'Error: Invalid dataset. Must be one of {self.dm_ids}')
@@ -58,8 +59,10 @@ def show_commands():
     print('run --model $model --dataset $dataset: Run a task')
 
 # Adjusted with the help of ChatGPT due to unfamiliarity with argparse
+
+
 def proc_parser(desc='Process Template'):
-    parser = argparse.ArgumentParser(
+    parser = ArgumentParser(
         description=desc)
     subparsers = parser.add_subparsers(
         dest='command', help='Command to execute')
@@ -79,7 +82,7 @@ def proc_parser(desc='Process Template'):
     return parser
 
 
-def main(parser=proc_parser(), proc=Procedure()):
+def main(parser: ArgumentParser = proc_parser(), proc: Procedure = Procedure()):
     args = parser.parse_args()
     if args.command is None:
         show_commands()
@@ -109,4 +112,4 @@ def main(parser=proc_parser(), proc=Procedure()):
 if __name__ == '__main__':
     print('This is a template to make it easier to implement processes.')
     print('Please implement the Process class and run the main function.')
-    print('Or run the phase0.py file.')
+    print('Or run the proc0.py file.')

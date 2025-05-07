@@ -57,7 +57,7 @@ def test_task_without_langdetect():
         logger=logger,
         mt_folder=test_folder,
         num_of_sents=400,
-        langdetection=False,
+        lang_detection=False,
     )
     setup_and_teardown(test_folder, task.run)
 
@@ -285,7 +285,7 @@ def test_logging_with_scenario_without_langdetect(scenario_key):
         num_of_sents=400,
         max_retries=scenario['max_retries'],
         retry_delay=0,
-        langdetection=False,
+        lang_detection=False,
     )
     setup(test_folder)
     task.run()

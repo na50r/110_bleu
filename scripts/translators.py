@@ -225,12 +225,18 @@ class GPTClient(TranslationClient):
 
 class MockClient(TranslationClient):
     '''
+    MockClient is a client that can be used to test the translation task.
+    It can be configured to raise errors, return incorrect translations, or return correct translations.
+    It can also be configured to simulate a scenario, where a list of integers represents the scenario to be simulated (scenario code in constants.py).
+    If DataManager is provided, it will be used to generate correct (perfect) translations, should be used if language detection is tested as well.
+    If no DataManager is provided, it will use a Caesar Cipher to generate translations, should be used if language detection is not tested.
+    
         Args:
             logger: A TranslationLogger that logs translation specific information
             model: A string that can be used to use to identify the same client as other clients
             planned_rejects: A list of tuples of source and target language ISO codes that will be rejected
             planned_errors: A list of tuples of source and target language ISO codes that will raise an error
-            scenario: A list of integers that represents the scenario to be simulated (0: accepted, 1: rejected (output size), 2: error, 3: rejected (wrong lang))
+            scenario: A list of integers that represents the scenario to be simulated 
         '''
 
     def __init__(self, dm: DataManager = None, logger=None, model='mock', planned_rejects=[], planned_errors=[], scenario=[]):
@@ -287,6 +293,9 @@ class MockClient(TranslationClient):
         return '\n'.join(out_text)
 
     def translate(self,  src_lang: str, tgt_lang: str, text: str) -> str:
+        '''
+        Flexible method that either runs Caesar Cipher or uses DataManager to get translations
+        '''
         pair = (src_lang, tgt_lang)
         if len(self.scenario) > 0 and self.scenario[self.current] == E:
             self.current += 1  # an error log will be created in the except statement, so we increment the current translation here

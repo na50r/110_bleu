@@ -119,6 +119,9 @@ for pair in pairs:
 
 * We also implemented a `MockClient` for testing purposes. This client provides additional features such as specifying for which language pair or translation count to fail/raise an error.
 * The use of it can be found in `test_tasks.py`
+* The `MockClient` can either mimick 'translation' by doing a Caeser Cipher or produces 'perfect translation' by just using the resp. Data Manager, for some testing one can be preferred over the other, in most cases the latter. 
+    * The Caesar Cipher variant makes most sense when wanting to run procedures as the actual construction of tasks using real clients does not link them to data managers, however language detection has to be disabled for these procedures to run properly.
+    * The DataManager variant makes most sense for testing individual tasks by themselves, since test is per task, a coupling between data manager and translation client becomes possible, although that would not be the case with the real clients. 
 
 ## Task
 

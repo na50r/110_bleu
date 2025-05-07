@@ -51,7 +51,7 @@ class Proc0(Procedure):
                     num_of_sents=400,
                     acceptable_range=(360, 480),
                     retry_delay=0,
-                    langdetection=False,
+                    lang_detection=False,
                 )
                 self.tasks[dm_id][client.model] = task
                 num_of_tasks += 1

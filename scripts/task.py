@@ -16,10 +16,12 @@ class TranslationTask:
     Implementation of Translation Task for 110 BLEU project
 
     This class is used to run the translations in batches 
-    Selection of language pairs, dataset, number of sentences and translator are the main configurable arguments.
+    A task (P, d, t) is defined as something that given a set of pairs P, retrieves their resp. sentences from dataset d and translates them with a translator t.
+
+    Selection of language pairs, number of sentences, dataset and translator are the main configurable arguments.
+    In addition, it is possible to specify how often the API is called again automatically after an error or the output was rejected (failed to meet acceptance conditions)
+    The acceptance conditions are primarily the acceptable range of output sentences and the target language (if it should be detected or not), have default values but can be specified as well.
     It is not possible to run tasks involving multiple datasets or multiple translators with this implementation.
-    Error handling and rejection of (specified) insufficient or potentially malformed output is handled.
-    In such cases, the API is called again automatically after specified delay for a specified number of times.
     '''
 
     def __init__(self, target_pairs: list[tuple[str, str]],
@@ -32,7 +34,7 @@ class TranslationTask:
                  max_retries: int = 2,
                  retry_delay: int = 30,
                  acceptable_range: tuple[int, int] | None = None,
-                 langdetection : bool = True,
+                 lang_detection : bool = True,
                  ):
         '''
         Args:
@@ -46,6 +48,7 @@ class TranslationTask:
             max_retries: Maximum number of automatic retries for each translation, retries are triggered by errors or if the number of output sentences outside acceptable range
             retry_delay: Delay between retries in seconds
             acceptable_range: Range of acceptable number of output sentences, if None, it is set to 80% to 120% of num_of_sents
+            lang_detection: Whether to perform language detection on the output, should always be True except for testing purposes
         '''
 
         self.id = str(uuid.uuid4())
@@ -53,7 +56,7 @@ class TranslationTask:
         self.pairs = [pair for pair in reversed(target_pairs)]
         self.dm = dm
         self.tl_logger = logger
-        self.langdetection = langdetection
+        self.lang_detection = lang_detection
 
         self.num_of_sents = num_of_sents
         self.client = client
@@ -89,6 +92,9 @@ class TranslationTask:
         return task_info
 
     def accept_output(self, mt_sents: list[str], src_lang: str, tgt_lang: str) -> bool:
+        '''
+        Verifies if the output meets the acceptance conditions
+        '''
         mt_len = len(mt_sents)
         msg = f'[❌]: Translated {mt_len} sents for {src_lang}-{tgt_lang} but rejected'
         min_cnt = self.acceptable_range[0]
@@ -106,12 +112,14 @@ class TranslationTask:
             self.tl_logger.add_status_code(R1)
             return False
         
-        if self.langdetection == False:
+        if self.lang_detection == False:
             return True
 
         mt_text = '\n'.join(mt_sents)
         mt_lang = safe_detect(mt_text)
         if mt_lang is None:
+            # Rare edge case of langdetect.detect raising an error
+            # Consider this rejection and store output
             logging.info(msg)
             self.tl_logger.add_status_code(R3)
             return False
