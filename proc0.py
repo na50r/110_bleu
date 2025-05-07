@@ -4,6 +4,7 @@ from scripts.data_management import EuroParlManager, Opus100Manager, FloresPlusM
 from scripts.task import TranslationTask
 from scripts.logger import TranslationLogger, logging_config
 from test_tasks import MockClient
+from scripts.constants import N, E
 
 logging_config('proc0.log')
 
@@ -17,7 +18,7 @@ class Proc0(Procedure):
         sub_folder = join(main_folder, 'proc0')
 
         # Define the data managers and folders for translation storage
-        dms = [EuroParlManager(), FloresPlusManager(), Opus100Manager()]
+        dms = [EuroParlManager(), Opus100Manager(), FloresPlusManager()]
         self.dm_ids = [dm.short_name for dm in dms]
         dm_folders = [join(sub_folder, dm_id) for dm_id in self.dm_ids]
         self.tasks = {dm_id: {} for dm_id in self.dm_ids}
@@ -26,7 +27,11 @@ class Proc0(Procedure):
         logger = TranslationLogger(logfile=join(main_folder, 'proc0.jsonl'))
 
         cli_gpt = MockClient(logger=logger, model='gpt-4.1-2025-04-14', planned_errors=[('de', 'en')], planned_rejects=[('de', 'en')])
-        cli_deepl = MockClient(logger=logger, model='deepl_document')
+        
+        # first call error, rest pass, 21 calls for 20 pairs
+        scenario = [N] * 21
+        scenario[0] = E
+        cli_deepl = MockClient(logger=logger, model='deepl_document', scenario=scenario)
         clients = [cli_gpt, cli_deepl]
         self.model_ids = [cli.model for cli in clients]
 
@@ -45,7 +50,8 @@ class Proc0(Procedure):
                     mt_folder=join(folder, client.model),
                     num_of_sents=400,
                     acceptable_range=(360, 480),
-                    retry_delay=0
+                    retry_delay=0,
+                    langdetection=False,
                 )
                 self.tasks[dm_id][client.model] = task
                 num_of_tasks += 1

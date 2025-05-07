@@ -40,7 +40,29 @@ def setup_and_teardown(foldername, func):
 ### TESTS ###
 
 
+def test_task_without_langdetect():
+    # Decouple client and dm (real case)
+    test_folder = 'tmp_test'
+    dms = [EuroParlManager, Opus100Manager]
+    dm = choice(dms)
+    pairs = get_sample_pairs(dm)
+    dm = dm()
+    logfile = StringIO()
+    logger = TranslationLogger(logfile=logfile)
+    cli = MockClient(logger=logger)
+    task = TranslationTask(
+        target_pairs=pairs,
+        dm=dm,
+        client=cli,
+        logger=logger,
+        mt_folder=test_folder,
+        num_of_sents=400,
+        langdetection=False,
+    )
+    setup_and_teardown(test_folder, task.run)
+
 def test_task():
+    # tests langdetect as well but couples client & dm
     test_folder = 'tmp_test'
     dms = [EuroParlManager, Opus100Manager]
     dm = choice(dms)
@@ -55,7 +77,7 @@ def test_task():
         client=cli,
         logger=logger,
         mt_folder=test_folder,
-        num_of_sents=400,
+        num_of_sents=400
     )
     setup_and_teardown(test_folder, task.run)
 
@@ -193,6 +215,22 @@ SCENARIOS = {
         'logs': 7,
         'verdicts': ['rejected', 'rejected', 'rejected', 'accepted', 'rejected', 'rejected', 'accepted'],
         'max_retries': 3
+    },
+    'J': {
+        'dm': EuroParlManager,
+        'pairs': get_sample_pairs(EuroParlManager, k=2),
+        'scenario': [R2, R2, R2, R2],
+        'logs': 4,
+        'verdicts': ['rejected'] * 4,
+        'max_retries': 1
+    },
+    'K': {
+        'dm': Opus100Manager,
+        'pairs': get_sample_pairs(Opus100Manager, k=2),
+        'scenario': [R3, R3, R3, R3],
+        'logs': 4,
+        'verdicts': ['rejected'] * 4,
+        'max_retries': 1
     }
 }
 
@@ -225,6 +263,40 @@ def test_logging_with_scenario(scenario_key):
     log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
     assert len(log_data) == scenario['logs']
     assert [log['verdict'] for log in log_data] == scenario['verdicts']
+    assert [log['status_code'] for log in log_data] == [o for o in scenario['scenario'] if o != E]
+
+
+@pytest.mark.parametrize("scenario_key", ['A', 'B', 'C', 'D', 'E', 'F'])
+def test_logging_with_scenario_without_langdetect(scenario_key):
+    test_folder = 'tmp_test'
+    scenario = SCENARIOS[scenario_key]
+    dm = scenario['dm']()
+    pairs = scenario['pairs']
+    logfile = StringIO()
+    logger = TranslationLogger(logfile=logfile)
+    cli = MockClient(logger=logger, scenario=scenario['scenario'])
+
+    task = TranslationTask(
+        target_pairs=pairs,
+        dm=dm,
+        client=cli,
+        logger=logger,
+        mt_folder=test_folder,
+        num_of_sents=400,
+        max_retries=scenario['max_retries'],
+        retry_delay=0,
+        langdetection=False,
+    )
+    setup(test_folder)
+    task.run()
+    files = [f for f in os.listdir(test_folder) if f != 'task.json']
+    assert len(files) == scenario['logs']
+    teardown(test_folder)
+    log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
+    assert len(log_data) == scenario['logs']
+    assert [log['verdict'] for log in log_data] == scenario['verdicts']
+    assert [log['status_code'] for log in log_data] == [
+        o for o in scenario['scenario'] if o != E]
 
 
 def test_logging_with_manual_retry():
