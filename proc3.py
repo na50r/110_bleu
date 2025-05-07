@@ -12,7 +12,13 @@ class Proc3(Procedure):
         en_pairs = Opus100Manager.get_pairs()
         all_pairs = EuroParlManager.get_pairs()
         non_en_pairs = set(all_pairs) - set(en_pairs)
-        assert len(non_en_pairs) == 90
+
+        langs = sorted(Opus100Manager.EURO_ISO_2_PAIR.keys())
+        pairs = []
+        for lang in langs:
+            pairs.extend([p for p in non_en_pairs if p[0]==lang])
+        
+        assert len(pairs) == 90
         
         # Define folder hierarchy of where translations should be stored
         main_folder = 'tasks'
@@ -31,7 +37,7 @@ class Proc3(Procedure):
         
         for dm, folder, dm_id in zip(dms, dm_folders, self.dm_ids):
             task = TranslationTask(
-                target_pairs=list(non_en_pairs),
+                target_pairs=pairs,
                 dm=dm,
                 client=cli_deepl,
                 logger=logger,
