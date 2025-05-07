@@ -7,22 +7,28 @@ from scripts.translators import MockClient
 logging_config('procZ.log')
 
 
-class Proc3(Procedure):
+class ProcZ(Procedure):
     def __init__(self):
-        # Define all English including pairs
         en_pairs = Opus100Manager.get_pairs()
         all_pairs = EuroParlManager.get_pairs()
         non_en_pairs = set(all_pairs) - set(en_pairs)
         non_en_pairs = list(sorted(non_en_pairs))
+        langs = sorted(Opus100Manager.EURO_ISO_2_PAIR.keys())
         assert len(non_en_pairs) == 90
 
-        third1 = non_en_pairs[:30]
-        third2 = non_en_pairs[30:60]
-        third3 = non_en_pairs[60:]
-        assert len(third1) == 30
-        assert len(third2) == 30
-        assert len(third3) == 30
-        thirds = [third1, third2, third3]
+        segmented = []
+        for lang in langs:
+            segmented.append([p for p in non_en_pairs if p[0]==lang])
+        
+        assert len(segmented)==10
+        half1 = []
+        half2 = []
+        for s in segmented[:5]:
+            half1.extend(s)
+        for s in segmented[5:]:
+            half2.extend(s)
+        
+        halves = [half1, half2]
 
         # Define folder hierarchy of where translations should be stored
         main_folder = 'tmp_tasks'
@@ -34,7 +40,7 @@ class Proc3(Procedure):
         dm_ids = [dm.short_name for dm in dms]
         dm_folders = [join(sub_folder, dm_id) for dm_id in dm_ids]
         for dm_id in dm_ids:
-            for i in range(1, 4):
+            for i in range(1, 3):
                 self.tasks[f'{dm_id}-{i}'] = {}
 
         self.dm_ids = list(self.tasks.keys())
@@ -44,9 +50,9 @@ class Proc3(Procedure):
         self.model_ids = [cli.model]
 
         for dm, folder, dm_id in zip(dms, dm_folders, dm_ids):
-            for i, third in enumerate(thirds):
+            for i, half in enumerate(halves):
                 task = TranslationTask(
-                    target_pairs=list(third),
+                    target_pairs=list(half),
                     dm=dm,
                     client=cli,
                     logger=logger,
@@ -62,4 +68,4 @@ if __name__ == '__main__':
     desc = '''Procedure Z Task Manager (Testing Purposes)
     Simulates Proc3
     '''
-    main(parser=proc_parser(desc=desc), proc=Proc3())
+    main(parser=proc_parser(desc=desc), proc=ProcZ())

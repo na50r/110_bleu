@@ -7,7 +7,7 @@ from scripts.translators import MockClient
 logging_config('procY.log')
 
 
-class Proc2(Procedure):
+class ProcY(Procedure):
     def __init__(self):
         # Define all English including pairs
         en_pairs = Opus100Manager.get_pairs()
@@ -49,4 +49,4 @@ if __name__ == '__main__':
     Compute translations for 90 language pairs without English using DeepL
     Number of Input sentences: 400, within acceptable range of 360-480 sentences
     '''
-    main(parser=proc_parser(desc=desc), proc=Proc2())
+    main(parser=proc_parser(desc=desc), proc=ProcY())
