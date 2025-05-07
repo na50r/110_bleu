@@ -1,7 +1,8 @@
-from scripts.translators import MockClient
+from scripts.translators import MockClient, MockClient
 from scripts.task import TranslationTask
 from scripts.logger import TranslationLogger, RetryLog
 from scripts.data_management import Opus100Manager, EuroParlManager
+from scripts.constants import N, R1, R2, R3, E
 from random import choice, sample
 from io import StringIO
 import os
@@ -9,7 +10,9 @@ import shutil
 import json
 import pytest
 
-# Test utils
+
+### HELPER FUNCTIONS ###
+
 def get_sample_pairs(dm, k=2):
     pairs = dm.get_pairs()
     pairs = sample(pairs, k=k)
@@ -34,8 +37,11 @@ def setup_and_teardown(foldername, func):
     finally:
         teardown(foldername)
 
-# Tests
-def test_task():
+### TESTS ###
+
+
+def test_task_without_langdetect():
+    # Decouple client and dm (real case)
     test_folder = 'tmp_test'
     dms = [EuroParlManager, Opus100Manager]
     dm = choice(dms)
@@ -51,6 +57,27 @@ def test_task():
         logger=logger,
         mt_folder=test_folder,
         num_of_sents=400,
+        lang_detection=False,
+    )
+    setup_and_teardown(test_folder, task.run)
+
+def test_task():
+    # tests langdetect as well but couples client & dm
+    test_folder = 'tmp_test'
+    dms = [EuroParlManager, Opus100Manager]
+    dm = choice(dms)
+    pairs = get_sample_pairs(dm)
+    dm = dm()
+    logfile = StringIO()
+    logger = TranslationLogger(logfile=logfile)
+    cli = MockClient(logger=logger, dm=dm)
+    task = TranslationTask(
+        target_pairs=pairs,
+        dm=dm,
+        client=cli,
+        logger=logger,
+        mt_folder=test_folder,
+        num_of_sents=400
     )
     setup_and_teardown(test_folder, task.run)
 
@@ -61,8 +88,8 @@ def test_retry_and_fail_files():
     dm = Opus100Manager()
     logfile = StringIO()
     logger = TranslationLogger(logfile=logfile)
-    cli = MockClient(logger=logger, planned_rejects=[
-                     pairs[1], pairs[1], pairs[3]])
+    cli = MockClient(logger=logger, dm=dm, planned_rejects=[
+        pairs[1], pairs[1], pairs[3]])
     task = TranslationTask(
         target_pairs=pairs,
         dm=dm,
@@ -71,7 +98,7 @@ def test_retry_and_fail_files():
         mt_folder=test_folder,
         num_of_sents=400,
         max_retries=1,
-        retry_delay=0
+        retry_delay=0,
     )
 
     setup(test_folder)
@@ -91,7 +118,7 @@ def test_meta_data_in_log():
     logfile = StringIO()
     logger = TranslationLogger(logfile=logfile)
     model = 'gpt-4.1-2077-01-01'
-    cli = MockClient(logger=logger, model=model)
+    cli = MockClient(logger=logger, dm=dm, model=model)
 
     task = TranslationTask(
         target_pairs=pairs,
@@ -101,7 +128,7 @@ def test_meta_data_in_log():
         mt_folder=test_folder,
         num_of_sents=400,
         max_retries=1,
-        retry_delay=0
+        retry_delay=0,
     )
     setup_and_teardown(test_folder, task.run)
     log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
@@ -120,7 +147,7 @@ SCENARIOS = {
     'A': {
         'dm': Opus100Manager,
         'pairs': get_sample_pairs(Opus100Manager, k=4),
-        'scenario': [0, 1, 1, 0, 0, 2, 2, 2],
+        'scenario': [N, R1, R1, N, N, E, E, E],
         'logs': 5,
         'verdicts': ['accepted', 'rejected', 'rejected', 'accepted', 'accepted'],
         'max_retries': 2
@@ -128,7 +155,7 @@ SCENARIOS = {
     'B': {
         'dm': EuroParlManager,
         'pairs': get_sample_pairs(EuroParlManager, k=4),
-        'scenario': [2, 2, 2, 0, 2, 1, 0, 1, 2, 2],
+        'scenario': [E, E, E, N, E, R1, N, R1, E, E],
         'logs': 4,
         'verdicts': ['accepted', 'rejected', 'accepted', 'rejected'],
         'max_retries': 2
@@ -136,7 +163,7 @@ SCENARIOS = {
     'C': {
         'dm': Opus100Manager,
         'pairs': get_sample_pairs(Opus100Manager, k=3),
-        'scenario': [1, 1, 1, 0, 0, 2, 2, 2, 0],
+        'scenario': [R1, R1, R1, N, N, E, E, E, N],
         'logs': 6,
         'verdicts': ['rejected', 'rejected', 'rejected', 'accepted', 'accepted', 'accepted'],
         'max_retries': 3
@@ -144,7 +171,7 @@ SCENARIOS = {
     'D': {
         'dm': EuroParlManager,
         'pairs': get_sample_pairs(EuroParlManager, k=2),
-        'scenario': [2, 2, 2, 2],
+        'scenario': [E, E, E, E],
         'logs': 0,
         'verdicts': [],
         'max_retries': 1
@@ -152,7 +179,7 @@ SCENARIOS = {
     'E': {
         'dm': Opus100Manager,
         'pairs': get_sample_pairs(Opus100Manager, k=2),
-        'scenario': [0, 0],
+        'scenario': [N, N],
         'logs': 2,
         'verdicts': ['accepted'] * 2,
         'max_retries': 0
@@ -160,15 +187,87 @@ SCENARIOS = {
     'F': {
         'dm': EuroParlManager,
         'pairs': get_sample_pairs(EuroParlManager, k=2),
-        'scenario': [1, 1, 1, 1],
+        'scenario': [R1, R1, R1, R1],
+        'logs': 4,
+        'verdicts': ['rejected'] * 4,
+        'max_retries': 1
+    },
+    'G': {
+        'dm': Opus100Manager,
+        'pairs': get_sample_pairs(Opus100Manager, k=4),
+        'scenario': [N, R1, R1, N, N, R2, R2, R2],
+        'logs': 8,
+        'verdicts': ['accepted', 'rejected', 'rejected', 'accepted', 'accepted', 'rejected', 'rejected', 'rejected'],
+        'max_retries': 2
+    },
+    'H': {
+        'dm': EuroParlManager,
+        'pairs': get_sample_pairs(EuroParlManager, k=4),
+        'scenario': [E, E, E, N, E, R2, N, R2, E, E],
+        'logs': 4,
+        'verdicts': ['accepted', 'rejected', 'accepted', 'rejected'],
+        'max_retries': 2
+    },
+    'I': {
+        'dm': Opus100Manager,
+        'pairs': get_sample_pairs(Opus100Manager, k=3),
+        'scenario': [E, E, E, R2, R3, R2, N, R1, R1, N],
+        'logs': 7,
+        'verdicts': ['rejected', 'rejected', 'rejected', 'accepted', 'rejected', 'rejected', 'accepted'],
+        'max_retries': 3
+    },
+    'J': {
+        'dm': EuroParlManager,
+        'pairs': get_sample_pairs(EuroParlManager, k=2),
+        'scenario': [R2, R2, R2, R2],
+        'logs': 4,
+        'verdicts': ['rejected'] * 4,
+        'max_retries': 1
+    },
+    'K': {
+        'dm': Opus100Manager,
+        'pairs': get_sample_pairs(Opus100Manager, k=2),
+        'scenario': [R3, R3, R3, R3],
         'logs': 4,
         'verdicts': ['rejected'] * 4,
         'max_retries': 1
     }
 }
 
-@pytest.mark.parametrize("scenario_key", ["A", "B", "C", "D", "E", "F"])
+
+@pytest.mark.parametrize("scenario_key", SCENARIOS.keys())
 def test_logging_with_scenario(scenario_key):
+    test_folder = 'tmp_test'
+    scenario = SCENARIOS[scenario_key]
+    dm = scenario['dm']()
+    pairs = scenario['pairs']
+    logfile = StringIO()
+    logger = TranslationLogger(logfile=logfile)
+    cli = MockClient(logger=logger, dm=dm, scenario=scenario['scenario'])
+
+    task = TranslationTask(
+        target_pairs=pairs,
+        dm=dm,
+        client=cli,
+        logger=logger,
+        mt_folder=test_folder,
+        num_of_sents=400,
+        max_retries=scenario['max_retries'],
+        retry_delay=0,
+    )
+    setup(test_folder)
+    task.run()
+    files = [f for f in os.listdir(test_folder) if f != 'task.json']
+    assert len(files) == scenario['logs']
+    teardown(test_folder)
+    log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
+    assert len(log_data) == scenario['logs']
+    assert [log['verdict'] for log in log_data] == scenario['verdicts']
+    assert [log['status_code'] for log in log_data] == [o for o in scenario['scenario'] if o != E]
+
+
+@pytest.mark.parametrize("scenario_key", ['A', 'B', 'C', 'D', 'E', 'F'])
+def test_logging_with_scenario_without_langdetect(scenario_key):
     test_folder = 'tmp_test'
     scenario = SCENARIOS[scenario_key]
     dm = scenario['dm']()
@@ -185,7 +284,8 @@ def test_logging_with_scenario(scenario_key):
         mt_folder=test_folder,
         num_of_sents=400,
         max_retries=scenario['max_retries'],
-        retry_delay=0
+        retry_delay=0,
+        lang_detection=False,
     )
     setup(test_folder)
     task.run()
@@ -195,6 +295,8 @@ def test_logging_with_scenario(scenario_key):
     log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
     assert len(log_data) == scenario['logs']
     assert [log['verdict'] for log in log_data] == scenario['verdicts']
+    assert [log['status_code'] for log in log_data] == [
+        o for o in scenario['scenario'] if o != E]
 
 
 def test_logging_with_manual_retry():
@@ -203,7 +305,8 @@ def test_logging_with_manual_retry():
     pairs = get_sample_pairs(Opus100Manager, k=4)
     logfile = StringIO()
     logger = TranslationLogger(logfile=logfile)
-    cli = MockClient(logger=logger, planned_rejects=[pairs[-1], pairs[-1]])
+    cli = MockClient(logger=logger, dm=dm, planned_rejects=[
+        pairs[-1], pairs[-1]])
     task1 = TranslationTask(
         target_pairs=pairs,
         dm=dm,
@@ -212,7 +315,7 @@ def test_logging_with_manual_retry():
         mt_folder=test_folder,
         num_of_sents=400,
         max_retries=1,
-        retry_delay=0
+        retry_delay=0,
     )
 
     setup_and_teardown(test_folder, task1.run)
@@ -229,7 +332,7 @@ def test_logging_with_manual_retry():
     retry_log = RetryLog(
         pairs=retry_pairs, log_ids=retry_log_ids, reasons=retry_reasons)
     new_logger = TranslationLogger(logfile=logfile, retry_log=retry_log)
-    cli = MockClient(logger=new_logger)
+    cli = MockClient(logger=new_logger, dm=dm)
     task2 = TranslationTask(
         target_pairs=retry_pairs,
         dm=dm,
@@ -239,7 +342,7 @@ def test_logging_with_manual_retry():
         num_of_sents=400,
         manual_retry=True,
         max_retries=1,
-        retry_delay=0
+        retry_delay=0,
     )
     setup_and_teardown(test_folder, task2.run)
     log_data = [json.loads(ln) for ln in logfile.getvalue().splitlines()]
