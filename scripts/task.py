@@ -89,6 +89,7 @@ class TranslationTask:
         task_info['manual_retry'] = self.manual_retry
         task_info['max_retries'] = self.max_retries
         task_info['retry_delay'] = self.retry_delay
+        task_info['lang_detection'] = self.lang_detection
         return task_info
 
     def accept_output(self, mt_sents: list[str], src_lang: str, tgt_lang: str) -> bool:
