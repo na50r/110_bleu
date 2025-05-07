@@ -1,6 +1,6 @@
 from scripts.translators import TranslationClient
 from scripts.data_management import DataManager
-from scripts.util import safe_detect, safe_split_sents, get_git_revision_short_hash, get_local_timestamp
+from scripts.util import safe_detect, split_sents, get_git_revision_short_hash, get_local_timestamp
 from scripts.logger import TranslationLogger
 import os
 import time
@@ -9,8 +9,7 @@ from collections import defaultdict
 import uuid
 import logging
 import json
-import langdetect
-
+from scripts.constants import R1, R2, R3, N
 
 class TranslationTask:
     '''
@@ -30,7 +29,7 @@ class TranslationTask:
                  mt_folder: str,
                  num_of_sents: int,
                  manual_retry: bool = False,
-                 max_retries: int = 3,
+                 max_retries: int = 2,
                  retry_delay: int = 30,
                  acceptable_range: tuple[int, int] | None = None,
                  langdetection : bool = True,
@@ -95,20 +94,16 @@ class TranslationTask:
         min_cnt = self.acceptable_range[0]
         max_cnt = self.acceptable_range[1]
 
-        real_sents = safe_split_sents(text='\n'.join(mt_sents), lang=tgt_lang)
-        if real_sents is None:
-            logging.info(msg)
-            return False
-    
+        real_sents = split_sents(text='\n'.join(mt_sents), lang=tgt_lang)  
         sent_cnt = len(real_sents)
         cond1 = mt_len >= min_cnt and mt_len <= max_cnt
         cond2 = sent_cnt >= min_cnt and sent_cnt <= max_cnt
 
         verdict1 = cond1 or cond2
         if verdict1 == False:
-            sub_msg1 = f'[❌]: Outside acceptable range'
-            logging.info(msg)
-            logging.info(sub_msg1)
+            sub_msg1 = f'outside acceptable range'
+            logging.info(f'{msg}: {sub_msg1}')
+            self.tl_logger.add_status_code(R1)
             return False
         
         if self.langdetection == False:
@@ -118,12 +113,13 @@ class TranslationTask:
         mt_lang = safe_detect(mt_text)
         if mt_lang is None:
             logging.info(msg)
+            self.tl_logger.add_status_code(R3)
             return False
         
         if mt_lang != tgt_lang:
-            sub_msg2 = f'[❌]: Unexpected lang detected {mt_lang}!={tgt_lang}'
-            logging.info(msg)
-            logging.info(sub_msg2)
+            sub_msg2 = f'expected lang {tgt_lang} but got {mt_lang}'
+            logging.info(f'{msg}: {sub_msg2}')
+            self.tl_logger.add_status_code(R2)
             return False
         return True
 
@@ -202,6 +198,7 @@ class TranslationTask:
                 if self.accept_output(mt_sents, src_lang, tgt_lang):
                     logging.info(
                         f'[✔️]: Translated {len(mt_sents)} sents for {src_lang}-{tgt_lang}')
+                    self.tl_logger.add_status_code(N)
                     self.tl_logger.write_log()
                     continue
 

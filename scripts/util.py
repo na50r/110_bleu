@@ -51,15 +51,6 @@ def split_sents(text: str, lang: str) -> list[str]:
     else:
         raise Exception(f'The language {LANG_ISO[lang]} is not supported yet')
 
-def safe_split_sents(text: str, lang: str) -> list[str]:
-    try:
-        sents = split_sents(text, lang)
-        return sents
-    except Exception as e:
-        logging.error(f'[🔥]: Error {str(e)}')
-        logging.debug("Traceback:", exc_info=True)
-        return None
-
 
 def safe_detect(text: str) -> str:
     try:
@@ -69,6 +60,7 @@ def safe_detect(text: str) -> str:
         logging.error(f'[🔥]: Error {str(e)}')
         logging.debug("Traceback:", exc_info=True)
         return None
+
 
 def store_sents(sents: list[str], folder_path: str, src_lang: str, tgt_lang: str):
     filename = f'{src_lang}-{tgt_lang}.txt'
