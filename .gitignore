@@ -7,11 +7,11 @@ scripts/__pycache__/
 tmp*.py
 tmp*.ipynb
 .vscode/
-
+*.html
 tasks/phase1/*
 !tasks/phase1/*.jsonl
 *.log
 !proc1.log
 tasks/
 Proc2.ipynb
-Proc3.ipynb
+_Proc2.ipynb
