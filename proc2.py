@@ -28,6 +28,8 @@ class Proc2(Procedure):
         for s in segmented[5:]:
             half2.extend(s)
         
+        assert len(half1) == 45
+        assert len(half2) == 45
         halves = [half1, half2]
 
         # Define folder hierarchy of where translations should be stored
