@@ -6,6 +6,7 @@ from scripts.logger import TranslationLogger, logging_config
 from scripts.translators import GPTClient
 logging_config('proc3.log')
 
+
 class Proc3(Procedure):
     def __init__(self):
         en_pairs = Opus100Manager.get_pairs()
@@ -32,7 +33,7 @@ class Proc3(Procedure):
         for dm_id in dm_ids:
             for s in segmented:
                 self.tasks[f'{dm_id}-{s}'] = {}
-                
+
         # Tasks that have been completed already by proc2.py
         completed = [
             'europarl-da',
@@ -43,7 +44,7 @@ class Proc3(Procedure):
         ]
         for c in completed:
             del self.tasks[c]
-        
+
         # Define logger and clients
         logger = TranslationLogger(logfile=join(main_folder, 'proc3.jsonl'))
         cli = GPTClient(logger=logger)
@@ -52,6 +53,9 @@ class Proc3(Procedure):
 
         for dm, folder, dm_id in zip(dms, dm_folders, dm_ids):
             for s in segmented:
+                key = f'{dm_id}-{s}'
+                if key in completed:
+                    continue
                 task = TranslationTask(
                     target_pairs=segmented[s],
                     dm=dm,
@@ -62,11 +66,7 @@ class Proc3(Procedure):
                     acceptable_range=(360, 480),
                     lang_detection=False,
                 )
-                key = f'{dm_id}-{s}'
-                if key in completed:
-                    continue
                 self.tasks[key][cli.model] = task
-
 
 
 if __name__ == '__main__':
@@ -74,7 +74,7 @@ if __name__ == '__main__':
     Compute translations for 90 language pairs without English using GPT4.1
     Translations in batches of 9 (src language), splitting 90 pairs from EuroParl and Flores+ dataset into 10 batches each
     We decided to implement this after running the first half of EuroParl on proc2.py and realizing that it takes too much time per run.
-    We also observed a potential bug in procedure 2 that was not triggered because only a single task was run, procedure 3 does not have this bug.
+    There was also a bug in proc2.py which was taken care of here. 
     Number of Input sentences: 400, within acceptable range of 360-480 sentences
     '''
     main(parser=proc_parser(desc=desc), proc=Proc3())
