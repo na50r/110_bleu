@@ -13,3 +13,5 @@ tasks/phase1/*
 *.log
 !proc1.log
 tasks/
+Proc2.ipynb
+Proc3.ipynb
