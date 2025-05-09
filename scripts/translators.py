@@ -130,7 +130,8 @@ class GPTClient(TranslationClient):
                  logger: TranslationLogger | None = None,
                  sys_templ: Template | str | None = SYS_TEMPL,
                  usr_templ: Template | str | None = USR_TEMPL,
-                 hyper_params: dict[str, Any] = HYPER_PARAMS
+                 hyper_params: dict[str, Any] = HYPER_PARAMS,
+                 stream : bool = False
                  ):
         api_key = get_env_variables('OPENAI_API_KEY')
         self.client = OpenAI(api_key=api_key)
@@ -139,6 +140,7 @@ class GPTClient(TranslationClient):
         self.sys_templ = sys_templ
         self.usr_templ = usr_templ
         self.hyper_params = hyper_params
+        self.stream = stream
 
     def sys_prompt(self, src_lang: str, tgt_lang: str) -> str | None:
         if self.sys_templ is None:
@@ -205,6 +207,45 @@ class GPTClient(TranslationClient):
                 finish_reason=resp.choices[0].finish_reason,
                 system_fingerprint=resp.system_fingerprint)
         return resp.choices[0].message.content
+    
+
+    def chat_stream(self, sys_prompt: str, user_prompt: str) -> str:
+        msgs = []
+        if sys_prompt is not None:
+            msgs.append({'role': 'system', 'content': sys_prompt})
+            
+        if user_prompt is not None:
+            msgs.append({'role': 'user', 'content': user_prompt})
+        
+        output = []
+        stream = self.client.chat.completions.create(
+            model=self.model,
+            messages=msgs,
+            stream=True,
+            stream_options={'include_usage':True}
+            **self.hyper_params
+        )
+        last = None
+        second_last = None
+        for chunk in stream:
+            last = chunk
+            if len(chunk.choices) > 0:
+                second_last = chunk
+            if not chunk.usage is None:
+                chunk_text = chunk.choices[0].delta.content
+                if chunk_text is not None:
+                    output.append(chunk_text)
+
+        out_text = ''.join(out_text)
+        if self.logger:
+            self.logger.finish(
+                tgt_text=out_text,
+                in_model_tokens=last.usage.prompt_tokens,
+                out_model_tokens=last.usage.completion_tokens,
+                finish_reason=second_last.choices[0].finish_reason,
+                system_fingerprint=last.system_fingerprint
+            )
+        return out_text
 
     def translate_document(self, text: list[str], src_lang: str, tgt_lang: str) -> list[str]:
         # Input is a list of strings (sentences)
@@ -219,7 +260,10 @@ class GPTClient(TranslationClient):
 
         sys_prompt = self.sys_prompt(src_lang, tgt_lang)
         user_prompt = self.user_prompt(src_lang, tgt_lang, in_text)
-        trans_text = self.chat_complete(sys_prompt, user_prompt)
+        if self.stream:
+            trans_text = self.chat_stream(sys_prompt, user_prompt)
+        else:
+            trans_text = self.chat_complete(sys_prompt, user_prompt)
         return trans_text.splitlines()
 
 
