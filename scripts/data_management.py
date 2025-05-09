@@ -138,7 +138,7 @@ class FloresPlusManager(DataManager):
         '''
         lang_sents = {}
         for lang in langs:
-            assert lang in self.langs, 'Only the 11 European languages should be supported by the FloresManager'
+            assert lang in self.langs, f'Only the 11 European languages should be supported by the FloresManager'
             lang_sents[lang] = self._load_sents_for_lang(
                 lang, num_of_sents=num_of_sents)
         return lang_sents
