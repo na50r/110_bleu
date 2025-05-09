@@ -64,7 +64,6 @@ class Proc3(Procedure):
                     mt_folder=join(f'{folder}-{s}', cli.model),
                     num_of_sents=400,
                     acceptable_range=(360, 480),
-                    lang_detection=False,
                 )
                 self.tasks[key][cli.model] = task
 
