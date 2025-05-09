@@ -131,7 +131,7 @@ class GPTClient(TranslationClient):
                  sys_templ: Template | str | None = SYS_TEMPL,
                  usr_templ: Template | str | None = USR_TEMPL,
                  hyper_params: dict[str, Any] = HYPER_PARAMS,
-                 stream : bool = False
+                 stream: bool = False
                  ):
         api_key = get_env_variables('OPENAI_API_KEY')
         self.client = OpenAI(api_key=api_key)
@@ -207,43 +207,44 @@ class GPTClient(TranslationClient):
                 finish_reason=resp.choices[0].finish_reason,
                 system_fingerprint=resp.system_fingerprint)
         return resp.choices[0].message.content
-    
 
     def chat_stream(self, sys_prompt: str, user_prompt: str) -> str:
         msgs = []
         if sys_prompt is not None:
             msgs.append({'role': 'system', 'content': sys_prompt})
-            
+
         if user_prompt is not None:
             msgs.append({'role': 'user', 'content': user_prompt})
-        
+
         output = []
         stream = self.client.chat.completions.create(
             model=self.model,
             messages=msgs,
             stream=True,
-            stream_options={'include_usage':True}
+            stream_options={'include_usage': True},
             **self.hyper_params
         )
-        last = None
-        second_last = None
+        # Based on: https://community.openai.com/t/usage-stats-now-available-when-using-streaming-with-the-chat-completions-api-or-completions-api/738156/3
         for chunk in stream:
-            last = chunk
-            if len(chunk.choices) > 0:
-                second_last = chunk
-            if not chunk.usage is None:
-                chunk_text = chunk.choices[0].delta.content
-                if chunk_text is not None:
-                    output.append(chunk_text)
+            if chunk.choices:
+                if not chunk.choices[0].finish_reason:
+                    content = chunk.choices[0].delta.content
+                    if content is not None:
+                        output.append(chunk.choices[0].delta.content)
+                else:
+                    finish_reason = chunk.choices[0].finish_reason
+            if chunk.usage:
+                usage = chunk.usage
+                fingerprint = chunk.system_fingerprint
 
-        out_text = ''.join(out_text)
+        out_text = ''.join(output)
         if self.logger:
             self.logger.finish(
                 tgt_text=out_text,
-                in_model_tokens=last.usage.prompt_tokens,
-                out_model_tokens=last.usage.completion_tokens,
-                finish_reason=second_last.choices[0].finish_reason,
-                system_fingerprint=last.system_fingerprint
+                in_model_tokens=usage.prompt_tokens,
+                out_model_tokens=usage.completion_tokens,
+                finish_reason=finish_reason,
+                system_fingerprint=fingerprint
             )
         return out_text
 
@@ -274,7 +275,7 @@ class MockClient(TranslationClient):
     It can also be configured to simulate a scenario, where a list of integers represents the scenario to be simulated (scenario code in constants.py).
     If DataManager is provided, it will be used to generate correct (perfect) translations, should be used if language detection is tested as well.
     If no DataManager is provided, it will use a Caesar Cipher to generate translations, should be used if language detection is not tested.
-    
+
         Args:
             logger: A TranslationLogger that logs translation specific information
             model: A string that can be used to use to identify the same client as other clients
