@@ -67,7 +67,7 @@ class Proc5(Procedure):
             }
         }
         self.dm_ids = list(self.tasks.keys())
-        self.model_ids = [cli.model for cli in [cli_flores, cli_europarl]]
+        self.model_ids = ['gpt-4.1-2025-04-14']
 
 
 if __name__ == '__main__':
