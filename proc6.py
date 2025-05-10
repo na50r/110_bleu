@@ -6,6 +6,7 @@ from scripts.logger import TranslationLogger, logging_config
 from scripts.translators import DeeplClient
 logging_config('proc6.log')
 
+
 class Proc6(Procedure):
     def __init__(self):
         # Define all English including pairs
@@ -16,10 +17,10 @@ class Proc6(Procedure):
         langs = sorted(Opus100Manager.EURO_ISO_2_PAIR.keys())
         pairs = []
         for lang in langs:
-            pairs.extend([p for p in non_en_pairs if p[0]==lang])
-        
+            pairs.extend([p for p in non_en_pairs if p[0] == lang])
+
         assert len(pairs) == 90
-        
+
         # Define folder hierarchy of where translations should be stored
         main_folder = 'tasks'
         sub_folder = join(main_folder, 'proc6')
@@ -34,7 +35,7 @@ class Proc6(Procedure):
         logger = TranslationLogger(logfile=join(main_folder, 'proc6.jsonl'))
         cli_deepl = DeeplClient(logger=logger)
         self.model_ids = [cli_deepl.model]
-        
+
         for dm, folder, dm_id in zip(dms, dm_folders, self.dm_ids):
             task = TranslationTask(
                 target_pairs=pairs,
@@ -49,7 +50,7 @@ class Proc6(Procedure):
 
 
 if __name__ == '__main__':
-    desc = '''Procedure 4 Task Manager
+    desc = '''Procedure 6 Task Manager
     Compute translations for 90 language pairs without English using DeepL
     Number of Input sentences: 400, within acceptable range of 360-480 sentences
     '''
