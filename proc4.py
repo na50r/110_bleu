@@ -6,6 +6,7 @@ from scripts.logger import TranslationLogger, logging_config
 from scripts.translators import GPTClient
 logging_config('proc4.log')
 
+
 class Proc4(Procedure):
     def __init__(self):
         en_pairs = Opus100Manager.get_pairs()
@@ -35,7 +36,7 @@ class Proc4(Procedure):
 
         # Define logger and clients
         logger = TranslationLogger(logfile=join(main_folder, 'proc4.jsonl'))
-        cli = GPTClient(logger=logger)
+        cli = GPTClient(logger=logger, stream=True)
         self.model_ids = [cli.model]
         self.dm_ids = list(self.tasks.keys())
 
