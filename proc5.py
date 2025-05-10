@@ -33,7 +33,7 @@ class Proc5(Procedure):
             num_of_sents=400,
             acceptable_range=(360, 480),
             manual_retry=True,
-            max_retries=15,
+            max_retries=5,
         )
 
         # Define retry task of EuroParl dataset
