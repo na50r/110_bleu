@@ -94,3 +94,10 @@ def post_triplet_align(src_sents_org : list[str], src_sents_ali: list[str], ref_
                 else:
                     continue
     print(f"{aligned_cnt} sents aligned for {src_lang} and {ref_lang}")
+
+def load_mt_sents(dataset: str, translator: str, src_lang: str, tgt_lang: str) -> list[str]:
+    filename = f'{dataset}-{translator}-{src_lang}-{tgt_lang}.txt'
+    file_path = join('translations', filename)
+    with open(file_path, 'r') as f:
+        mt_sents = [s.strip() for s in f.readlines()]
+    return mt_sents
