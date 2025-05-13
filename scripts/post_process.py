@@ -80,20 +80,21 @@ def post_triplet_align(src_sents_org : list[str], src_sents_ali: list[str], ref_
         os.makedirs(folder_path)
     aligned_cnt = 0
     out_file = f'{src_lang}-{ref_lang}.jsonl'
+    src2mt = {s.strip():m.strip() for s,m in zip(src_sents_ali, mt_sents_ali)}
+    src2ref = {s.strip():r.strip() for s,r in zip(src_sents_org, ref_sents_org)}
+    
+    check = frozenset(src2ref.keys())
+    keys = [k for k in src2mt if k in check]
     with open(join(folder_path, out_file), 'w') as f:
-        for x, sent in enumerate(src_sents_org):
-            for y, src_sent in enumerate(src_sents_ali):
-                if sent.strip() == src_sent.strip():
-                    obj = dict()
-                    obj['src'] = sent.strip()
-                    obj['ref'] = ref_sents_org[x].strip()
-                    obj['mt'] = mt_sents_ali[y].strip()
-                    if obj['src'] != '' and obj['ref'] != '' and obj['mt'] != '':
-                        print(json.dumps(obj), file=f)
-                        aligned_cnt += 1
-                else:
-                    continue
+        for k in keys:
+            m = src2mt[k]
+            r = src2ref[k]
+            if m and k and r:
+                aligned_cnt+=1
+                o = {'mt':m, 'ref':r, 'src':k}
+                print(json.dumps(o), file=f)
     print(f"{aligned_cnt} sents aligned for {src_lang} and {ref_lang}")
+    return aligned_cnt
 
 def load_mt_sents(dataset: str, translator: str, src_lang: str, tgt_lang: str) -> list[str]:
     filename = f'{dataset}-{translator}-{src_lang}-{tgt_lang}.txt'
@@ -101,3 +102,10 @@ def load_mt_sents(dataset: str, translator: str, src_lang: str, tgt_lang: str) -
     with open(file_path, 'r') as f:
         mt_sents = [s.strip() for s in f.readlines()]
     return mt_sents
+
+def load_sents_from_file(filename:str, folder:str) -> list[str]:
+    filename = f'{filename}.txt'
+    file_path = join(folder, filename)
+    with open(file_path, 'r') as f:
+        sents = [s.strip() for s in f]
+    return sents
