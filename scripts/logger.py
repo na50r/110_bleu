@@ -5,21 +5,23 @@ import tiktoken
 from typing import TextIO
 import logging
 
-def logging_config(logfile='tmp.log'):
+def logging_config(logfile='tmp.log', stream=True):
     # Based on https://stackoverflow.com/a/40909549
-    # Adjusted with the help of ChatGPT due to unfamiliarity with logging
+    # Adjusted with the help of ChatGPT due to unfamiliarity with 
+    handlers = []
     fmt = '%(levelname)s: %(asctime)s - %(message)s'
     datefmt = '%Y-%m-%d %H:%M:%S'
     file_handler = logging.FileHandler(logfile)
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(logging.Formatter(fmt, datefmt))
+    handlers.append(file_handler)
 
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
-    console_handler.setFormatter(logging.Formatter(fmt, datefmt))
-
-    logging.basicConfig(level=logging.DEBUG, handlers=[
-                        file_handler, console_handler])
+    if stream:
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+        console_handler.setFormatter(logging.Formatter(fmt, datefmt))
+        handlers.append(console_handler)
+    logging.basicConfig(level=logging.DEBUG, handlers=handlers)
 
 
 # Based on: https://stackoverflow.com/a/13638084
