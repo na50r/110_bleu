@@ -22,7 +22,7 @@ def direct_triplet_align(mt_sents: list[str], ref_sents: list[str], src_sents: l
             print(json.dumps(obj), file=f)
 
 
-def align_sents(src_sents: list[str], tgt_sents: list[str], src_lang: str, tgt_lang: str, folder_path: str, model: str = 'paraphrase-multilingual-MiniLM-L12-v2', filename=None) -> tuple[list[str], list[str]]:
+def align_sents(src_sents: list[str], tgt_sents: list[str], folder_path: str, src_lang: str, tgt_lang: str, model: str = 'paraphrase-multilingual-MiniLM-L12-v2', filename=None):
     '''
     Uses bertalign to align source and target sentences
     Uses paraphrase-multilingual-MiniLM-L12-v2 as default sentence embedding model
@@ -65,7 +65,6 @@ def align_sents(src_sents: list[str], tgt_sents: list[str], src_lang: str, tgt_l
         for s, t in zip(src_sents_a, tgt_sents_a):
             o = {'src': s, 'tgt': t}
             print(json.dumps(o), file=f)
-    return src_sents_a, tgt_sents_a
 
 
 def post_triplet_align(src_sents_org: list[str], src_sents_ali: list[str], ref_sents_org: list[str], mt_sents_ali: list[str], src_lang: str, ref_lang: str, folder_path: str):
