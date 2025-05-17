@@ -4,7 +4,7 @@ import json
 from os.path import join, exists
 
 
-def direct_triplet_align(mt_sents: list[str], ref_sents: list[str], src_sents: list[str], src_lang: str, ref_lang: str, folder_path: str, prefix:str=''):
+def direct_triplet_align(mt_sents: list[str], ref_sents: list[str], src_sents: list[str], src_lang: str, ref_lang: str, folder_path: str, prefix: str = ''):
     '''
     Aligns source, reference and machine translation in COMET format directly
     Assumes that mt_sents, ref_sents and src_sents are aligned with each other
@@ -22,7 +22,7 @@ def direct_triplet_align(mt_sents: list[str], ref_sents: list[str], src_sents: l
             print(json.dumps(obj), file=f)
 
 
-def align_sents(src_sents: list[str], tgt_sents: list[str], src_lang: str, tgt_lang: str, folder_path: str, model: str = 'paraphrase-multilingual-MiniLM-L12-v2') -> tuple[list[str], list[str]]:
+def align_sents(src_sents: list[str], tgt_sents: list[str], src_lang: str, tgt_lang: str, folder_path: str, model: str = 'paraphrase-multilingual-MiniLM-L12-v2', filename=None) -> tuple[list[str], list[str]]:
     '''
     Uses bertalign to align source and target sentences
     Uses paraphrase-multilingual-MiniLM-L12-v2 as default sentence embedding model
@@ -38,12 +38,13 @@ def align_sents(src_sents: list[str], tgt_sents: list[str], src_lang: str, tgt_l
     if not exists(folder_path):
         os.makedirs(folder_path)
 
-    mt_filename = f'{src_lang}-{tgt_lang}.{tgt_lang}'
-    src_filename = f'{src_lang}-{tgt_lang}.{src_lang}'
+    if filename is None:
+        filename = f'{src_lang}-{tgt_lang}.jsonl'
+    else:
+        filename = f'{filename}.jsonl'
 
-    mt_file = join(folder_path, mt_filename)
-    src_file = join(folder_path, src_filename)
-    if exists(mt_file) and exists(src_file):
+    out_file = join(folder_path, filename)
+    if exists(out_file):
         print(f'{src_lang} and {tgt_lang} already aligned!')
         return
 
@@ -60,14 +61,10 @@ def align_sents(src_sents: list[str], tgt_sents: list[str], src_lang: str, tgt_l
     aligner.align_sents()
     src_sents_a, tgt_sents_a = aligner.get_sents()
 
-    with open(join(folder_path, src_filename), 'w') as f:
-        for sent in src_sents_a:
-            print(sent, file=f)
-
-    with open(join(folder_path, mt_filename), 'w') as f:
-        for sent in tgt_sents_a:
-            print(sent, file=f)
-
+    with open(out_file, 'w') as f:
+        for s, t in zip(src_sents_a, tgt_sents_a):
+            o = {'src': s, 'tgt': t}
+            print(json.dumps(o), file=f)
     return src_sents_a, tgt_sents_a
 
 
@@ -105,3 +102,16 @@ def load_sents_from_file(filename: str, folder: str) -> list[str]:
     with open(file_path, 'r') as f:
         sents = [s.strip() for s in f]
     return sents
+
+
+def load_aligned_sents_from_file(filename: str, folder: str) -> tuple[list[str], list[str]]:
+    file_path = join(folder, f'{filename}.jsonl')
+
+    src_sents, tgt_sents = [], []
+    with open(file_path, 'r') as f:
+        for ln in f:
+            o = json.loads(ln)
+            src_sents.append(o['src'])
+            tgt_sents.append(o['tgt'])
+
+    return src_sents, tgt_sents
