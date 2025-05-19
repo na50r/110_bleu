@@ -67,7 +67,7 @@ def align_sents(src_sents: list[str], tgt_sents: list[str], folder_path: str, sr
             print(json.dumps(o), file=f)
 
 
-def post_triplet_align(src_sents_org: list[str], src_sents_ali: list[str], ref_sents_org: list[str], mt_sents_ali: list[str], src_lang: str, ref_lang: str, folder_path: str):
+def post_triplet_align(src_sents_org: list[str], src_sents_ali: list[str], ref_sents_org: list[str], mt_sents_ali: list[str], src_lang: str, ref_lang: str, folder_path: str, prefix: str=''):
     '''
     Alignes re-aligned source, reference and machine translation in COMET format
     Assumes that mt_sents, ref_sents and src_sents are aligned with each other
@@ -75,7 +75,7 @@ def post_triplet_align(src_sents_org: list[str], src_sents_ali: list[str], ref_s
     if not exists(folder_path):
         os.makedirs(folder_path)
     aligned_cnt = 0
-    out_file = f'{src_lang}-{ref_lang}.jsonl'
+    out_file = f'{prefix}{src_lang}-{ref_lang}.jsonl'
     src2mt = {s.strip(): m.strip()
               for s, m in zip(src_sents_ali, mt_sents_ali)}
     src2ref = {s.strip(): r.strip()
