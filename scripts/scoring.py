@@ -124,7 +124,7 @@ class ResultProducer:
         self.comet_mapping = {}
         self.bert_mapping = {}
 
-    def compute_results(self, randomize=False, split_value=None):
+    def compute_results(self, randomize=False, split_point=None):
         '''
         Computes the BLEU, chrF, BERT-F1 and Comet scores of a given JSONL file/s of aligned sentences
         Expected format: {src : src_sent, ref : ref_sent, mt : mt_sent} (Based on Comet API specification)
@@ -132,7 +132,6 @@ class ResultProducer:
         Args:
             randomize: Randomizes order of provided sentences
             split_value: Must be a value below 1, shrinks the number of sentences accoringly, used for sampling
-            swap_mt_ref : Swaps the mt and ref sentences 
         '''
 
         # Clear scores each time this method is called!
@@ -150,8 +149,8 @@ class ResultProducer:
             if randomize:
                 random.shuffle(data)
 
-            if split_value != None:
-                split_point = int(len(data) * split_value)
+            if split_point is not None:
+                assert split_point <= len(data), 'Choose smaller split point'
                 data = data[:split_point]
 
             self.data_set_sizes[lang] = len(data)
@@ -239,6 +238,11 @@ class ResultProducer:
         SCORES = self._get_scores()
         df = pd.DataFrame(SCORES)
         df.to_csv(output_path, index=False)
+    
+    def get_scores(self):
+        SCORES = self._get_scores()
+        df = pd.DataFrame(SCORES)
+        return df
 
     def store_mappings(self, output_path: str):
         """
