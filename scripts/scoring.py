@@ -8,18 +8,19 @@ from sacrebleu.compat import corpus_bleu, corpus_chrf
 
 
 def compute_bleu(ref: list[str], hyp: list[str]):
-    refs = [ref]
+    refs = [ref] # Because only single reference
     res = corpus_bleu(hyp, refs)
     return res.score
 
 
 def compute_chrf(ref: list[str], hyp: list[str]):
-    refs = [ref]
+    refs = [ref] # Because only single reference
     res = corpus_chrf(hyp, refs)
     return res.score
 
 
 def compute_comet(data: dict[str, str]):
+    # Adhere to: https://github.com/Unbabel/COMET
     from comet import download_model, load_from_checkpoint
     model_path = download_model("Unbabel/wmt22-comet-da")
     model = load_from_checkpoint(model_path)
@@ -36,7 +37,7 @@ def comet_mapper(data: dict[str, str], scores: list[float]):
     return mapping
 
 
-def pre_compute_comet(data: dict[str, str], mapping: dict[tuple[str, str, str], float]):
+def precompute_comet(data: dict[str, str], mapping: dict[tuple[str, str, str], float]):
     scores = []
     for o in data:
         triple = (o['ref'], o['mt'], o['src'])
@@ -61,8 +62,8 @@ def bert_mapper(data, scores):
     return mapping
 
 
-def pre_compute_bert(data, mapping):
-    # Pre-computes BERT-F1 scores after computed once
+def precompute_bert(data, mapping):
+    # Precomputes BERT-F1 scores after computed once
     # Can be used to compute BERT-F1 scores of smaller samples
     scores = []
     for o in data:
@@ -147,7 +148,7 @@ class ResultProducer:
                     # To make Table cleaner, we adhere to BLEU & chrF score and make it value between 0 and 100
                     self.bert_scores.append(np.array(bert_out).mean() * 100)
                 else:
-                    self.bert_scores.append(pre_compute_bert(
+                    self.bert_scores.append(precompute_bert(
                         data, self.bert_mapping[label]))
 
             if self.use_comet == True:
@@ -157,7 +158,7 @@ class ResultProducer:
                     self.comet_mapping[label] = mapping
                     self.comet_scores.append(comet_out['system_score']*100)
                 else:
-                    self.comet_scores.append(pre_compute_comet(
+                    self.comet_scores.append(precompute_comet(
                         data, self.comet_mapping[label]))
 
     def _get_scores(self):
@@ -193,12 +194,12 @@ class ResultProducer:
         df.to_csv(output_path, index=False)
 
     def store_mappings(self, output_path: str):
-        """
-        Store both BERT and Comet mappings from pickle file
+        '''
+        Store both BERT and Comet mappings into a pickle file
 
         Args:
             output_path (str): Full path to the output pickle file
-        """
+        '''
         # Create mapping dictionary to store
         mappings = {
             'bert_mapping': self.bert_mapping,
@@ -211,12 +212,12 @@ class ResultProducer:
         print(f"Mappings stored successfully in {output_path}")
 
     def load_mappings(self, input_path: str):
-        """
+        '''
         Load both BERT and Comet mappings from a pickle file.
 
         Args:
             input_path: Full path to the input pickle file
-        """
+        '''
         # Load mappings
         with open(input_path, 'rb') as f:
             mappings = pickle.load(f)
@@ -233,7 +234,7 @@ class ResultProducer:
 
 
 def create_matrix_from_csv(path_to_csv: str, metric: str = 'BLEU'):
-    # https://stackoverflow.com/questions/72827153/how-to-extract-specific-key-and-value-from-a-dataframe-python
+    # Based on https://stackoverflow.com/questions/72827153/how-to-extract-specific-key-and-value-from-a-dataframe-python
     '''
     Assume CSV of format:
     Label   Metric
