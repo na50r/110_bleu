@@ -247,6 +247,8 @@ def create_matrix_from_csv(path_to_csv: str, metric: str = 'BLEU'):
     ...
     '''
     df = pd.read_csv(path_to_csv)
+    assert metric in df.columns, f"Metric '{metric}' not found in {path_to_csv}.\n Available metrics: {list(df.columns[1:])}"
+
     all_langs = []
     for l in df.Label:
         src, tgt = l.split('-')
