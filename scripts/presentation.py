@@ -255,10 +255,13 @@ class Presenter:
         plt.tight_layout()
         plt.show()
         
-    def mean_metric_from_or_into_lang(self, mode='INTO', plot=True, with_koehn=True, metric='BLEU', title=None, xlabel=None, ylabel=None, colors=None):
+    def mean_metric_from_or_into_lang(self, mode='INTO', plot=True, with_koehn=True, metric='BLEU', title=None, xlabel=None, ylabel=None, colors=None, merge=None, focus=None):
         '''
         Plots Mean Metric Scores with/without Koehn's scores and produces a pandas.DataFrame containing mean scores or differences if Koehn's scores are used.
         '''
+        assert mode in ['INTO', 'FROM', 'DIFF']
+        assert (merge is None) or (merge in ['DATASET', 'TRANSLATOR'])
+        assert (focus is None and merge is None) or (focus is None and merge is not None) or (focus is not None and merge is None), 'Merge and Focus should not be used together!'
 
         _colors = {
             'ep-deepl': "#D83838",
@@ -266,23 +269,64 @@ class Presenter:
             'flores-deepl': "#65011A",
             'flores-gpt': "#235B2B"
         }
-        colors = colors or _colors
+        
+        data = {k: {metric: v[metric]}
+                for k, v in self.fi2df.items() if not k.startswith('opus')}
+        if focus is not None:
+            subset = set(focus)
+            keys = set(data.keys())
+            assert subset.intersection(keys) == subset
+        
+            new = {k:{} for k in focus}
+            for key in focus:
+                new[key][metric] = data[key][metric]
+            data = new
+        
+        # Merge data across datasets or translator
+        if merge is not None:
+            subset = set(_colors.keys())
+            keys = set(data.keys())
+            assert subset.intersection(keys) == subset
+            
+            _colors = {
+                'deepl': "#D83838",
+                'gpt': "#39C04B",
+                'ep': "#D83838",
+                'flores': "#39C04B",
+            }
+        
+            if merge == 'DATASET':
+                new = {'ep':{metric:[]}, 'flores':{metric:[]}}
+                func  = lambda x, y: x.startswith(y)
+            elif merge == 'TRANSLATOR':
+                new = {'deepl': {metric: []},'gpt': {metric: []}}
+                func  = lambda x, y: x.endswith(y)
+                
+            for k in new:
+                for key in data:
+                    if func(key, k):
+                        df = data[key][metric]
+                        new[k][metric].append(df)
+            for k in new:
+                dfs = new[k][metric]
+                df = sum(dfs) / len(dfs)
+                new[k][metric] = df
+            data = new
 
+        colors = colors or _colors
         assert (with_koehn == True and metric ==
                 'BLEU') or with_koehn == False, 'Use with_koehn only with BLEU scores!'
 
         if with_koehn:
             base = get_koehn()
         else:
-            k = list(self.fi2df.keys())[0]
-            sample = self.fi2df[k][metric]
+            k = list(data.keys())[0]
+            sample = data[k][metric]
             base = pd.DataFrame(0, index=sample.index, columns=sample.columns)
 
         diffs = {}
-        for key in self.fi2df:
-            if key.startswith('opus'):
-                continue
-            df = self.fi2df[key][metric]
+        for key in data:
+            df = data[key][metric]
             
             if mode=='INTO':
                 diff = df.mean().round(1) - base.mean().round(1)
@@ -297,13 +341,14 @@ class Presenter:
             diffs[key] = diff
 
         if mode == 'INTO':
-            base = base.mean().round(1).reset_index()
+            base = base.mean().round(1)
         elif mode=='FROM':
-            base = base.mean(axis=1).round(1).reset_index()
+            base = base.mean(axis=1).round(1)
         elif mode=='DIFF':
             base = base.mean(axis=1) - base.mean()
-            base = base.round(1).reset_index()
-
+            base = base.round(1)
+            
+        base = base.reset_index()
         base.columns = ['lang', 'koehn']
         base_series = base.set_index('lang')['koehn']
 
@@ -352,7 +397,10 @@ class Presenter:
 
             title = title or _title
             xlabel = xlabel or 'Language'
-            ylabel = ylabel or (f'Mean {metric} score' and mode in ['FROM', 'INTO']) or f'Mean {metric} differences'
+            if mode in ['FROM', 'INTO']:
+                ylabel = ylabel or f'{metric} score'
+            else:
+                ylabel = ylabel or f'Mean {metric} differences'
 
             plt.title(title)
             plt.xlabel(xlabel)
@@ -361,5 +409,159 @@ class Presenter:
             plt.legend()
             plt.tight_layout()
             plt.show()               
+        return comb
 
+
+    def metric_from_or_into_language(self, mode='INTO', plot=True, with_koehn=True, metric='BLEU', title=None, xlabel=None, ylabel=None, colors=None, merge=None, focus=None, lang='en'):
+        data = self.fi2df
+        
+        if lang!='en':
+            new = {k:{metric:v[metric]} for k,v in data.items() if not k.startswith('opus')}
+            data = new
+
+        _colors = {
+            'ep-deepl': "#D83838",
+            'ep-gpt': "#39C04B",
+            'flores-deepl': "#981133",
+            'flores-gpt': "#247C31",
+            'opus-deepl': "#530A0A",
+            'opus-gpt': "#0C3A1B"
+        }
+        
+        if focus is not None:
+            subset = set(focus)
+            keys = set(data.keys())
+            assert subset.intersection(keys) == subset
+
+            new = {k: {} for k in focus}
+            for key in focus:
+                new[key][metric] = data[key][metric]
+            data = new
+        
+        # Merge data across datasets or translator
+        if merge is not None:
+            subset = set(_colors.keys())
+            keys = set(data.keys())
+            assert subset.intersection(keys) == subset
+
+            _colors = {
+                'deepl': "#D83838",
+                'gpt': "#39C04B",
+                'ep': "#D83838",
+                'flores': "#39C04B",
+                'opus': "#B339C0"
+            }
+
+            if merge == 'DATASET':
+                new = {'ep': {metric: []}, 'flores': {metric: []}, 'opus':{metric:[]}}
+                def func(x, y): return x.startswith(y)
+            elif merge == 'TRANSLATOR':
+                new = {'deepl': {metric: []}, 'gpt': {metric: []}}
+                def func(x, y): return x.endswith(y)
+
+            for k in new:
+                for key in data:
+                    if func(key, k):
+                        df = data[key][metric]
+                        new[k][metric].append(df)
+            for k in new:
+                dfs = new[k][metric]
+                df = sum(dfs) / len(dfs)
+                new[k][metric] = df
+            data = new
+
+        if with_koehn:
+            base = get_koehn()
+        else:
+            k = list(data.keys())[0]
+            sample = data[k][metric]
+            base = pd.DataFrame(0, index=sample.index, columns=sample.columns)
+
+        diffs = {}
+        for key in data:
+            df = data[key][metric]
+
+            if mode == 'INTO':
+                diff = df[lang].round(1) - base[lang]
+            elif mode == 'FROM':
+                diff = df.loc[lang].round(1) - base.loc[lang]
+            elif mode == 'DIFF':
+                diff = df.loc[lang] - df[lang]
+                diff = diff.round(1)
+
+            diff = diff.reset_index()
+            diff.columns = ['lang', key]
+            diffs[key] = diff
+
+        if mode == 'INTO':
+            base_series = base[lang]
+        elif mode == 'FROM':
+            base_series = base.loc[lang]
+        elif mode == 'DIFF':
+            base_series = base.loc[lang] - base[lang]
+
+        base_df = base_series.reset_index()
+        base_df.columns = ['lang', 'koehn']
+
+        if with_koehn:
+            dfs = [base_df]
+        else:
+            dfs = []
+        for key in diffs:
+            dfs.append(diffs[key])
+
+        dfs = [df.set_index('lang') for df in dfs]
+        comb = pd.concat(dfs, axis=1, join='inner')
+        comb = comb.drop(lang)
+        base_indexed = base_df.set_index('lang')
+        base_indexed = base_indexed.drop(lang)  
+
+        colors = colors or _colors
+
+        if plot == True:
+            langs = base_indexed.index
+            x = range(len(langs))
+            if mode in ['INTO', 'FROM']:
+                linestyle = None
+            else:
+                linestyle = 'None'
+
+            if with_koehn:
+                plt.plot(x, base_indexed['koehn'], marker='o',
+                        label='koehn', linestyle=linestyle)
+
+            for col in comb.columns:
+                if col == 'koehn':
+                    continue
+                if col.endswith('deepl'):
+                    marker = 's'
+                else:
+                    marker = '^'
+
+                color = colors.get(col, None)
+                plt.plot(x, comb[col] + base_indexed['koehn'],  
+                        marker=marker, label=col, color=color, linestyle=linestyle)
+
+            plt.xticks(ticks=x, labels=langs)
+            if mode == 'INTO':
+                _title = f'{metric} Scores for Translations INTO {LANG_ISO[lang]}'
+            elif mode == 'FROM':
+                _title = f'{metric} Scores for Translations FROM {LANG_ISO[lang]}'
+            elif mode == 'DIFF':
+                _title = f'{metric} From/Into Differences'
+
+            title = title or _title
+            xlabel = xlabel or 'Language'
+            if mode in ['FROM', 'INTO']:
+                ylabel = ylabel or f'{metric} score'
+            else:
+                ylabel = ylabel or f'Mean {metric} differences'
+
+            plt.title(title)
+            plt.xlabel(xlabel)
+            plt.ylabel(ylabel)
+            plt.grid(True)
+            plt.legend()
+            plt.tight_layout()
+            plt.show()
         return comb
