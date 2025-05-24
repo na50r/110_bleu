@@ -262,6 +262,8 @@ class Presenter:
         assert mode in ['INTO', 'FROM', 'DIFF']
         assert (merge is None) or (merge in ['DATASET', 'TRANSLATOR'])
         assert (focus is None and merge is None) or (focus is None and merge is not None) or (focus is not None and merge is None), 'Merge and Focus should not be used together!'
+        assert (with_koehn == True and metric ==
+                'BLEU') or with_koehn == False, 'Use with_koehn only with BLEU scores!'
 
         _colors = {
             'ep-deepl': "#D83838",
@@ -314,8 +316,6 @@ class Presenter:
             data = new
 
         colors = colors or _colors
-        assert (with_koehn == True and metric ==
-                'BLEU') or with_koehn == False, 'Use with_koehn only with BLEU scores!'
 
         if with_koehn:
             base = get_koehn()
@@ -414,6 +414,13 @@ class Presenter:
 
     def metric_from_or_into_language(self, mode='INTO', plot=True, with_koehn=True, metric='BLEU', title=None, xlabel=None, ylabel=None, colors=None, merge=None, focus=None, lang='en'):
         data = self.fi2df
+        
+        assert mode in ['INTO', 'FROM', 'DIFF']
+        assert (merge is None) or (merge in ['DATASET', 'TRANSLATOR'])
+        assert (focus is None and merge is None) or (focus is None and merge is not None) or (
+            focus is not None and merge is None), 'Merge and Focus should not be used together!'
+        assert (with_koehn == True and metric ==
+                'BLEU') or with_koehn == False, 'Use with_koehn only with BLEU scores!'
         
         if lang!='en':
             new = {k:{metric:v[metric]} for k,v in data.items() if not k.startswith('opus')}
