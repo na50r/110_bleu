@@ -2,24 +2,29 @@
 import os
 import json
 from os.path import join, exists
+import unicodedata
 
+
+def full_normalize(text):
+    return unicodedata.normalize('NFKC', text.replace('\xa0', ' ')).strip()
 
 def direct_triplet_align(mt_sents: list[str], ref_sents: list[str], src_sents: list[str], folder_path: str, filename: str):
     '''
     Aligns source, reference and machine translation in COMET format directly
     Assumes that mt_sents, ref_sents and src_sents are aligned with each other
     '''
-
+    align_cnt = 0
+    norm = full_normalize
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
 
     with open(join(folder_path, f'{filename}.jsonl'), 'w') as f:
         for mt, ref, src in zip(mt_sents, ref_sents, src_sents):
-            obj = dict()
-            obj['mt'] = mt
-            obj['ref'] = ref
-            obj['src'] = src
-            print(json.dumps(obj), file=f)
+            if mt and ref and src:
+                obj = {'mt':norm(mt), 'ref':norm(ref), 'src':norm(src)}
+                align_cnt+=1
+                print(json.dumps(obj), file=f)
+    return align_cnt
 
 
 def align_sents(src_sents: list[str], tgt_sents: list[str], folder_path: str, src_lang: str, tgt_lang: str, model: str = 'paraphrase-multilingual-MiniLM-L12-v2', filename=None, is_split=False):
@@ -77,13 +82,15 @@ def post_triplet_align(src_sents_org: list[str], src_sents_ali: list[str], ref_s
         os.makedirs(folder_path)
     aligned_cnt = 0
     out_file = f'{filename}.jsonl'
-    src2mt = {s.strip(): m.strip()
+    norm = full_normalize
+    src2mt = {norm(s.strip()): norm(m.strip())
               for s, m in zip(src_sents_ali, mt_sents_ali)}
-    src2ref = {s.strip(): r.strip()
+    src2ref = {norm(s.strip()): norm(r.strip())
                for s, r in zip(src_sents_org, ref_sents_org)}
 
     check = frozenset(src2ref.keys())
     keys = [k for k in src2mt if k in check]
+    discared = []
     with open(join(folder_path, out_file), 'w') as f:
         for k in keys:
             m = src2mt[k]
@@ -92,7 +99,9 @@ def post_triplet_align(src_sents_org: list[str], src_sents_ali: list[str], ref_s
                 aligned_cnt += 1
                 o = {'mt': m, 'ref': r, 'src': k}
                 print(json.dumps(o), file=f)
-    return aligned_cnt
+            else:
+                discared.append({'mt': m, 'ref': r, 'src': k})
+    return aligned_cnt, discared
 
 
 def load_sents_from_file(filename: str, folder: str) -> list[str]:
