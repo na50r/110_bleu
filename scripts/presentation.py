@@ -74,20 +74,24 @@ class Presenter:
         self.metrics = metrics
         self.order = order
         self.datasets = set([fn.split('-')[0] for fn in os.listdir(results_folder)])
-        self.fi2df = {f.replace('.csv', ''):{'file':join(results_folder, f)} for f in os.listdir(results_folder)}
-        for k in self.fi2df:
-            file_path = self.fi2df[k]['file']
+        self.cases = {f.replace('.csv', ''):{'file':join(results_folder, f)} for f in os.listdir(results_folder)}
+        for k in self.cases:
+            file_path = self.cases[k]['file']
             for m in metrics:
                 df = create_matrix_from_csv(file_path, metric=m)
                 df = df.reindex(index=order, columns=order)
-                self.fi2df[k][m] = df
+                self.cases[k][m] = df
                 
     def get_df(self):
-        return self.fi2df
+        return self.cases
     
-    def show_score_matrices(self, metric='BLEU', **heatmap_kwargs):
-        for k in self.fi2df:
-            df = self.fi2df[k][metric]
+    def show_score_matrices(self, metric='BLEU', foucus=None, **heatmap_kwargs):
+        if foucus is None:
+            foucus = self.cases.keys()
+        else:
+            assert set(foucus).issubset(set(self.cases.keys())), f'Please provide cases that are within {self.store}!'
+        for k in foucus:
+            df = self.cases[k][metric]
             df = df.round(1)
             print(k)
             kwargs = self.SCORE_MATRIX.get(metric, {})
@@ -99,8 +103,8 @@ class Presenter:
             print()
             
     def show_correlations(self, key1, metric1, key2, metric2):
-        var1 = self.fi2df[key1][metric1]
-        var2 = self.fi2df[key2][metric2]
+        var1 = self.cases[key1][metric1]
+        var2 = self.cases[key2][metric2]
 
         flat1 = var1.values.flatten()
         flat2 = var2.values.flatten()
@@ -123,8 +127,8 @@ class Presenter:
     def prep_lin_reg_1(self,
                                  key1, key2,
                                  metric1, metric2):        
-        var1 = self.fi2df[key1][metric1]
-        var2 = self.fi2df[key2][metric2]
+        var1 = self.cases[key1][metric1]
+        var2 = self.cases[key2][metric2]
 
         vals1, vals2 = [], []
         labels = []
@@ -148,8 +152,8 @@ class Presenter:
         vals1, vals2 = [], []
         labels = []
         for ds in self.datasets:
-            var1 = self.fi2df[f'{ds}-deepl'][metric1]
-            var2 = self.fi2df[f'{ds}-gpt'][metric2]
+            var1 = self.cases[f'{ds}-deepl'][metric1]
+            var2 = self.cases[f'{ds}-gpt'][metric2]
             for s in var1.index:
                 for t in var1.index:
                     if s == t:
@@ -273,7 +277,7 @@ class Presenter:
         }
         
         data = {k: {metric: v[metric]}
-                for k, v in self.fi2df.items() if not k.startswith('opus')}
+                for k, v in self.cases.items() if not k.startswith('opus')}
         if focus is not None:
             subset = set(focus)
             keys = set(data.keys())
@@ -413,7 +417,7 @@ class Presenter:
 
 
     def metric_from_or_into_language(self, mode='INTO', plot=True, with_koehn=True, metric='BLEU', title=None, xlabel=None, ylabel=None, colors=None, merge=None, focus=None, lang='en'):
-        data = self.fi2df
+        data = self.cases
         
         assert mode in ['INTO', 'FROM', 'DIFF']
         assert (merge is None) or (merge in ['DATASET', 'TRANSLATOR'])

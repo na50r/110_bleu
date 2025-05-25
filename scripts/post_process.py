@@ -27,7 +27,7 @@ def direct_triplet_align(mt_sents: list[str], ref_sents: list[str], src_sents: l
     return align_cnt
 
 
-def align_sents(src_sents: list[str], tgt_sents: list[str], folder_path: str, src_lang: str, tgt_lang: str, model: str = 'paraphrase-multilingual-MiniLM-L12-v2', filename=None, is_split=False):
+def align_sents(src_sents: list[str], tgt_sents: list[str], folder_path: str, src_lang: str, tgt_lang: str, model: str = 'paraphrase-multilingual-MiniLM-L12-v2', filename=None, is_split=False, fix_side=None):
     '''
     Uses bertalign to align source and target sentences
     Uses paraphrase-multilingual-MiniLM-L12-v2 as default sentence embedding model
@@ -62,7 +62,8 @@ def align_sents(src_sents: list[str], tgt_sents: list[str], folder_path: str, sr
         src_lang=src_lang,
         tgt_lang=tgt_lang,
         model=model,
-        is_split=is_split
+        is_split=is_split,
+        fix_side=fix_side
     )
     aligner.align_sents()
     src_sents_a, tgt_sents_a = aligner.get_sents()
@@ -112,14 +113,14 @@ def load_sents_from_file(filename: str, folder: str) -> list[str]:
     return sents
 
 
-def load_aligned_sents_from_file(filename: str, folder: str) -> tuple[list[str], list[str]]:
+def load_aligned_sents_from_file(filename: str, folder: str, src_label='src', tgt_label='tgt') -> tuple[list[str], list[str]]:
     file_path = join(folder, f'{filename}.jsonl')
 
     src_sents, tgt_sents = [], []
     with open(file_path, 'r') as f:
         for ln in f:
             o = json.loads(ln)
-            src_sents.append(o['src'])
-            tgt_sents.append(o['tgt'])
+            src_sents.append(o[src_label])
+            tgt_sents.append(o[tgt_label])
 
     return src_sents, tgt_sents
