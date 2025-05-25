@@ -50,7 +50,7 @@ def compute_bert_score(ref, hyp, lang):
     # Recale with Baseline set to True as specified in: https://github.com/Tiiiger/bert_score/blob/master/journal/rescale_baseline.md
     from bert_score import score
     P, R, F1 = score(hyp, ref, lang=lang, verbose=False,
-                     rescale_with_baseline=True)
+                     rescale_with_baseline=True, use_fast_tokenizer=True)
     return F1
 
 
