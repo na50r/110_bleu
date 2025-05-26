@@ -718,7 +718,7 @@ class Presenter2:
         print()
 
 
-    def linear_regression(self, config1, config2, x_label, y_label, color_by=None):
+    def linear_regression(self, config1, config2, x_label, y_label, color_by=None, custom_color=None):
         self._validate_configs(config1, config2)
         df1 = self.prepare_variable(config1)
         df2 = self.prepare_variable(config2)
@@ -727,11 +727,19 @@ class Presenter2:
             merge_on.append('dataset')
         merged = df1.merge(df2, on=merge_on, suffixes=('_x', '_y'))
         
+        color_params = {'hue':color_by}
+        
+        if custom_color:
+            tag_color, palette = self._customize_color(custom_color)
+            merged['marked'] = merged.apply(tag_color, axis=1)
+            color_params['hue'] = 'marked'
+            color_params['palette'] = palette
+        
         sns.scatterplot(
             data=merged,
             x='score_x',
             y='score_y',
-            hue=color_by
+            **color_params
         )
 
         model = np.polyfit(merged['score_x'], merged['score_y'], 1)
@@ -743,11 +751,33 @@ class Presenter2:
         plt.show()
         
     def _customize_color(self, custom_color):
+        palette = {}
+        for key in custom_color:
+            if key == 'src_lang':
+                for lang in custom_color[key]:
+                    lbl = f'From {LANG_ISO[lang]}'
+                    palette.update({lbl:custom_color[key][lang]})
+            elif key == 'tgt_lang':
+                for lang in custom_color[key]:
+                    lbl = f'Into {LANG_ISO[lang]}'
+                    palette.update({lbl:custom_color[key][lang]})
+            else:
+                for k in custom_color[key]:
+                    palette.update({k.upper():custom_color[key][k]})
+        palette.update({'Other':'gray'})
         def tag_color(row):
             for key in custom_color:
                 if row[key] in custom_color[key]:
-                    pass
-            pass
+                    val = row[key]
+                    if key == 'src_lang':
+                        return  f'From {LANG_ISO[row[key]]}'
+                    elif key == 'tgt_lang':
+                        return f'Into {LANG_ISO[row[key]]}'
+                    else:
+                        return row[key].upper()
+                else:
+                    return 'Other'
+        return tag_color, palette
 
 
 
