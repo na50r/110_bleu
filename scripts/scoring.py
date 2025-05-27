@@ -5,7 +5,8 @@ import pandas as pd
 import random
 import pickle
 from sacrebleu.compat import corpus_bleu, corpus_chrf
-
+import logging
+import time
 
 def compute_bleu(ref: list[str], hyp: list[str]):
     refs = [ref] # Because only single reference
@@ -140,7 +141,10 @@ class ResultProducer:
             if self.use_bert == True:
                 if label not in self.bert_mapping:
                     lang = label.split('-')[-1]
+                    start = time.time()
                     bert_out = compute_bert_score(ref_sents, mt_sents, lang)
+                    end = time.time()
+                    logging.info(f'BERTScore took {end-start:.2f} seconds for {label}')
                     mapping = bert_mapper(data, bert_out)
                     self.bert_mapping[label] = mapping
 
@@ -153,7 +157,10 @@ class ResultProducer:
 
             if self.use_comet == True:
                 if label not in self.comet_mapping:
+                    start = time.time()
                     comet_out = compute_comet(data)
+                    end = time.time()
+                    logging.info(f'COMET took {end-start:.2f} seconds for {label}')
                     mapping = comet_mapper(data, comet_out['scores'])
                     self.comet_mapping[label] = mapping
                     self.comet_scores.append(comet_out['system_score']*100)
