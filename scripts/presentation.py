@@ -718,7 +718,7 @@ class Presenter2:
         print()
 
 
-    def linear_regression(self, config1, config2, x_label, y_label, color_by=None, custom_color=None):
+    def linear_regression(self, config1, config2, x_label, y_label, color_by=None, custom_color=None, plot=True):
         self._validate_configs(config1, config2)
         df1 = self.prepare_variable(config1)
         df2 = self.prepare_variable(config2)
@@ -726,29 +726,38 @@ class Presenter2:
         if len(config1['datasets']) > 1:
             merge_on.append('dataset')
         merged = df1.merge(df2, on=merge_on, suffixes=('_x', '_y'))
-        
-        color_params = {'hue':color_by}
-        
-        if custom_color:
-            tag_color, palette = self._customize_color(custom_color)
-            merged['marked'] = merged.apply(tag_color, axis=1)
-            color_params['hue'] = 'marked'
-            color_params['palette'] = palette
-        
-        sns.scatterplot(
-            data=merged,
-            x='score_x',
-            y='score_y',
-            **color_params
-        )
-
         model = np.polyfit(merged['score_x'], merged['score_y'], 1)
-        x_line = np.linspace(merged['score_x'].min(), merged['score_x'].max(), 100)
-        y_line = model[0] * x_line + model[1]
-        plt.plot(x_line, y_line, color='black')
-        plt.xlabel(x_label)
-        plt.ylabel(y_label)
-        plt.show()
+        
+        if plot==True:
+            x_line = np.linspace(merged['score_x'].min(),
+                                    merged['score_x'].max(), 100)
+            y_line = model[0] * x_line + model[1]
+            color_params = {'hue':color_by}
+            
+            if custom_color:
+                tag_color, palette = self._customize_color(custom_color)
+                merged['marked'] = merged.apply(tag_color, axis=1)
+                color_params['hue'] = 'marked'
+                color_params['palette'] = palette
+            
+            sns.scatterplot(
+                data=merged,
+                x='score_x',
+                y='score_y',
+                **color_params
+            )
+            plt.plot(x_line, y_line, color='black')
+            plt.xlabel(x_label)
+            plt.ylabel(y_label)
+            plt.show()
+        return merged, model
+        
+    def top_n_residuals(self, data, model, top_n=20):
+        data = data.copy()  
+        data['predicted_y'] = np.poly1d(model)(data['score_x'])
+        data['residual'] = abs(data['score_y'] - data['predicted_y'])
+        top_n_entries = data.sort_values(by='residual', ascending=False).head(top_n)
+        return top_n_entries
         
     def _customize_color(self, custom_color):
         palette = {}
@@ -768,15 +777,13 @@ class Presenter2:
         def tag_color(row):
             for key in custom_color:
                 if row[key] in custom_color[key]:
-                    val = row[key]
                     if key == 'src_lang':
-                        return  f'From {LANG_ISO[row[key]]}'
+                        return f'From {LANG_ISO[row[key]]}'
                     elif key == 'tgt_lang':
                         return f'Into {LANG_ISO[row[key]]}'
                     else:
                         return row[key].upper()
-                else:
-                    return 'Other'
+            return 'Other'
         return tag_color, palette
 
 
@@ -819,7 +826,7 @@ class Presenter2:
                     for k, v in self.cases.items() if not k.startswith('opus')}
         else:
             data = {k: {metric: v[metric]}
-                    for k, v in self.cases.items() if not k.startswith('opus')}
+                    for k, v in self.cases.items()}
 
         if focus is not None:
             subset = set(focus)
