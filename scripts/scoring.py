@@ -131,6 +131,7 @@ class ResultProducer:
             # Store meta data
             mt_sents = [o['mt'] for o in data]
             ref_sents = [o['ref'] for o in data]
+            logging.info(f'Start scoring for {label} with {len(data)} triplets')
             # Eager evaluate BLEU and chrF scores
             self.bleu_scores.append(compute_bleu(ref_sents, mt_sents))
             self.chrf_scores.append(compute_chrf(ref_sents, mt_sents))
