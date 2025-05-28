@@ -8,24 +8,27 @@ from sacrebleu.compat import corpus_bleu, corpus_chrf
 import logging
 import time
 
+
 def compute_bleu(ref: list[str], hyp: list[str]):
-    refs = [ref] # Because only single reference
+    refs = [ref]  # Because only single reference
     res = corpus_bleu(hyp, refs)
     return res.score
 
 
 def compute_chrf(ref: list[str], hyp: list[str]):
-    refs = [ref] # Because only single reference
+    refs = [ref]  # Because only single reference
     res = corpus_chrf(hyp, refs)
     return res.score
 
 
-def compute_comet(data: dict[str, str]):
-    # Adhere to: https://github.com/Unbabel/COMET
+def load_comet_model():
     from comet import download_model, load_from_checkpoint
     model_path = download_model("Unbabel/wmt22-comet-da")
     model = load_from_checkpoint(model_path)
+    return model
 
+
+def compute_comet(data: dict[str, str], model):
     model_output = model.predict(data, batch_size=8, gpus=1)
     return model_output
 
@@ -75,7 +78,7 @@ def precompute_bert(data, mapping):
 
 
 class ResultProducer:
-    def __init__(self, label2files: dict[str, str] = None, use_bert: bool = False, use_comet: bool = False):
+    def __init__(self, label2files: dict[str, str] = None, use_bert: bool = False, use_comet: bool = False, save_mappings: bool = False):
         '''
         Args:
             label2files: A dictionary that uses labels as keys and filepath to a JSONL file of COMET format {"mt":"sent", "ref":"sent", "src":"sent"}
@@ -92,6 +95,8 @@ class ResultProducer:
         self.bert_scores = []
         self.comet_scores = []
         self.chrf_scores = []
+        self.comet_model = load_comet_model()
+        self.save_mappings = save_mappings
 
     def clear_mappings(self):
         self.comet_mapping = {}
@@ -131,7 +136,8 @@ class ResultProducer:
             # Store meta data
             mt_sents = [o['mt'] for o in data]
             ref_sents = [o['ref'] for o in data]
-            logging.info(f'Start scoring for {label} with {len(data)} triplets')
+            logging.info(
+                f'Start scoring for {label} with {len(data)} triplets')
             # Eager evaluate BLEU and chrF scores
             self.bleu_scores.append(compute_bleu(ref_sents, mt_sents))
             self.chrf_scores.append(compute_chrf(ref_sents, mt_sents))
@@ -145,9 +151,11 @@ class ResultProducer:
                     start = time.time()
                     bert_out = compute_bert_score(ref_sents, mt_sents, lang)
                     end = time.time()
-                    logging.info(f'BERTScore took {end-start:.2f} seconds for {label}')
-                    mapping = bert_mapper(data, bert_out)
-                    self.bert_mapping[label] = mapping
+                    logging.info(
+                        f'BERTScore took {end-start:.2f} seconds for {label}')
+                    if self.save_mappings:
+                        mapping = bert_mapper(data, bert_out)
+                        self.bert_mapping[label] = mapping
 
                     # BERT-F1 score computed as value between 0 to 1
                     # To make Table cleaner, we adhere to BLEU & chrF score and make it value between 0 and 100
@@ -159,11 +167,13 @@ class ResultProducer:
             if self.use_comet == True:
                 if label not in self.comet_mapping:
                     start = time.time()
-                    comet_out = compute_comet(data)
+                    comet_out = compute_comet(data, self.comet_model)
                     end = time.time()
-                    logging.info(f'COMET took {end-start:.2f} seconds for {label}')
-                    mapping = comet_mapper(data, comet_out['scores'])
-                    self.comet_mapping[label] = mapping
+                    logging.info(
+                        f'COMET took {end-start:.2f} seconds for {label}')
+                    if self.save_mappings:
+                        mapping = comet_mapper(data, comet_out['scores'])
+                        self.comet_mapping[label] = mapping
                     self.comet_scores.append(comet_out['system_score']*100)
                 else:
                     self.comet_scores.append(precompute_comet(
