@@ -95,7 +95,8 @@ class ResultProducer:
         self.bert_scores = []
         self.comet_scores = []
         self.chrf_scores = []
-        self.comet_model = load_comet_model()
+        if self.use_comet:
+            self.comet_model = load_comet_model()
         self.save_mappings = save_mappings
 
     def clear_mappings(self):
