@@ -8,6 +8,7 @@ from scipy.stats import pearsonr, spearmanr
 from scripts.util import LANG_ISO
 from collections import defaultdict
 import pandas as pd
+import matplotlib.colors as mcolors
 
 def lang_freq(labels):
     freq_dict = defaultdict(int)
@@ -17,6 +18,57 @@ def lang_freq(labels):
         freq_dict[f'from-{from_l}'] += 1
     return {key: v for (key, v) in sorted(freq_dict.items(), key=lambda x: x[1], reverse=True)}
 
+COLORS = {
+    "ep": "#d690ff",
+    "opus": "#3e2249",
+    "flores": "#7c367a",
+    "deepl": "#db1919",
+    "gpt": "#10C221"
+}
+
+TWO_COLORS = {
+    'ep-deepl': "#D83838",
+    'ep-gpt': "#39C04B",
+    'flores-deepl': "#981133",
+    'flores-gpt': "#247C31",
+    'opus-deepl': "#530A0A",
+    'opus-gpt': "#0C3A1B"
+}
+
+DATASETS = {"ep", "opus", "flores"}
+TRANSLATORS = {"deepl", "gpt"}
+
+
+def mix_colors(*hex_colors):
+    rgbs = [mcolors.to_rgb(c) for c in hex_colors]
+    avg_rgb = tuple(sum(ch) / len(ch) for ch in zip(*rgbs))
+    return mcolors.to_hex(avg_rgb)
+
+
+def get_label_color(label: str):
+    matched = [k for k in COLORS if k in label]
+    matched_set = set(matched)
+
+    if not matched:
+        return "#000000"  
+
+    if len(matched) == 1:
+        return COLORS[matched[0]]
+    
+    check_set = DATASETS.union(TRANSLATORS)
+    if len(matched_set.intersection(check_set)) == 2:
+        return TWO_COLORS[f'-'.join(matched)]
+
+    is_dataset = matched_set <= DATASETS
+    is_translator = matched_set <= TRANSLATORS
+
+    if is_dataset or is_translator:
+        return mix_colors(*[COLORS[m] for m in matched])
+
+    return mix_colors(*[COLORS[m] for m in matched])
+
+def get_colors(labels):
+    return {label: get_label_color(label) for label in labels}
 
 def get_koehn(show=False):
     data = {
@@ -85,17 +137,25 @@ class Presenter:
                 self.cases[k][m] = df
 
 
-    def show_score_matrices(self, metric='BLEU', foucus=None, **heatmap_kwargs):
+    def show_score_matrices(self, metric='BLEU', focus=None, with_koehn = False, merge= None, **heatmap_kwargs):
         '''
         Displays score matrices as in Europarl paper with heatmap formatting
         '''
-        if foucus is None:
-            foucus = self.cases.keys()
+        data = self._prepare_data(metric, focus)
+        dfs = {}
+        if with_koehn:
+            dfs['koehn'] = get_koehn()
+               
+        if merge is not None:
+            data = self._merge_data(data, merge, metric)
+            data = {k: v[metric] for k, v in data.items()}
+            dfs.update(data)
         else:
-            assert set(foucus).issubset(set(self.cases.keys())
-                                        ), f'Please provide cases that are within {self.store}!'
-        for k in foucus:
-            df = self.cases[k][metric]
+            data = {k: v[metric] for k, v in data.items()}
+            dfs.update(data)
+            
+        for k in dfs:
+            df = dfs[k]
             df = df.round(1)
             print(k)
             kwargs = self.SCORE_MATRIX.get(metric, {})
@@ -254,37 +314,17 @@ class Presenter:
         return tag_color, palette
 
 
-
     ### Aggregation ###
     # Refactored with help of Claude Sonnet 4
     # Original code had a lot of duplication, asked it to extract common parts
     def _validate_params(self, mode, merge, focus, with_koehn, metric):
         """Validate common parameters used by both metric functions."""
         assert mode in ['INTO', 'FROM', 'DIFF']
-        assert (merge is None) or (merge in ['DATASET', 'TRANSLATOR'])
+        assert (merge is None) or (merge in ['DATASET', 'TRANSLATOR', 'ALL'])
         assert (focus is None and merge is None) or (focus is None and merge is not None) or (
             focus is not None and merge is None), 'Merge and Focus should not be used together!'
         assert (with_koehn == True and metric ==
                 'BLEU') or with_koehn == False, 'Use with_koehn only with BLEU scores!'
-
-    def _get_colors(self, lang=None):
-        """Get color mapping based on whether opus data is included."""
-        if lang != 'en' and lang is not None:
-            return {
-                'ep-deepl': "#D83838",
-                'ep-gpt': "#39C04B",
-                'flores-deepl': "#981133",
-                'flores-gpt': "#247C31",
-                'opus-deepl': "#530A0A",
-                'opus-gpt': "#0C3A1B"
-            }
-        else:
-            return {
-                'ep-deepl': "#D83838",
-                'ep-gpt': "#39C04B",
-                'flores-deepl': "#65011A",
-                'flores-gpt': "#235B2B"
-            }
 
     def _prepare_data(self, metric, focus, exclude_opus=False):
         """Prepare data by filtering cases and applying focus if specified."""
@@ -306,42 +346,37 @@ class Presenter:
             data = new
         return data
 
-    def _merge_data(self, data, merge, metric, _colors):
+    def _merge_data(self, data, merge, metric) -> dict[str, dict[str, pd.DataFrame]]:
         """Merge data across datasets or translators."""
         if merge is None:
-            return data, _colors
-
-        subset = set(_colors.keys())
-        keys = set(data.keys())
-        assert subset.intersection(keys) == subset
-
-        _colors = {
-            'deepl': "#D83838",
-            'gpt': "#39C04B",
-            'ep': "#D83838",
-            'flores': "#39C04B",
-            'opus': "#B339C0"
-        }
+            return data
+              
+        datasets = [key.split('-')[0] for key in data]
+        translators = [key.split('-')[1] for key in data]
 
         if merge == 'DATASET':
-            new = {'ep': {metric: []}, 'flores': {
-                metric: []}, 'opus': {metric: []}}
-
+            new = {d: {metric: []} for d in set(datasets)}
             def func(x, y): return x.startswith(y)
         elif merge == 'TRANSLATOR':
-            new = {'deepl': {metric: []}, 'gpt': {metric: []}}
+            new = {t: {metric: []} for t in set(translators)}
             def func(x, y): return x.endswith(y)
+        elif merge == 'ALL':
+            new = {'all': {metric: []}}
+            def func(x, y): return True
 
+        # Collect dataframes to be merged
         for k in new:
             for key in data:
                 if func(key, k):
                     df = data[key][metric]
                     new[k][metric].append(df)
+        
+        # Average dataframes
         for k in new:
             dfs = new[k][metric]
             df = sum(dfs) / len(dfs)
             new[k][metric] = df
-        return new, _colors
+        return new
 
     def _get_base_data(self, with_koehn, data, metric):
         """Get base data (Koehn scores or zeros)."""
@@ -418,9 +453,10 @@ class Presenter:
         '''
         self._validate_params(mode, merge, focus, with_koehn, metric)
 
-        _colors = self._get_colors()
+
         data = self._prepare_data(metric, focus, exclude_opus=True)
-        data, _colors = self._merge_data(data, merge, metric, _colors)
+        data = self._merge_data(data, merge, metric)
+        _colors = get_colors(data.keys())
         colors = colors or _colors
         base = self._get_base_data(with_koehn, data, metric)
 
@@ -472,9 +508,9 @@ class Presenter:
     def metric_from_or_into_language(self, mode='INTO', plot=True, with_koehn=True, metric='BLEU', title=None, xlabel=None, ylabel=None, colors=None, merge=None, focus=None, lang='en'):
         self._validate_params(mode, merge, focus, with_koehn, metric)
 
-        _colors = self._get_colors(lang)
         data = self._prepare_data(metric, focus, exclude_opus=lang != 'en')
-        data, _colors = self._merge_data(data, merge, metric, _colors)
+        _colors = get_colors(data.keys())
+        data = self._merge_data(data, merge, metric)
         colors = colors or _colors
         base = self._get_base_data(with_koehn, data, metric)
 
@@ -520,5 +556,4 @@ class Presenter:
         if plot == True:
             self._create_plot(comb, base_indexed, mode, metric,
                               with_koehn, colors, title, xlabel, ylabel, lang)
-
         return comb
