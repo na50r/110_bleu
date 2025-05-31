@@ -321,8 +321,8 @@ class Presenter:
         """Validate common parameters used by both metric functions."""
         assert mode in ['INTO', 'FROM', 'DIFF']
         assert (merge is None) or (merge in ['DATASET', 'TRANSLATOR', 'ALL'])
-        assert (focus is None and merge is None) or (focus is None and merge is not None) or (
-            focus is not None and merge is None), 'Merge and Focus should not be used together!'
+        # assert (focus is None and merge is None) or (focus is None and merge is not None) or (
+        #     focus is not None and merge is None), 'Merge and Focus should not be used together!'
         assert (with_koehn == True and metric ==
                 'BLEU') or with_koehn == False, 'Use with_koehn only with BLEU scores!'
 
