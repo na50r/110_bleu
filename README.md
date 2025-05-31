@@ -7,6 +7,10 @@ Inspired by the BLEU score matrix shown in Phillip Koehn's [Europarl Statistical
 **NOTE**:
 This codebase is NOT an API nor a Python Package. Type annotation and docstrings were added merely for readability and intepretability's sake, for project evaluators. Only relevant functions/methods and classes received them, whereas private methods or utility function should be understandable by just reading the code (variable names, see how their used, etc.)
 
+## Translations
+The translations obtained in this project and used for alignment and evaluation can be found [here](https://drive.google.com/file/d/1EJDqTEjVNnDvU59E4sgTSeepkohJin3v/view?usp=sharing)
+* Contains a folder called `translations` which was created with notebook [Preparation.ipynb](https://github.com/na50r/110_bleu/blob/main/Preparation.ipynb)
+
 ## Installation
 
 If you want to install it directly, you may use Conda:
