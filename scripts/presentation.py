@@ -10,14 +10,6 @@ from collections import defaultdict
 import pandas as pd
 import matplotlib.colors as mcolors
 
-def lang_freq(labels):
-    freq_dict = defaultdict(int)
-    for l in labels:
-        from_l, to_l = l.split('-')
-        freq_dict[f'to-{to_l}'] += 1
-        freq_dict[f'from-{from_l}'] += 1
-    return {key: v for (key, v) in sorted(freq_dict.items(), key=lambda x: x[1], reverse=True)}
-
 COLORS = {
     "ep": "#d690ff",
     "opus": "#3e2249",
@@ -40,12 +32,14 @@ TRANSLATORS = {"deepl", "gpt"}
 
 
 def mix_colors(*hex_colors):
+    # Aided by ChatGPT
     rgbs = [mcolors.to_rgb(c) for c in hex_colors]
     avg_rgb = tuple(sum(ch) / len(ch) for ch in zip(*rgbs))
     return mcolors.to_hex(avg_rgb)
 
 
 def get_label_color(label: str):
+    # Aided by ChatGPT
     matched = [k for k in COLORS if k in label]
     matched_set = set(matched)
 
@@ -318,16 +312,15 @@ class Presenter:
     # Refactored with help of Claude Sonnet 4
     # Original code had a lot of duplication, asked it to extract common parts
     def _validate_params(self, mode, merge, focus, with_koehn, metric):
-        """Validate common parameters used by both metric functions."""
+        '''Validate common parameters used by both metric functions.'''
         assert mode in ['INTO', 'FROM', 'DIFF']
         assert (merge is None) or (merge in ['DATASET', 'TRANSLATOR', 'ALL'])
-        # assert (focus is None and merge is None) or (focus is None and merge is not None) or (
-        #     focus is not None and merge is None), 'Merge and Focus should not be used together!'
+        assert (focus is None) or (set(focus).issubset(self.cases.keys()))
         assert (with_koehn == True and metric ==
                 'BLEU') or with_koehn == False, 'Use with_koehn only with BLEU scores!'
 
     def _prepare_data(self, metric, focus, exclude_opus=False):
-        """Prepare data by filtering cases and applying focus if specified."""
+        '''Prepare data by filtering cases and applying focus if specified.'''
         if exclude_opus:
             data = {k: {metric: v[metric]}
                         for k, v in self.cases.items() if not k.startswith('opus')}
@@ -336,10 +329,6 @@ class Presenter:
                     for k, v in self.cases.items()}
 
         if focus is not None:
-            subset = set(focus)
-            keys = set(data.keys())
-            assert subset.intersection(keys) == subset
-
             new = {k: {} for k in focus}
             for key in focus:
                 new[key][metric] = data[key][metric]
@@ -347,7 +336,7 @@ class Presenter:
         return data
 
     def _merge_data(self, data, merge, metric) -> dict[str, dict[str, pd.DataFrame]]:
-        """Merge data across datasets or translators."""
+        '''Merge data across datasets, translators or both.'''
         if merge is None:
             return data
               
@@ -379,7 +368,6 @@ class Presenter:
         return new
 
     def _get_base_data(self, with_koehn, data, metric):
-        """Get base data (Koehn scores or zeros)."""
         if with_koehn:
             base = get_koehn()
         else:
@@ -388,8 +376,7 @@ class Presenter:
             base = pd.DataFrame(0, index=sample.index, columns=sample.columns)
         return base
 
-    def _create_plot(self, comb, base_indexed, mode, metric, with_koehn, colors, title, xlabel, ylabel, lang=None):
-        """Create the plot with common styling and layout."""
+    def _create_plot(self, comb, base_indexed, mode, metric, with_koehn, colors, title, xlabel, ylabel, lang='default'):
         langs = base_indexed.index
         x = range(len(langs))
 
@@ -417,20 +404,12 @@ class Presenter:
         plt.xticks(ticks=x, labels=langs)
 
         # Set default titles
-        if lang is not None:
-            if mode == 'INTO':
-                _title = f'{metric} Scores for Translations INTO {LANG_ISO[lang]}'
-            elif mode == 'FROM':
-                _title = f'{metric} Scores for Translations FROM {LANG_ISO[lang]}'
-            elif mode == 'DIFF':
-                _title = f'{metric} From/Into Differences'
-        else:
-            if mode == 'INTO':
-                _title = f'Mean {metric} Scores for Translations INTO Language'
-            elif mode == 'FROM':
-                _title = f'Mean {metric} Scores for Translations FROM Language'
-            elif mode == 'DIFF':
-                _title = f'Mean {metric} From/Into Differences'
+        if mode == 'INTO':
+            _title = f'{metric} Scores for Translations INTO {LANG_ISO[lang]}'
+        elif mode == 'FROM':
+            _title = f'{metric} Scores for Translations FROM {LANG_ISO[lang]}'
+        elif mode == 'DIFF':
+            _title = f'{metric} From/Into Differences'
 
         title = title or _title
         xlabel = xlabel or 'Language'
@@ -502,10 +481,12 @@ class Presenter:
         if plot == True:
             self._create_plot(comb, base_indexed, mode, metric,
                               with_koehn, colors, title, xlabel, ylabel)
-
         return comb
 
     def metric_from_or_into_language(self, mode='INTO', plot=True, with_koehn=True, metric='BLEU', title=None, xlabel=None, ylabel=None, colors=None, merge=None, focus=None, lang='en'):
+        '''
+        Plots Metric Scores with/without Koehn's scores and produces a pandas.DataFrame containing mean scores or differences if Koehn's scores are used.
+        '''
         self._validate_params(mode, merge, focus, with_koehn, metric)
 
         data = self._prepare_data(metric, focus, exclude_opus=lang != 'en')

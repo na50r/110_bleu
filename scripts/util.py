@@ -24,6 +24,7 @@ LANG_ISO = {
     'nl': 'Dutch',
     'pt': 'Portuguese',
     'sv': 'Swedish',
+    'default': 'Language'
 }
 
 
