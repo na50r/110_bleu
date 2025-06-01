@@ -33,3 +33,17 @@ target.zip
 target/
 time_results/
 translations.zip
+
+aligned_results_no_sent_split/
+aligned_results_sent_split/
+aligned_triplets_no_sent_split/
+aligned_triplets_no_sent_split_LaBSE/
+aligned_triplets_sent_split/
+en2fi.txt
+final_results.zip
+final_triplets.zip
+final_triplets/
+source2reference_sent_split/
+source2translations_no_sent_split/
+source2translations_no_sent_split_LaBSE/
+source2translations_sent_split/

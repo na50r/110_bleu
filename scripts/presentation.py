@@ -233,6 +233,7 @@ class Presenter:
         spearman_corr, spearman_pval = spearmanr(merged['score_x'], merged['score_y'])
         print(f'Datasets: {config1["datasets"]} : {config2["datasets"]}')
         print(f'Translators: {config1["translators"]} : {config2["translators"]}')
+        print(f'Metric: {config1["metric"]} : {config2["metric"]}')
         print(f"Pearson correlation: {pearson_corr:.2f} (p = {pearson_pval:.1e})")
         print(
             f"Spearman correlation: {spearman_corr:.2f} (p = {spearman_pval:.1e})")
@@ -279,7 +280,27 @@ class Presenter:
         data['residual'] = abs(data['score_y'] - data['predicted_y'])
         top_n_entries = data.sort_values(by='residual', ascending=False).head(top_n)
         return top_n_entries
-        
+    
+    def colors_src_tgt_residual_freq(self, outliers, verbose=False, n=4):
+        src_lang_cnts = outliers['src_lang'].value_counts().to_dict()
+        tgt_lang_cnts = outliers['tgt_lang'].value_counts().to_dict()
+        tmp1 = {f'src-{k}': v for k, v in src_lang_cnts.items()}
+        tmp2 = {f'tgt-{k}': v for k, v in tgt_lang_cnts.items()}
+        tmp = {**tmp1, **tmp2}
+        top = sorted(tmp.items(), key=lambda x: x[1], reverse=True)[:n]
+        if verbose:
+            for k, v in top:
+                print(k, v)
+        out = {'src_lang': {}, 'tgt_lang': {}}
+        palette = sns.color_palette("YlGnBu", n)
+        cols = palette[::-1]
+        for i, (k, v) in enumerate(top):
+            if k.startswith('src'):
+                out['src_lang'][k[4:]] = cols[i]
+            else:
+                out['tgt_lang'][k[4:]] = cols[i]
+        return out
+
     def _customize_color(self, custom_color):
         palette = {}
         for key in custom_color:
