@@ -12,8 +12,8 @@ import matplotlib.colors as mcolors
 
 COLORS = {
     "ep": "#d690ff",
-    "opus": "#3e2249",
-    "flores": "#7c367a",
+    "opus": "#28172f",
+    "flores": "#9f289b",
     "deepl": "#db1919",
     "gpt": "#10C221"
 }
@@ -160,7 +160,8 @@ class Presenter:
             plt.show()
             print()
 
-
+    ### Correlations ###
+    # Refactored with help of ChatGPT
     def _validate_config(self, config):
         assert config[
             'metric'] in self.metrics, f'Please provide a metric that is within {self.metrics}!'
@@ -511,8 +512,8 @@ class Presenter:
         self._validate_params(mode, merge, focus, with_koehn, metric)
 
         data = self._prepare_data(metric, focus, exclude_opus=lang != 'en')
-        _colors = get_colors(data.keys())
         data = self._merge_data(data, merge, metric)
+        _colors = get_colors(data.keys())
         colors = colors or _colors
         base = self._get_base_data(with_koehn, data, metric)
 
