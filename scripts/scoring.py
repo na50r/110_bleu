@@ -50,11 +50,11 @@ def precompute_comet(data: dict[str, str], mapping: dict[tuple[str, str, str], f
     return np.array(scores).mean() * 100
 
 
-def compute_bert_score(ref, hyp, lang):
+def compute_bert_score(ref, hyp, lang, rescale_with_baseline=True, model_type=None):
     # Recale with Baseline set to True as specified in: https://github.com/Tiiiger/bert_score/blob/master/journal/rescale_baseline.md
     from bert_score import score
     P, R, F1 = score(hyp, ref, lang=lang, verbose=False,
-                     rescale_with_baseline=True)
+                     rescale_with_baseline=rescale_with_baseline, model_type=model_type)
     return F1
 
 
@@ -78,7 +78,7 @@ def precompute_bert(data, mapping):
 
 
 class ResultProducer:
-    def __init__(self, label2files: dict[str, str] = None, use_bert: bool = False, use_comet: bool = False, save_mappings: bool = False):
+    def __init__(self, label2files: dict[str, str] = None, use_bert: bool = False, use_comet: bool = False, save_mappings: bool = False, bert_rescale: bool = True, bert_model_type=None):
         '''
         Args:
             label2files: A dictionary that uses labels as keys and filepath to a JSONL file of COMET format {"mt":"sent", "ref":"sent", "src":"sent"}
@@ -98,6 +98,8 @@ class ResultProducer:
         if self.use_comet:
             self.comet_model = load_comet_model()
         self.save_mappings = save_mappings
+        self.bert_rescale = bert_rescale
+        self.bert_model_type = bert_model_type
 
     def clear_mappings(self):
         self.comet_mapping = {}
@@ -150,7 +152,7 @@ class ResultProducer:
                     # Assume label de-en, so [-1] == 'en' == target language
                     lang = label.split('-')[-1]
                     start = time.time()
-                    bert_out = compute_bert_score(ref_sents, mt_sents, lang)
+                    bert_out = compute_bert_score(ref_sents, mt_sents, lang, rescale_with_baseline=self.bert_rescale, model_type=self.bert_model_type)
                     end = time.time()
                     logging.info(
                         f'BERTScore took {end-start:.2f} seconds for {label}')
