@@ -54,7 +54,7 @@ def compute_bert_score(ref, hyp, lang):
     # Recale with Baseline set to True as specified in: https://github.com/Tiiiger/bert_score/blob/master/journal/rescale_baseline.md
     from bert_score import score
     P, R, F1 = score(hyp, ref, lang=lang, verbose=False,
-                     rescale_with_baseline=True, use_fast_tokenizer=True)
+                     rescale_with_baseline=True)
     return F1
 
 
@@ -107,8 +107,7 @@ class ResultProducer:
         '''
         Computes the BLEU, chrF, BERT-F1 and Comet scores of a given JSONL file/s of aligned sentences
         Expected format: {src : src_sent, ref : ref_sent, mt : mt_sent} (Based on Comet API specification)
-
-        ASSUME: Label contains suffix of mt/ref language! (For BERT-F1 Score)
+        Label contains suffix of mt/ref language! (For BERT-F1 Score), i.e. ep-gpt-de-en.jsonl or de-en.jsonl must contain English translations & references
 
         Args:
             randomize: Randomizes order of provided sentences
@@ -148,6 +147,7 @@ class ResultProducer:
             # Avoids encoding the sentences again and again
             if self.use_bert == True:
                 if label not in self.bert_mapping:
+                    # Assume label de-en, so [-1] == 'en' == target language
                     lang = label.split('-')[-1]
                     start = time.time()
                     bert_out = compute_bert_score(ref_sents, mt_sents, lang)
@@ -159,7 +159,7 @@ class ResultProducer:
                         self.bert_mapping[label] = mapping
 
                     # BERT-F1 score computed as value between 0 to 1
-                    # To make Table cleaner, we adhere to BLEU & chrF score and make it value between 0 and 100
+                    # To make results cleaner, we adhere to BLEU & chrF and make it value between 0 and 100
                     self.bert_scores.append(np.array(bert_out).mean() * 100)
                 else:
                     self.bert_scores.append(precompute_bert(
