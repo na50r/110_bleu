@@ -11,6 +11,14 @@ This codebase is NOT an API nor a Python Package. Type annotation and docstrings
 The translations obtained in this project and used for alignment and evaluation can be found [here](https://drive.google.com/file/d/1EJDqTEjVNnDvU59E4sgTSeepkohJin3v/view?usp=sharing)
 * Contains a folder called `translations` which was created with notebook [Preparation.ipynb](https://github.com/na50r/110_bleu/blob/main/Preparation.ipynb)
 
+## Notebooks
+If you just want to inspect code and not run it, here the main notebooks used for the Bachelor thesis:
+* [RQs.ipynb](https://github.com/na50r/110_bleu/blob/main/RQs.ipynb): Used to compute/visualize the findings of the project and answer research questions
+* [Preparation.ipynb](https://github.com/na50r/110_bleu/blob/main/Preparation.ipynb): Used to restructure the translations obtained in the procedures to make them easier to work with
+* [Evaluation.ipynb](https://github.com/na50r/110_bleu/blob/main/Evaluation.ipynb): Used to align and pre-evaluate the translations; goes over why the final alignment approach was chosen
+* [ProcDoc.ipynb](https://github.com/na50r/110_bleu/blob/main/ProcDoc.ipynb): Contains the documentation of the procedures ran to obtain the translations; analysis of logs
+* [Time_Analysis.ipynb](https://github.com/na50r/110_bleu/blob/main/Time_Analysis.ipynb): Used to analyze the time it took to run the procedures
+
 ## Installation
 
 If you want to install it directly, you may use Conda:
