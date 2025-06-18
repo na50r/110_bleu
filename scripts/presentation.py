@@ -282,16 +282,13 @@ class Presenter:
         top_n_entries = data.sort_values(by='residual', ascending=False).head(top_n)
         return top_n_entries
     
-    def colors_src_tgt_residual_freq(self, outliers, verbose=False, n=4):
+    def colors_src_tgt_residual_freq(self, outliers, n=4):
         src_lang_cnts = outliers['src_lang'].value_counts().to_dict()
         tgt_lang_cnts = outliers['tgt_lang'].value_counts().to_dict()
         tmp1 = {f'src-{k}': v for k, v in src_lang_cnts.items()}
         tmp2 = {f'tgt-{k}': v for k, v in tgt_lang_cnts.items()}
         tmp = {**tmp1, **tmp2}
         top = sorted(tmp.items(), key=lambda x: x[1], reverse=True)[:n]
-        if verbose:
-            for k, v in top:
-                print(k, v)
         out = {'src_lang': {}, 'tgt_lang': {}}
         palette = sns.color_palette("YlGnBu", n)
         cols = palette[::-1]
@@ -300,7 +297,7 @@ class Presenter:
                 out['src_lang'][k[4:]] = cols[i]
             else:
                 out['tgt_lang'][k[4:]] = cols[i]
-        return out
+        return out, top
 
     def _customize_color(self, custom_color):
         palette = {}
@@ -333,11 +330,12 @@ class Presenter:
     ### Aggregation ###
     # Refactored with help of Claude Sonnet 4
     # Original code had a lot of duplication, asked it to extract common parts
-    def _validate_params(self, mode, merge, focus, with_koehn, metric):
+    def _validate_params(self, mode, merge, focus, with_koehn, metric, order):
         '''Validate common parameters used by both metric functions.'''
         assert mode in ['INTO', 'FROM', 'DIFF']
         assert (merge is None) or (merge in ['DATASET', 'TRANSLATOR', 'ALL'])
         assert (focus is None) or (set(focus).issubset(self.cases.keys()))
+        assert (order is None) or (set(order) == set(self.order))
         assert (with_koehn == True and metric ==
                 'BLEU') or with_koehn == False, 'Use with_koehn only with BLEU scores!'
 
@@ -349,7 +347,6 @@ class Presenter:
         else:
             data = {k: {metric: v[metric]}
                     for k, v in self.cases.items()}
-
         if focus is not None:
             new = {k: {} for k in focus}
             for key in focus:
@@ -448,11 +445,11 @@ class Presenter:
         plt.tight_layout()
         plt.show()
 
-    def mean_metric_from_or_into_lang(self, mode='INTO', plot=True, with_koehn=True, metric='BLEU', title=None, xlabel=None, ylabel=None, colors=None, merge=None, focus=None):
+    def mean_metric_from_or_into_lang(self, mode='INTO', plot=True, with_koehn=True, metric='BLEU', order=None, title=None, xlabel=None, ylabel=None, colors=None, merge=None, focus=None):
         '''
         Plots Mean Metric Scores with/without Koehn's scores and produces a pandas.DataFrame containing mean scores or differences if Koehn's scores are used.
         '''
-        self._validate_params(mode, merge, focus, with_koehn, metric)
+        self._validate_params(mode, merge, focus, with_koehn, metric, order)
 
 
         data = self._prepare_data(metric, focus, exclude_opus=True)
@@ -498,6 +495,11 @@ class Presenter:
 
         dfs = [df.set_index('lang') for df in dfs]
         comb = pd.concat(dfs, axis=1, join='inner')
+        
+        
+        if order is not None:
+            comb = comb.reindex(index=order)
+            base_indexed = base_indexed.reindex(index=order)
 
         # Plotting
         if plot == True:
@@ -505,11 +507,11 @@ class Presenter:
                               with_koehn, colors, title, xlabel, ylabel)
         return comb
 
-    def metric_from_or_into_language(self, mode='INTO', plot=True, with_koehn=True, metric='BLEU', title=None, xlabel=None, ylabel=None, colors=None, merge=None, focus=None, lang='en'):
+    def metric_from_or_into_language(self, mode='INTO', plot=True, with_koehn=True, metric='BLEU', order=None, title=None, xlabel=None, ylabel=None, colors=None, merge=None, focus=None, lang='en'):
         '''
         Plots Metric Scores with/without Koehn's scores and produces a pandas.DataFrame containing mean scores or differences if Koehn's scores are used.
         '''
-        self._validate_params(mode, merge, focus, with_koehn, metric)
+        self._validate_params(mode, merge, focus, with_koehn, metric, order)
 
         data = self._prepare_data(metric, focus, exclude_opus=lang != 'en')
         data = self._merge_data(data, merge, metric)
@@ -555,6 +557,10 @@ class Presenter:
         comb = comb.drop(lang)
         base_indexed = base_df.set_index('lang')
         base_indexed = base_indexed.drop(lang)
+        
+        if order is not None:
+            comb = comb.reindex(index=order)
+            base_indexed = base_indexed.reindex(index=order)
 
         if plot == True:
             self._create_plot(comb, base_indexed, mode, metric,
