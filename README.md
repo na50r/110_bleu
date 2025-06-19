@@ -11,6 +11,11 @@ This codebase is NOT an API nor a Python Package. Type annotation and docstrings
 The translations obtained in this project and used for alignment and evaluation can be found [here](https://drive.google.com/file/d/1EJDqTEjVNnDvU59E4sgTSeepkohJin3v/view?usp=sharing)
 * Contains a folder called `translations` which was created with notebook [Preparation.ipynb](https://github.com/na50r/110_bleu/blob/main/Preparation.ipynb)
 
+## Scores
+The final scores in BLEU, chrF, BERT-F1 and COMET can be found [here](https://drive.google.com/file/d/1TJSvzsO3ZvJB5rbptZrePJ8TRv1wmMcc/view?usp=sharing)
+* We recommend using [RQs.ipynb](https://github.com/na50r/110_bleu/blob/main/RQs.ipynb) as a guideline on how to use the scores to produce tables and visualizations
+
+
 ## Notebooks
 If you just want to inspect code and not run it, here the main notebooks used for the Bachelor thesis:
 * [RQs.ipynb](https://github.com/na50r/110_bleu/blob/main/RQs.ipynb): Used to compute/visualize the findings of the project and answer research questions
