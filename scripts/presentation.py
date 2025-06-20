@@ -58,13 +58,15 @@ def get_label_color(label: str):
 
     if is_dataset or is_translator:
         return mix_colors(*[COLORS[m] for m in matched])
-
     return mix_colors(*[COLORS[m] for m in matched])
 
 def get_colors(labels):
     return {label: get_label_color(label) for label in labels}
 
-def get_koehn(show=False):
+def get_base_score_matrix(show=False):
+    '''
+    Returns Koehn's BLEU scores
+    '''
     data = {
         'da': [np.nan, 22.3, 22.7, 25.2, 24.1, 23.7, 20.0, 21.4, 20.5, 23.2, 30.3],
         'de': [18.4, np.nan, 17.4, 17.6, 18.2, 18.5, 14.5, 16.9, 18.3, 18.2, 18.9],
@@ -80,17 +82,17 @@ def get_koehn(show=False):
     }
 
     languages = ['da', 'de', 'el', 'en', 'es', 'fr', 'fi', 'it', 'nl', 'pt', 'sv']
-    koehn_2005 = pd.DataFrame(data, index=languages)
+    base = pd.DataFrame(data, index=languages)
     
     order = ['da', 'sv', 'de', 'nl', 'en', 'es', 'fr', 'it', 'pt', 'el', 'fi']
-    koehn_2005 = koehn_2005.reindex(index=order, columns=order)
+    base = base.reindex(index=order, columns=order)
     
     if show:
-        sns.heatmap(koehn_2005, annot=True, fmt=".1f",
+        sns.heatmap(base, annot=True, fmt=".1f",
                     cmap="YlGnBu", cbar=True, vmin=0, vmax=60)
         plt.yticks(rotation=0)
         plt.show()
-    return koehn_2005
+    return base
 
 
 class Presenter:
@@ -131,14 +133,14 @@ class Presenter:
                 self.cases[k][m] = df
 
 
-    def show_score_matrices(self, metric='BLEU', focus=None, with_koehn = False, merge= None, **heatmap_kwargs):
+    def show_score_matrices(self, metric='BLEU', focus=None, with_base = False, merge= None, **heatmap_kwargs):
         '''
         Displays score matrices as in Europarl paper with heatmap formatting
         '''
         data = self._prepare_data(metric, focus)
         dfs = {}
-        if with_koehn:
-            dfs['koehn'] = get_koehn()
+        if with_base:
+            dfs['base'] = get_base_score_matrix()
                
         if merge is not None:
             data = self._merge_data(data, merge, metric)
@@ -241,28 +243,42 @@ class Presenter:
         print()
 
 
-    def linear_regression(self, config1, config2, x_label, y_label, color_by=None, custom_color=None, plot=True):
+    def linear_regression(self, config1, config2, x_label, y_label, color_by=None, custom_color=None, label_map=None, plot=True):
         self._validate_configs(config1, config2)
         df1 = self.prepare_variable(config1)
         df2 = self.prepare_variable(config2)
+
         merge_on = ['src_lang', 'tgt_lang']
         if len(config1['datasets']) > 1:
             merge_on.append('dataset')
+
         merged = df1.merge(df2, on=merge_on, suffixes=('_x', '_y'))
         model = np.polyfit(merged['score_x'], merged['score_y'], 1)
-        
-        if plot==True:
+
+        if plot:
             x_line = np.linspace(merged['score_x'].min(),
-                                    merged['score_x'].max(), 100)
+                                merged['score_x'].max(), 100)
             y_line = model[0] * x_line + model[1]
-            color_params = {'hue':color_by}
-            
-            if custom_color:
+            color_params = {'hue': color_by}
+
+            if custom_color:               
                 tag_color, palette = self._customize_color(custom_color)
                 merged['marked'] = merged.apply(tag_color, axis=1)
+                '''
+                merged after tag_color applied (Example): 
+                src_lang, tgt_lang, score_x, dataset_x, translator_x, score_y, dataset_y, translator_y, marked
+                sv, da, 36.07..., ep, deepl, 61.52..., ep, deepl, Other
+                de, da, 34.97..., ep, deepl, 60.55..., ep, deepl, From German
+                ...
+                
+                palette = {
+                    'Other': 'gray',
+                    'From German': 'green',
+                }
+                '''
                 color_params['hue'] = 'marked'
                 color_params['palette'] = palette
-            
+
             sns.scatterplot(
                 data=merged,
                 x='score_x',
@@ -272,6 +288,12 @@ class Presenter:
             plt.plot(x_line, y_line, color='black')
             plt.xlabel(x_label)
             plt.ylabel(y_label)
+            # ChatGPT Aided
+            # How to modify label names on the fly
+            if custom_color and label_map:
+                handles, labels = plt.gca().get_legend_handles_labels()
+                new_labels = [label_map.get(label, label) for label in labels]
+                plt.legend(handles, new_labels, title=color_params['hue'])
             plt.show()
         return merged, model
         
@@ -330,14 +352,14 @@ class Presenter:
     ### Aggregation ###
     # Refactored with help of Claude Sonnet 4
     # Original code had a lot of duplication, asked it to extract common parts
-    def _validate_params(self, mode, merge, focus, with_koehn, metric, order):
+    def _validate_params(self, mode, merge, focus, with_base, metric, order):
         '''Validate common parameters used by both metric functions.'''
         assert mode in ['INTO', 'FROM', 'DIFF']
         assert (merge is None) or (merge in ['DATASET', 'TRANSLATOR', 'ALL'])
         assert (focus is None) or (set(focus).issubset(self.cases.keys()))
         assert (order is None) or (set(order) == set(self.order))
-        assert (with_koehn == True and metric ==
-                'BLEU') or with_koehn == False, 'Use with_koehn only with BLEU scores!'
+        assert (with_base == True and metric ==
+                'BLEU') or with_base == False, 'Use with_base only with BLEU scores!'
 
     def _prepare_data(self, metric, focus, exclude_opus=False):
         '''Prepare data by filtering cases and applying focus if specified.'''
@@ -386,16 +408,16 @@ class Presenter:
             new[k][metric] = df
         return new
 
-    def _get_base_data(self, with_koehn, data, metric):
-        if with_koehn:
-            base = get_koehn()
+    def _get_base_data(self, with_base, data, metric):
+        if with_base:
+            base = get_base_score_matrix()
         else:
             k = list(data.keys())[0]
             sample = data[k][metric]
             base = pd.DataFrame(0, index=sample.index, columns=sample.columns)
         return base
 
-    def _create_plot(self, comb, base_indexed, mode, metric, with_koehn, colors, title, xlabel, ylabel, lang='default'):
+    def _create_plot(self, comb, base_indexed, mode, metric, with_base, colors, title, xlabel, ylabel, lang='default', label_map={}):
         langs = base_indexed.index
         x = range(len(langs))
 
@@ -404,12 +426,12 @@ class Presenter:
         else:
             linestyle = 'None'
 
-        if with_koehn:
-            plt.plot(x, base_indexed['koehn'], marker='o',
-                     label='koehn', linestyle=linestyle)
+        if with_base:
+            plt.plot(x, base_indexed['base'], marker='o',
+                     label=label_map.get('base', 'base'), linestyle=linestyle)
 
         for col in comb.columns:
-            if col == 'koehn':
+            if col == 'base':
                 continue
             if col.endswith('deepl'):
                 marker = 's'
@@ -417,20 +439,13 @@ class Presenter:
                 marker = '^'
 
             color = colors.get(col, None)
-            plt.plot(x, comb[col] + base_indexed['koehn'],
-                     marker=marker, label=col, color=color, linestyle=linestyle)
+            display_label = label_map.get(col, col)
+            plt.plot(x, comb[col] + base_indexed['base'],
+                     marker=marker, color=color, linestyle=linestyle, label=display_label)
 
         plt.xticks(ticks=x, labels=langs)
 
-        # Set default titles
-        if mode == 'INTO':
-            _title = f'{metric} Scores for Translations INTO {LANG_ISO[lang]}'
-        elif mode == 'FROM':
-            _title = f'{metric} Scores for Translations FROM {LANG_ISO[lang]}'
-        elif mode == 'DIFF':
-            _title = f'{metric} From/Into Differences'
-
-        title = title or _title
+        title = title
         xlabel = xlabel or 'Language'
         if mode in ['FROM', 'INTO']:
             ylabel = ylabel or f'{metric} score'
@@ -445,18 +460,18 @@ class Presenter:
         plt.tight_layout()
         plt.show()
 
-    def mean_metric_from_or_into_lang(self, mode='INTO', plot=True, with_koehn=True, metric='BLEU', order=None, title=None, xlabel=None, ylabel=None, colors=None, merge=None, focus=None):
+    def mean_metric_from_or_into_lang(self, mode='INTO', plot=True, with_base=True, metric='BLEU', order=None, title=None, xlabel=None, ylabel=None, colors=None, merge=None, focus=None, label_map={}):
         '''
         Plots Mean Metric Scores with/without Koehn's scores and produces a pandas.DataFrame containing mean scores or differences if Koehn's scores are used.
         '''
-        self._validate_params(mode, merge, focus, with_koehn, metric, order)
+        self._validate_params(mode, merge, focus, with_base, metric, order)
 
 
         data = self._prepare_data(metric, focus, exclude_opus=True)
         data = self._merge_data(data, merge, metric)
         _colors = get_colors(data.keys())
         colors = colors or _colors
-        base = self._get_base_data(with_koehn, data, metric)
+        base = self._get_base_data(with_base, data, metric)
 
         diffs = {}
         for key in data:
@@ -483,10 +498,10 @@ class Presenter:
             base_series = base_series.round(1)
 
         base_df = base_series.reset_index()
-        base_df.columns = ['lang', 'koehn']
+        base_df.columns = ['lang', 'base']
         base_indexed = base_df.set_index('lang')
 
-        if with_koehn:
+        if with_base:
             dfs = [base_df]
         else:
             dfs = []
@@ -496,7 +511,6 @@ class Presenter:
         dfs = [df.set_index('lang') for df in dfs]
         comb = pd.concat(dfs, axis=1, join='inner')
         
-        
         if order is not None:
             comb = comb.reindex(index=order)
             base_indexed = base_indexed.reindex(index=order)
@@ -504,20 +518,20 @@ class Presenter:
         # Plotting
         if plot == True:
             self._create_plot(comb, base_indexed, mode, metric,
-                              with_koehn, colors, title, xlabel, ylabel)
+                              with_base, colors, title, xlabel, ylabel, label_map=label_map)
         return comb
 
-    def metric_from_or_into_language(self, mode='INTO', plot=True, with_koehn=True, metric='BLEU', order=None, title=None, xlabel=None, ylabel=None, colors=None, merge=None, focus=None, lang='en'):
+    def metric_from_or_into_language(self, mode='INTO', plot=True, with_base=True, metric='BLEU', order=None, title=None, xlabel=None, ylabel=None, colors=None, merge=None, focus=None, lang='en', label_map={}):
         '''
-        Plots Metric Scores with/without Koehn's scores and produces a pandas.DataFrame containing mean scores or differences if Koehn's scores are used.
+        Plots Metric Scores with/without base's scores and produces a pandas.DataFrame containing mean scores or differences if base's scores are used.
         '''
-        self._validate_params(mode, merge, focus, with_koehn, metric, order)
+        self._validate_params(mode, merge, focus, with_base, metric, order)
 
         data = self._prepare_data(metric, focus, exclude_opus=lang != 'en')
         data = self._merge_data(data, merge, metric)
         _colors = get_colors(data.keys())
         colors = colors or _colors
-        base = self._get_base_data(with_koehn, data, metric)
+        base = self._get_base_data(with_base, data, metric)
 
         diffs = {}
         for key in data:
@@ -543,9 +557,9 @@ class Presenter:
             base_series = base.loc[lang] - base[lang]
 
         base_df = base_series.reset_index()
-        base_df.columns = ['lang', 'koehn']
+        base_df.columns = ['lang', 'base']
 
-        if with_koehn:
+        if with_base:
             dfs = [base_df]
         else:
             dfs = []
@@ -564,5 +578,5 @@ class Presenter:
 
         if plot == True:
             self._create_plot(comb, base_indexed, mode, metric,
-                              with_koehn, colors, title, xlabel, ylabel, lang)
+                              with_base, colors, title, xlabel, ylabel, lang, label_map=label_map)
         return comb
