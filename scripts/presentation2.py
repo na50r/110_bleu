@@ -3,6 +3,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.stats import pearsonr, spearmanr
 
 
 ORDER = ['da', 'sv', 'de', 'nl', 'en', 'es', 'fr', 'it', 'pt', 'el', 'fi']
@@ -58,6 +59,42 @@ def parse_data(results_folder):
         dfs.append(df)
     df = pd.concat(dfs, ignore_index=True)
     return df
+
+### Correlations ###
+def prepare_variable(df, metric, datasets, translators, src_lang=None, tgt_lang=None):
+    subset = df[
+        df['dataset'].isin(datasets) &
+        df['translator'].isin(translators)
+    ]
+    if src_lang is not None:
+        subset = subset[subset['src_lang'].isin(src_lang)]
+    if tgt_lang is not None:
+        subset = subset[subset['tgt_lang'].isin(tgt_lang)]
+    subset = subset.rename(columns={metric: 'score'})
+    subset = subset[['src_lang', 'tgt_lang', 'score', 'dataset', 'translator']]
+    return subset
+
+
+def show_correlations(df, config1, config2):
+    df1 = prepare_variable(df, config1['metric'], config1['datasets'],
+                           config1['translators'], config1['src_lang'], config1['tgt_lang'])
+    df2 = prepare_variable(df, config2['metric'], config2['datasets'],
+                           config2['translators'], config2['src_lang'], config2['tgt_lang'])
+    merge_on = ['src_lang', 'tgt_lang']
+    if len(config1['datasets']) > 1:
+        merge_on.append('dataset')
+    merged = df1.merge(df2, on=merge_on, suffixes=('_x', '_y'))
+
+    pearson_corr, pearson_pval = pearsonr(merged['score_x'], merged['score_y'])
+    spearman_corr, spearman_pval = spearmanr(
+        merged['score_x'], merged['score_y'])
+    print(f'Datasets: {config1["datasets"]} : {config2["datasets"]}')
+    print(f'Translators: {config1["translators"]} : {config2["translators"]}')
+    print(f'Metric: {config1["metric"]} : {config2["metric"]}')
+    print(f"Pearson correlation: {pearson_corr:.2f} (p = {pearson_pval:.1e})")
+    print(
+        f"Spearman correlation: {spearman_corr:.2f} (p = {spearman_pval:.1e})")
+    print()
 
 
 ### Score Matrix Operations ###
