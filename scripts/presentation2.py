@@ -59,6 +59,8 @@ def parse_data(results_folder):
     df = pd.concat(dfs, ignore_index=True)
     return df
 
+
+### Score Matrix Operations ###
 def form_matrix(df, metric, dataset, translator, order=ORDER):
     '''
     Forms a matrix from a dataframe.
@@ -119,7 +121,7 @@ def matrix_merger(matrices, merge_on):
         new['all'] = new['all'].round(1)
     return new
 
-def mode2op(mode, key, matrix):
+def mode2mean(mode, key, matrix):
     '''
     Returns mean over rows, columns or difference between them.
     '''
@@ -137,3 +139,103 @@ def mode2op(mode, key, matrix):
     out = out.reset_index()
     out.columns = ['lang', key]
     return out
+
+def mode2vector(mode, key, lang, matrix):
+    assert mode in ['INTO', 'FROM', 'DIFF']
+    out = None
+    if mode == 'INTO':
+        # Mean over columns
+        out = matrix[lang]
+    elif mode == 'FROM':
+        # Mean over rows
+        out = matrix.loc[lang]
+    elif mode == 'DIFF':
+        out = matrix.loc[lang] - matrix[lang]
+
+    out = out.reset_index()
+    out.columns = ['lang', key]
+    return out
+
+
+def check_matrix(matrix):
+    '''
+    Confirms if matrix has 110 non-NaN values
+    '''
+    check = matrix.size - matrix.isna().sum().sum()
+    return check == 110
+
+
+def check_lang(matrix, lang, mode):
+    '''
+    Confirms if row, columns or both of chosen language has 10 non-NaN values
+    '''
+    if mode == 'INTO':
+        return matrix[lang].count() == 10
+    elif mode == 'FROM':
+        return matrix.loc[lang].count() == 10
+    elif mode == 'DIFF':
+        return (matrix[lang].count() == 10) and (matrix.loc[lang].count() == 10)
+
+
+def aggregate_matrices(matrices, mode='INTO', include_base=False):
+    # Filter out matrices that don't have 110 non-NaN values
+    matrices = {k: v for k, v in matrices.items() if check_matrix(v)}
+    # Aggregate
+    base = get_base_score_matrix(zero_matrix=(not include_base))
+    dfs = []
+    for key in matrices:
+        label = '-'.join(key) if type(key) == tuple else key
+        df = matrices[key] - base
+        df = mode2mean(mode, label, df)
+        dfs.append(df)
+    base = mode2mean(mode, 'base', base)
+    dfs.append(base)
+    dfs = [df.set_index('lang') for df in dfs]
+    comb = pd.concat(dfs, axis=1, join='inner')
+    return comb
+
+
+def extract_vectors(matrices, mode='INTO', lang='en', include_base=False):
+    base = get_base_score_matrix(zero_matrix=(not include_base))
+    dfs = []
+    # Filter out matrices that don't have 10 non-NaN values in the chosen language
+    matrices = {k: v for k, v in matrices.items() if check_lang(v, lang, mode)}
+    for key in matrices:
+        label = '-'.join(key) if type(key) == tuple else key
+        df = matrices[key] - base
+        df = mode2vector(mode, label, lang, df)
+        dfs.append(df)
+    base = mode2vector(mode, 'base', lang, base)
+    dfs.append(base)
+    dfs = [df.set_index('lang') for df in dfs]
+    comb = pd.concat(dfs, axis=1, join='inner')
+    comb = comb.drop(lang)
+    return comb
+
+
+def plot_vectors(df, label_map={}, color_map={}, include_base=False, linestyle=None):
+    langs = df.index
+    x = range(len(langs))
+
+    if include_base:
+        plt.plot(
+            x, df['base'],
+            marker='o',
+            label=label_map.get('base', 'base'),
+            linestyle=linestyle,
+            color=color_map.get('base', None)
+        )
+    for col in df.columns:
+        if col == 'base':
+            continue
+        plt.plot(
+            x, df[col] + df['base'],
+            marker='o',
+            label=label_map.get(col, col),
+            linestyle=linestyle,
+            color=color_map.get(col, None)
+        )
+    plt.legend()
+    plt.grid(True)
+    plt.xticks(ticks=x, labels=langs)
+    plt.show()
