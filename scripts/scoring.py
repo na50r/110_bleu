@@ -85,21 +85,21 @@ class ResultProducer:
     
     def _create_header(self, output_path: str):
         header = ['Label', 'BLEU', 'chrF']
-        if self.use_bert:
+        if self.use_bert == True:
             header.append('BERT-F1')
-        if self.use_comet:
+        if self.use_comet == True:
             header.append('COMET')
         with open(output_path, 'w') as f:
             f.write(','.join(header) + '\n')
             
     def _append_row(self, output_path: str, label: str, bleu_score: float, chrf_score: float, bert_f1_score: float, comet_score: float):
         row = [label, bleu_score, chrf_score]
-        if self.use_bert:
+        if self.use_bert == True:
             row.append(bert_f1_score)
-        if self.use_comet:
+        if self.use_comet == True:
             row.append(comet_score)
         with open(output_path, 'a') as f:
-            row = [str(r) for r in row if type(r)!=str]
+            row = [str(r) for r in row]
             f.write(','.join(row) + '\n')
     
     def compute_and_store_results(self, output_path: str):
