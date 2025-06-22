@@ -62,7 +62,6 @@ class ResultProducer:
         bert_f1_score = None
         comet_score = None
         
-        # BERT score optional
         if self.use_bert == True:
             start = time.time()
             bert_out = compute_bert_score(ref_sents, mt_sents, lang=tgt_lang, rescale_with_baseline=self.bert_rescale, model_type=self.bert_model_type)
