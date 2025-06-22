@@ -4,6 +4,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import pearsonr, spearmanr
+from scripts.util import LANG_ISO
 
 
 ORDER = ['da', 'sv', 'de', 'nl', 'en', 'es', 'fr', 'it', 'pt', 'el', 'fi']
@@ -102,6 +103,117 @@ def show_correlations(df, config1, config2):
         f"Spearman correlation: {spearman_corr:.2f} (p = {spearman_pval:.1e})")
     print()
 
+
+def linear_regression(df, config1, config2, x_label, y_label, color_by=None, custom_color=None, label_map=None, plot=True):
+    df1 = prepare_variable(df, config1['metric'], config1['datasets'],
+                           config1['translators'], config1['src_lang'], config1['tgt_lang'])
+
+    df2 = prepare_variable(df, config2['metric'], config2['datasets'],
+                           config2['translators'], config2['src_lang'], config2['tgt_lang'])
+    merge_on = ['src_lang', 'tgt_lang']
+
+    if len(config1['datasets']) > 1:
+        merge_on.append('dataset')
+
+    merged = df1.merge(df2, on=merge_on, suffixes=('_x', '_y'))
+    model = np.polyfit(merged['score_x'], merged['score_y'], 1)
+
+    if plot:
+        x_line = np.linspace(merged['score_x'].min(),
+                             merged['score_x'].max(), 100)
+        y_line = model[0] * x_line + model[1]
+        color_params = {'hue': color_by}
+        if custom_color:
+            merged, palette = set_custom_colors(merged, custom_color)
+            color_params['palette'] = palette
+            color_params['hue'] = 'marked'
+
+        sns.scatterplot(
+            data=merged,
+            x='score_x',
+            y='score_y',
+            **color_params
+        )
+        plt.plot(x_line, y_line, color='black')
+        plt.xlabel(x_label)
+        plt.ylabel(y_label)
+        if label_map:
+            handles, labels = plt.gca().get_legend_handles_labels()
+            new_labels = [label_map.get(label, label) for label in labels]
+            plt.legend(handles, new_labels, title=color_params['hue'])
+        plt.show()
+    return merged, model
+
+
+def customize_color(custom_color):
+    palette = {}
+    for key in custom_color:
+        if key == 'src_lang':
+            for lang in custom_color[key]:
+                lbl = f'From {LANG_ISO[lang]}'
+                palette.update({lbl: custom_color[key][lang]})
+        elif key == 'tgt_lang':
+            for lang in custom_color[key]:
+                lbl = f'Into {LANG_ISO[lang]}'
+                palette.update({lbl: custom_color[key][lang]})
+        else:
+            for k in custom_color[key]:
+                palette.update({k.upper(): custom_color[key][k]})
+    palette.update({'Other': 'gray'})
+
+    def tag_color(row):
+        for key in custom_color:
+            if row[key] in custom_color[key]:
+                if key == 'src_lang':
+                    return f'From {LANG_ISO[row[key]]}'
+                elif key == 'tgt_lang':
+                    return f'Into {LANG_ISO[row[key]]}'
+                else:
+                    return row[key].upper()
+        return 'Other'
+    return tag_color, palette
+
+def set_custom_colors(df, custom_color):
+    tag_color, palette = customize_color(custom_color)
+    df['marked'] = df.apply(tag_color, axis=1)
+    '''
+    df after tag_color applied (Example):
+    src_lang, tgt_lang, score_x, dataset_x, translator_x, score_y, dataset_y, translator_y, marked
+    sv, da, 36.07..., ep, deepl, 61.52..., ep, deepl, Other
+    de, da, 34.97..., ep, deepl, 60.55..., ep, deepl, From German
+    ...
+
+    palette = {
+        'Other': 'gray',
+        'From German': 'green',
+    }
+    '''
+    return df, palette
+
+def top_n_residuals(data, model, top_n=20):
+    data = data.copy()
+    data['predicted_y'] = np.poly1d(model)(data['score_x'])
+    data['residual'] = abs(data['score_y'] - data['predicted_y'])
+    top_n_entries = data.sort_values(
+        by='residual', ascending=False).head(top_n)
+    return top_n_entries
+
+def mark_residual_by_src_or_tgt_freq(outliers, n=4):
+    src_lang_cnts = outliers['src_lang'].value_counts().to_dict()
+    tgt_lang_cnts = outliers['tgt_lang'].value_counts().to_dict()
+    tmp1 = {f'src-{k}': v for k, v in src_lang_cnts.items()}
+    tmp2 = {f'tgt-{k}': v for k, v in tgt_lang_cnts.items()}
+    tmp = {**tmp1, **tmp2}
+    top = sorted(tmp.items(), key=lambda x: x[1], reverse=True)[:n]
+    out = {'src_lang': {}, 'tgt_lang': {}}
+    palette = sns.color_palette("YlGnBu", n)
+    cols = palette[::-1]
+    for i, (k, v) in enumerate(top):
+        if k.startswith('src'):
+            out['src_lang'][k[4:]] = cols[i]
+        else:
+            out['tgt_lang'][k[4:]] = cols[i]
+    return out, top
 
 ### Score Matrix Operations ###
 def form_matrix(df, metric, dataset, translator, order=ORDER):
