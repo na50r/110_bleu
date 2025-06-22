@@ -35,7 +35,7 @@ def get_base_score_matrix(order=ORDER, zero_matrix=False):
     base = base.reindex(index=order, columns=order)
     return base
 
-def parse_data(results_folder):
+def parse_results_from_folder(results_folder):
     '''
     Parses a folder of CSV files into a single dataframe.
     Format of CSV files:
@@ -58,6 +58,12 @@ def parse_data(results_folder):
         del df['Label']
         dfs.append(df)
     df = pd.concat(dfs, ignore_index=True)
+    return df
+
+def parse_results_from_file(results_file):
+    df = pd.read_csv(results_file)
+    df[['dataset', 'translator', 'src_lang', 'tgt_lang']] = df['Label'].str.split('-', expand=True)
+    del df['Label']
     return df
 
 ### Correlations ###

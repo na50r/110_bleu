@@ -1,12 +1,11 @@
-# NOTE: This code is still work in progress!
 import os
 import json
 from os.path import join, exists
-import unicodedata
 
-
-def full_normalize(text):
-    return unicodedata.normalize('NFKC', text.replace('\xa0', ' ')).strip()
+def normalize(text):
+    # Remove non-breaking space for FLORES+ French
+    # Only for string-matching, should not be stored
+    return text.replace('\xa0', ' ').strip()
 
 def direct_triplet_align(mt_sents: list[str], ref_sents: list[str], src_sents: list[str], folder_path: str, filename: str):
     '''
@@ -14,14 +13,14 @@ def direct_triplet_align(mt_sents: list[str], ref_sents: list[str], src_sents: l
     Assumes that mt_sents, ref_sents and src_sents are aligned with each other
     '''
     align_cnt = 0
-    norm = full_normalize
+    norm = normalize
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
 
     with open(join(folder_path, f'{filename}.jsonl'), 'w') as f:
         for mt, ref, src in zip(mt_sents, ref_sents, src_sents):
-            if mt and ref and src:
-                obj = {'mt':norm(mt), 'ref':norm(ref), 'src':norm(src)}
+            if norm(mt) and norm(ref) and norm(src):
+                obj = {'mt':mt, 'ref':ref, 'src':src}
                 align_cnt+=1
                 print(json.dumps(obj), file=f)
     return align_cnt
@@ -83,26 +82,28 @@ def post_triplet_align(src_sents_org: list[str], src_sents_ali: list[str], ref_s
         os.makedirs(folder_path)
     aligned_cnt = 0
     out_file = f'{filename}.jsonl'
-    norm = full_normalize
-    src2mt = {norm(s.strip()): norm(m.strip())
+    norm = normalize
+    norm2src = {norm(s): s for s in src_sents_org}
+    src2mt = {norm(s): m
               for s, m in zip(src_sents_ali, mt_sents_ali)}
-    src2ref = {norm(s.strip()): norm(r.strip())
+    src2ref = {norm(s.strip()): r
                for s, r in zip(src_sents_org, ref_sents_org)}
 
     check = frozenset(src2ref.keys())
     keys = [k for k in src2mt if k in check]
-    discared = []
+    discarded = []
     with open(join(folder_path, out_file), 'w') as f:
         for k in keys:
+            s = norm2src[k]
             m = src2mt[k]
             r = src2ref[k]
             if m and k and r:
                 aligned_cnt += 1
-                o = {'mt': m, 'ref': r, 'src': k}
+                o = {'mt': m, 'ref': r, 'src': s}
                 print(json.dumps(o), file=f)
             else:
-                discared.append({'mt': m, 'ref': r, 'src': k})
-    return aligned_cnt, discared
+                discarded.append({'mt': m, 'ref': r, 'src': s})
+    return aligned_cnt, discarded
 
 
 def load_sents_from_file(filename: str, folder: str) -> list[str]:
@@ -122,5 +123,4 @@ def load_aligned_sents_from_file(filename: str, folder: str, src_label='src', tg
             o = json.loads(ln)
             src_sents.append(o[src_label])
             tgt_sents.append(o[tgt_label])
-
     return src_sents, tgt_sents
