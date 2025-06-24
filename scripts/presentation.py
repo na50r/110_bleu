@@ -1,72 +1,20 @@
 import os
-from os.path import join
-from scripts.scoring import create_matrix_from_csv
+import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import pearsonr, spearmanr
 from scripts.util import LANG_ISO
-from collections import defaultdict
-import pandas as pd
-import matplotlib.colors as mcolors
-
-COLORS = {
-    "ep": "#d690ff",
-    "opus": "#28172f",
-    "flores": "#9f289b",
-    "deepl": "#db1919",
-    "gpt": "#10C221"
-}
-
-TWO_COLORS = {
-    'ep-deepl': "#D83838",
-    'ep-gpt': "#39C04B",
-    'flores-deepl': "#981133",
-    'flores-gpt': "#247C31",
-    'opus-deepl': "#530A0A",
-    'opus-gpt': "#0C3A1B"
-}
-
-DATASETS = {"ep", "opus", "flores"}
-TRANSLATORS = {"deepl", "gpt"}
 
 
-def mix_colors(*hex_colors):
-    # Aided by ChatGPT
-    rgbs = [mcolors.to_rgb(c) for c in hex_colors]
-    avg_rgb = tuple(sum(ch) / len(ch) for ch in zip(*rgbs))
-    return mcolors.to_hex(avg_rgb)
+ORDER = ['da', 'sv', 'de', 'nl', 'en', 'es', 'fr', 'it', 'pt', 'el', 'fi']
 
-
-def get_label_color(label: str):
-    # Aided by ChatGPT
-    matched = [k for k in COLORS if k in label]
-    matched_set = set(matched)
-
-    if not matched:
-        return "#000000"  
-
-    if len(matched) == 1:
-        return COLORS[matched[0]]
-    
-    check_set = DATASETS.union(TRANSLATORS)
-    if len(matched_set.intersection(check_set)) == 2:
-        return TWO_COLORS[f'-'.join(matched)]
-
-    is_dataset = matched_set <= DATASETS
-    is_translator = matched_set <= TRANSLATORS
-
-    if is_dataset or is_translator:
-        return mix_colors(*[COLORS[m] for m in matched])
-    return mix_colors(*[COLORS[m] for m in matched])
-
-def get_colors(labels):
-    return {label: get_label_color(label) for label in labels}
-
-def get_base_score_matrix(show=False):
+def get_base_score_matrix(order=ORDER, zero_matrix=False):
     '''
     Returns Koehn's BLEU scores
     '''
+    if zero_matrix:
+        return pd.DataFrame(0, index=order, columns=order)
     data = {
         'da': [np.nan, 22.3, 22.7, 25.2, 24.1, 23.7, 20.0, 21.4, 20.5, 23.2, 30.3],
         'de': [18.4, np.nan, 17.4, 17.6, 18.2, 18.5, 14.5, 16.9, 18.3, 18.2, 18.9],
@@ -81,502 +29,372 @@ def get_base_score_matrix(show=False):
         'sv': [28.3, 20.5, 21.2, 24.8, 23.9, 22.6, 18.8, 20.2, 19.0, 21.9, np.nan]
     }
 
-    languages = ['da', 'de', 'el', 'en', 'es', 'fr', 'fi', 'it', 'nl', 'pt', 'sv']
+    languages = ['da', 'de', 'el', 'en', 'es',
+                 'fr', 'fi', 'it', 'nl', 'pt', 'sv']
     base = pd.DataFrame(data, index=languages)
-    
-    order = ['da', 'sv', 'de', 'nl', 'en', 'es', 'fr', 'it', 'pt', 'el', 'fi']
+
     base = base.reindex(index=order, columns=order)
-    
-    if show:
-        sns.heatmap(base, annot=True, fmt=".1f",
-                    cmap="YlGnBu", cbar=True, vmin=0, vmax=60)
-        plt.yticks(rotation=0)
-        plt.show()
     return base
 
-
-class Presenter:
-    # Linguistically sensible order
-    ORDER = ['da', 'sv', 'de', 'nl', 'en', 'es', 'fr', 'it', 'pt', 'el', 'fi']
-    SCORE_MATRIX = {
-        'BLEU': {'vmin': 0, 'vmax': 60}
-    }
-
-    def __init__(self,
-                 results_folder,
-                 metrics=['BLEU'],
-                 order=ORDER
-                 ):
-        '''
-        Args:
-            results_folder: Path to folder containing CSV files with name dataset_translator.csv of format:
-            Label, Metrics
-            
-            Example:
-            Label, BLEU, chrF, COMET
-            de-en, 30.69, 60.47, 90.36
-        '''
-        self.store = results_folder
-        self.metrics = metrics
-        self.order = order
-        self.datasets = set([fn.split('-')[0]
-                            for fn in os.listdir(results_folder)])
-        self.translators = set([fn.split('-')[1].replace('.csv', '')
-                                for fn in os.listdir(results_folder)])
-        self.cases = {f.replace('.csv', ''): {'file': join(
-            results_folder, f)} for f in os.listdir(results_folder)}
-        for k in self.cases:
-            file_path = self.cases[k]['file']
-            for m in metrics:
-                df = create_matrix_from_csv(file_path, metric=m)
-                df = df.reindex(index=order, columns=order)
-                self.cases[k][m] = df
-
-
-    def show_score_matrices(self, metric='BLEU', focus=None, with_base = False, merge= None, **heatmap_kwargs):
-        '''
-        Displays score matrices as in Europarl paper with heatmap formatting
-        '''
-        data = self._prepare_data(metric, focus)
-        dfs = {}
-        if with_base:
-            dfs['base'] = get_base_score_matrix()
-               
-        if merge is not None:
-            data = self._merge_data(data, merge, metric)
-            data = {k: v[metric] for k, v in data.items()}
-            dfs.update(data)
-        else:
-            data = {k: v[metric] for k, v in data.items()}
-            dfs.update(data)
-            
-        for k in dfs:
-            df = dfs[k]
-            df = df.round(1)
-            print(k)
-            kwargs = self.SCORE_MATRIX.get(metric, {})
-            kwargs.update(heatmap_kwargs)
-            sns.heatmap(df, annot=True, fmt=".1f",
-                        cmap="YlGnBu", cbar=True, **kwargs)
-            plt.yticks(rotation=0)
-            plt.show()
-            print()
-
-    ### Correlations ###
-    # Refactored with help of ChatGPT
-    def _validate_config(self, config):
-        assert config[
-            'metric'] in self.metrics, f'Please provide a metric that is within {self.metrics}!'
-        assert set(config['datasets']).issubset(
-            self.datasets), f'Please provide datasets that are within {self.datasets}!'
-        assert set(config['translators']).issubset(
-            self.translators), f'Please provide translators that are within {self.translators}!'
-        assert config.get('src_lang', None) is None or set(config['src_lang']).issubset(
-            self.order), f'Please provide source languages that are within {self.order}!'
-        assert config.get('tgt_lang', None) is None or set(config['tgt_lang']).issubset(
-            self.order), f'Please provide target languages that are within {self.order}!'
-
-    def _validate_configs(self, config1, config2):
-        assert (len(config1['datasets']) == 1 or config1['datasets'] == config2['datasets']
-                ), 'If you provide multiple datasets, make sure they are in same order!'
-
-
-    def prepare_variable(self, config):
-        '''
-        Transforms score matrix of datasets and translator into a more configurable dataframe for visualizations
-        
-        config = {
-            'datasets' : [],
-            'translators : [],
-            'src_lang' : [] | None,
-            'tgt_lang' : [] | None,
-            'metric' : ''
-        }
-        
-        New format:
-        dataset, translator, src_lang, tgt_lang, score
-        '''
-        self._validate_config(config)
-        dfs = []
-        metric = config['metric']
-        for d in config['datasets']:
-            for t in config['translators']:
-                key = f'{d}-{t}'
-                df = self.cases[key][metric]
-                melted = df.reset_index()
-                melted = melted.melt(
-                    id_vars=melted.columns[0], var_name='tgt_lang', value_name='score')
-                melted.columns = ['src_lang', 'tgt_lang', 'score']
-                melted['dataset'] = d
-                melted['translator'] = t
-                dfs.append(melted)
-        df = pd.concat(dfs, ignore_index=True)
-        update = []
-        if config.get('src_lang', None):
-            df_src = df[df['src_lang'].isin(config['src_lang'])]
-            update.append(df_src)
-        if config.get('tgt_lang', None):
-            df_tgt = df[df['tgt_lang'].isin(config['tgt_lang'])]
-            update.append(df_tgt)
-        if len(update) > 0:
-            df = pd.concat(update, ignore_index=True)
-            return df.dropna()
-        return df.dropna()
+def parse_results_from_folder(results_folder):
+    '''
+    Parses a folder of CSV files into a single dataframe.
+    Format of CSV files:
+    Label, BLEU, chrF, BERT-F1, COMET
+    de-en, 30.69, 60.47, 80.23, 90.36
     
-    def show_correlations(self, config1, config2):
-        self._validate_configs(config1, config2)
-        df1 = self.prepare_variable(config1)
-        df2 = self.prepare_variable(config2)
-        merge_on = ['src_lang', 'tgt_lang']
-        if len(config1['datasets']) > 1:
-            merge_on.append('dataset')
-        merged = df1.merge(df2, on=merge_on, suffixes=('_x', '_y'))
-        
-        pearson_corr, pearson_pval = pearsonr(merged['score_x'], merged['score_y'])
-        spearman_corr, spearman_pval = spearmanr(merged['score_x'], merged['score_y'])
+    Output dataframe format:
+    BLEU, chrF, BERT-F1, COMET, dataset, translator, src_lang, tgt_lang
+    30.69, 60.47, 80.23, 90.36, ep, deepl, de, en
+    '''
+    files = os.listdir(results_folder)
+    dfs = []
+    for fi in files:
+        df = pd.read_csv(os.path.join(results_folder, fi))
+        fi = fi.replace('.csv', '')
+        dataset, translator = fi.split('-')
+        df['dataset'] = dataset
+        df['translator'] = translator
+        df[['src_lang', 'tgt_lang']] = df['Label'].str.split('-', expand=True)
+        del df['Label']
+        dfs.append(df)
+    df = pd.concat(dfs, ignore_index=True)
+    return df
+
+def parse_results_from_file(results_file):
+    df = pd.read_csv(results_file)
+    df[['dataset', 'translator', 'src_lang', 'tgt_lang']] = df['Label'].str.split('-', expand=True)
+    del df['Label']
+    return df
+
+### Correlations ###
+def prepare_variable(df, metric, datasets, translators, src_lang=None, tgt_lang=None):
+    subset = df[
+        df['dataset'].isin(datasets) &
+        df['translator'].isin(translators)
+    ]
+    if src_lang is not None:
+        subset = subset[subset['src_lang'].isin(src_lang)]
+    if tgt_lang is not None:
+        subset = subset[subset['tgt_lang'].isin(tgt_lang)]
+    subset = subset.rename(columns={metric: 'score'})
+    subset = subset[['src_lang', 'tgt_lang', 'score', 'dataset', 'translator']]
+    return subset
+
+
+def correlations(df, config1, config2, show=False):
+    df1 = prepare_variable(df, config1['metric'], config1['datasets'],
+                           config1['translators'], config1['src_lang'], config1['tgt_lang'])
+    df2 = prepare_variable(df, config2['metric'], config2['datasets'],
+                           config2['translators'], config2['src_lang'], config2['tgt_lang'])
+    merge_on = ['src_lang', 'tgt_lang']
+    if len(config1['datasets']) > 1:
+        merge_on.append('dataset')
+    merged = df1.merge(df2, on=merge_on, suffixes=('_x', '_y'))
+
+    pearson_corr, pearson_pval = pearsonr(merged['score_x'], merged['score_y'])
+    spearman_corr, spearman_pval = spearmanr(
+        merged['score_x'], merged['score_y'])
+    if show:
         print(f'Datasets: {config1["datasets"]} : {config2["datasets"]}')
         print(f'Translators: {config1["translators"]} : {config2["translators"]}')
         print(f'Metric: {config1["metric"]} : {config2["metric"]}')
         print(f"Pearson correlation: {pearson_corr:.2f} (p = {pearson_pval:.1e})")
         print(
             f"Spearman correlation: {spearman_corr:.2f} (p = {spearman_pval:.1e})")
-        print()
+    return pearson_corr, pearson_pval, spearman_corr, spearman_pval
 
 
-    def linear_regression(self, config1, config2, x_label, y_label, color_by=None, custom_color=None, label_map=None, plot=True):
-        self._validate_configs(config1, config2)
-        df1 = self.prepare_variable(config1)
-        df2 = self.prepare_variable(config2)
+def linear_regression(df, config1, config2, x_label, y_label, color_by=None, custom_color=None, label_map=None, plot=True):
+    df1 = prepare_variable(df, config1['metric'], config1['datasets'],
+                           config1['translators'], config1['src_lang'], config1['tgt_lang'])
 
-        merge_on = ['src_lang', 'tgt_lang']
-        if len(config1['datasets']) > 1:
-            merge_on.append('dataset')
+    df2 = prepare_variable(df, config2['metric'], config2['datasets'],
+                           config2['translators'], config2['src_lang'], config2['tgt_lang'])
+    merge_on = ['src_lang', 'tgt_lang']
 
-        merged = df1.merge(df2, on=merge_on, suffixes=('_x', '_y'))
-        model = np.polyfit(merged['score_x'], merged['score_y'], 1)
+    if len(config1['datasets']) > 1:
+        merge_on.append('dataset')
 
-        if plot:
-            x_line = np.linspace(merged['score_x'].min(),
-                                merged['score_x'].max(), 100)
-            y_line = model[0] * x_line + model[1]
-            color_params = {'hue': color_by}
+    merged = df1.merge(df2, on=merge_on, suffixes=('_x', '_y'))
+    model = np.polyfit(merged['score_x'], merged['score_y'], 1)
 
-            if custom_color:               
-                tag_color, palette = self._customize_color(custom_color)
-                merged['marked'] = merged.apply(tag_color, axis=1)
-                '''
-                merged after tag_color applied (Example): 
-                src_lang, tgt_lang, score_x, dataset_x, translator_x, score_y, dataset_y, translator_y, marked
-                sv, da, 36.07..., ep, deepl, 61.52..., ep, deepl, Other
-                de, da, 34.97..., ep, deepl, 60.55..., ep, deepl, From German
-                ...
-                
-                palette = {
-                    'Other': 'gray',
-                    'From German': 'green',
-                }
-                '''
-                color_params['hue'] = 'marked'
-                color_params['palette'] = palette
+    if plot:
+        x_line = np.linspace(merged['score_x'].min(),
+                             merged['score_x'].max(), 100)
+        y_line = model[0] * x_line + model[1]
+        color_params = {'hue': color_by}
+        if custom_color:
+            merged, palette = set_custom_colors(merged, custom_color)
+            color_params['palette'] = palette
+            color_params['hue'] = 'marked'
 
-            sns.scatterplot(
-                data=merged,
-                x='score_x',
-                y='score_y',
-                **color_params
-            )
-            plt.plot(x_line, y_line, color='black')
-            plt.xlabel(x_label)
-            plt.ylabel(y_label)
-            # ChatGPT Aided
-            # How to modify label names on the fly
-            if custom_color and label_map:
-                handles, labels = plt.gca().get_legend_handles_labels()
-                new_labels = [label_map.get(label, label) for label in labels]
-                plt.legend(handles, new_labels, title=color_params['hue'])
-            plt.show()
-        return merged, model
-        
-    def top_n_residuals(self, data, model, top_n=20):
-        data = data.copy()  
-        data['predicted_y'] = np.poly1d(model)(data['score_x'])
-        data['residual'] = abs(data['score_y'] - data['predicted_y'])
-        top_n_entries = data.sort_values(by='residual', ascending=False).head(top_n)
-        return top_n_entries
-    
-    def colors_src_tgt_residual_freq(self, outliers, n=4):
-        src_lang_cnts = outliers['src_lang'].value_counts().to_dict()
-        tgt_lang_cnts = outliers['tgt_lang'].value_counts().to_dict()
-        tmp1 = {f'src-{k}': v for k, v in src_lang_cnts.items()}
-        tmp2 = {f'tgt-{k}': v for k, v in tgt_lang_cnts.items()}
-        tmp = {**tmp1, **tmp2}
-        top = sorted(tmp.items(), key=lambda x: x[1], reverse=True)[:n]
-        out = {'src_lang': {}, 'tgt_lang': {}}
-        palette = sns.color_palette("YlGnBu", n)
-        cols = palette[::-1]
-        for i, (k, v) in enumerate(top):
-            if k.startswith('src'):
-                out['src_lang'][k[4:]] = cols[i]
-            else:
-                out['tgt_lang'][k[4:]] = cols[i]
-        return out, top
-
-    def _customize_color(self, custom_color):
-        palette = {}
-        for key in custom_color:
-            if key == 'src_lang':
-                for lang in custom_color[key]:
-                    lbl = f'From {LANG_ISO[lang]}'
-                    palette.update({lbl:custom_color[key][lang]})
-            elif key == 'tgt_lang':
-                for lang in custom_color[key]:
-                    lbl = f'Into {LANG_ISO[lang]}'
-                    palette.update({lbl:custom_color[key][lang]})
-            else:
-                for k in custom_color[key]:
-                    palette.update({k.upper():custom_color[key][k]})
-        palette.update({'Other':'gray'})
-        def tag_color(row):
-            for key in custom_color:
-                if row[key] in custom_color[key]:
-                    if key == 'src_lang':
-                        return f'From {LANG_ISO[row[key]]}'
-                    elif key == 'tgt_lang':
-                        return f'Into {LANG_ISO[row[key]]}'
-                    else:
-                        return row[key].upper()
-            return 'Other'
-        return tag_color, palette
-
-
-    ### Aggregation ###
-    # Refactored with help of Claude Sonnet 4
-    # Original code had a lot of duplication, asked it to extract common parts
-    def _validate_params(self, mode, merge, focus, with_base, metric, order):
-        '''Validate common parameters used by both metric functions.'''
-        assert mode in ['INTO', 'FROM', 'DIFF']
-        assert (merge is None) or (merge in ['DATASET', 'TRANSLATOR', 'ALL'])
-        assert (focus is None) or (set(focus).issubset(self.cases.keys()))
-        assert (order is None) or (set(order) == set(self.order))
-        assert (with_base == True and metric ==
-                'BLEU') or with_base == False, 'Use with_base only with BLEU scores!'
-
-    def _prepare_data(self, metric, focus, exclude_opus=False):
-        '''Prepare data by filtering cases and applying focus if specified.'''
-        if exclude_opus:
-            data = {k: {metric: v[metric]}
-                        for k, v in self.cases.items() if not k.startswith('opus')}
-        else:
-            data = {k: {metric: v[metric]}
-                    for k, v in self.cases.items()}
-        if focus is not None:
-            new = {k: {} for k in focus}
-            for key in focus:
-                new[key][metric] = data[key][metric]
-            data = new
-        return data
-
-    def _merge_data(self, data, merge, metric) -> dict[str, dict[str, pd.DataFrame]]:
-        '''Merge data across datasets, translators or both.'''
-        if merge is None:
-            return data
-              
-        datasets = [key.split('-')[0] for key in data]
-        translators = [key.split('-')[1] for key in data]
-
-        if merge == 'DATASET':
-            new = {d: {metric: []} for d in set(datasets)}
-            def func(x, y): return x.startswith(y)
-        elif merge == 'TRANSLATOR':
-            new = {t: {metric: []} for t in set(translators)}
-            def func(x, y): return x.endswith(y)
-        elif merge == 'ALL':
-            new = {'all': {metric: []}}
-            def func(x, y): return True
-
-        # Collect dataframes to be merged
-        for k in new:
-            for key in data:
-                if func(key, k):
-                    df = data[key][metric]
-                    new[k][metric].append(df)
-        
-        # Average dataframes
-        for k in new:
-            dfs = new[k][metric]
-            df = sum(dfs) / len(dfs)
-            new[k][metric] = df
-        return new
-
-    def _get_base_data(self, with_base, data, metric):
-        if with_base:
-            base = get_base_score_matrix()
-        else:
-            k = list(data.keys())[0]
-            sample = data[k][metric]
-            base = pd.DataFrame(0, index=sample.index, columns=sample.columns)
-        return base
-
-    def _create_plot(self, comb, base_indexed, mode, metric, with_base, colors, title, xlabel, ylabel, lang='default', label_map={}):
-        langs = base_indexed.index
-        x = range(len(langs))
-
-        if mode in ['INTO', 'FROM']:
-            linestyle = None
-        else:
-            linestyle = 'None'
-
-        if with_base:
-            plt.plot(x, base_indexed['base'], marker='o',
-                     label=label_map.get('base', 'base'), linestyle=linestyle)
-
-        for col in comb.columns:
-            if col == 'base':
-                continue
-            if col.endswith('deepl'):
-                marker = 's'
-            else:
-                marker = '^'
-
-            color = colors.get(col, None)
-            display_label = label_map.get(col, col)
-            plt.plot(x, comb[col] + base_indexed['base'],
-                     marker=marker, color=color, linestyle=linestyle, label=display_label)
-
-        plt.xticks(ticks=x, labels=langs)
-
-        title = title
-        xlabel = xlabel or 'Language'
-        if mode in ['FROM', 'INTO']:
-            ylabel = ylabel or f'{metric} score'
-        else:
-            ylabel = ylabel or f'Mean {metric} differences'
-
-        plt.title(title)
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
-        plt.grid(True)
-        plt.legend()
-        plt.tight_layout()
+        sns.scatterplot(
+            data=merged,
+            x='score_x',
+            y='score_y',
+            **color_params
+        )
+        plt.plot(x_line, y_line, color='black')
+        plt.xlabel(x_label)
+        plt.ylabel(y_label)
+        if label_map:
+            handles, labels = plt.gca().get_legend_handles_labels()
+            new_labels = [label_map.get(label, label) for label in labels]
+            plt.legend(handles, new_labels, title=color_params['hue'])
         plt.show()
-
-    def mean_metric_from_or_into_lang(self, mode='INTO', plot=True, with_base=True, metric='BLEU', order=None, title=None, xlabel=None, ylabel=None, colors=None, merge=None, focus=None, label_map={}):
-        '''
-        Plots Mean Metric Scores with/without Koehn's scores and produces a pandas.DataFrame containing mean scores or differences if Koehn's scores are used.
-        '''
-        self._validate_params(mode, merge, focus, with_base, metric, order)
+    return merged, model
 
 
-        data = self._prepare_data(metric, focus, exclude_opus=True)
-        data = self._merge_data(data, merge, metric)
-        _colors = get_colors(data.keys())
-        colors = colors or _colors
-        base = self._get_base_data(with_base, data, metric)
-
-        diffs = {}
-        for key in data:
-            df = data[key][metric]
-
-            if mode == 'INTO':
-                diff = df.mean().round(1) - base.mean().round(1)
-            elif mode == 'FROM':
-                diff = df.mean(axis=1).round(1) - base.mean(axis=1).round(1)
-            elif mode == 'DIFF':
-                diff = df.mean(axis=1) - df.mean()
-                diff = diff.round(1)
-
-            diff = diff.reset_index()
-            diff.columns = ['lang', key]
-            diffs[key] = diff
-
-        if mode == 'INTO':
-            base_series = base.mean().round(1)
-        elif mode == 'FROM':
-            base_series = base.mean(axis=1).round(1)
-        elif mode == 'DIFF':
-            base_series = base.mean(axis=1) - base.mean()
-            base_series = base_series.round(1)
-
-        base_df = base_series.reset_index()
-        base_df.columns = ['lang', 'base']
-        base_indexed = base_df.set_index('lang')
-
-        if with_base:
-            dfs = [base_df]
+def customize_color(custom_color):
+    palette = {}
+    for key in custom_color:
+        if key == 'src_lang':
+            for lang in custom_color[key]:
+                lbl = f'From {LANG_ISO[lang]}'
+                palette.update({lbl: custom_color[key][lang]})
+        elif key == 'tgt_lang':
+            for lang in custom_color[key]:
+                lbl = f'Into {LANG_ISO[lang]}'
+                palette.update({lbl: custom_color[key][lang]})
         else:
-            dfs = []
-        for key in diffs:
-            dfs.append(diffs[key])
+            for k in custom_color[key]:
+                palette.update({k.upper(): custom_color[key][k]})
+    palette.update({'Other': 'gray'})
 
-        dfs = [df.set_index('lang') for df in dfs]
-        comb = pd.concat(dfs, axis=1, join='inner')
-        
-        if order is not None:
-            comb = comb.reindex(index=order)
-            base_indexed = base_indexed.reindex(index=order)
+    def tag_color(row):
+        for key in custom_color:
+            if row[key] in custom_color[key]:
+                if key == 'src_lang':
+                    return f'From {LANG_ISO[row[key]]}'
+                elif key == 'tgt_lang':
+                    return f'Into {LANG_ISO[row[key]]}'
+                else:
+                    return row[key].upper()
+        return 'Other'
+    return tag_color, palette
 
-        # Plotting
-        if plot == True:
-            self._create_plot(comb, base_indexed, mode, metric,
-                              with_base, colors, title, xlabel, ylabel, label_map=label_map)
-        return comb
+def set_custom_colors(df, custom_color):
+    tag_color, palette = customize_color(custom_color)
+    df['marked'] = df.apply(tag_color, axis=1)
+    '''
+    df after tag_color applied (Example):
+    src_lang, tgt_lang, score_x, dataset_x, translator_x, score_y, dataset_y, translator_y, marked
+    sv, da, 36.07..., ep, deepl, 61.52..., ep, deepl, Other
+    de, da, 34.97..., ep, deepl, 60.55..., ep, deepl, From German
+    ...
 
-    def metric_from_or_into_language(self, mode='INTO', plot=True, with_base=True, metric='BLEU', order=None, title=None, xlabel=None, ylabel=None, colors=None, merge=None, focus=None, lang='en', label_map={}):
-        '''
-        Plots Metric Scores with/without base's scores and produces a pandas.DataFrame containing mean scores or differences if base's scores are used.
-        '''
-        self._validate_params(mode, merge, focus, with_base, metric, order)
+    palette = {
+        'Other': 'gray',
+        'From German': 'green',
+    }
+    '''
+    return df, palette
 
-        data = self._prepare_data(metric, focus, exclude_opus=lang != 'en')
-        data = self._merge_data(data, merge, metric)
-        _colors = get_colors(data.keys())
-        colors = colors or _colors
-        base = self._get_base_data(with_base, data, metric)
+def top_n_residuals(data, model, top_n=20):
+    data = data.copy()
+    data['predicted_y'] = np.poly1d(model)(data['score_x'])
+    data['residual'] = abs(data['score_y'] - data['predicted_y'])
+    top_n_entries = data.sort_values(
+        by='residual', ascending=False).head(top_n)
+    return top_n_entries
 
-        diffs = {}
-        for key in data:
-            df = data[key][metric]
-
-            if mode == 'INTO':
-                diff = df[lang].round(1) - base[lang]
-            elif mode == 'FROM':
-                diff = df.loc[lang].round(1) - base.loc[lang]
-            elif mode == 'DIFF':
-                diff = df.loc[lang] - df[lang]
-                diff = diff.round(1)
-
-            diff = diff.reset_index()
-            diff.columns = ['lang', key]
-            diffs[key] = diff
-
-        if mode == 'INTO':
-            base_series = base[lang]
-        elif mode == 'FROM':
-            base_series = base.loc[lang]
-        elif mode == 'DIFF':
-            base_series = base.loc[lang] - base[lang]
-
-        base_df = base_series.reset_index()
-        base_df.columns = ['lang', 'base']
-
-        if with_base:
-            dfs = [base_df]
+def mark_residual_by_src_or_tgt_freq(outliers, n=4):
+    src_lang_cnts = outliers['src_lang'].value_counts().to_dict()
+    tgt_lang_cnts = outliers['tgt_lang'].value_counts().to_dict()
+    tmp1 = {f'src-{k}': v for k, v in src_lang_cnts.items()}
+    tmp2 = {f'tgt-{k}': v for k, v in tgt_lang_cnts.items()}
+    tmp = {**tmp1, **tmp2}
+    top = sorted(tmp.items(), key=lambda x: x[1], reverse=True)[:n]
+    out = {'src_lang': {}, 'tgt_lang': {}}
+    palette = sns.color_palette("YlGnBu", n)
+    cols = palette[::-1]
+    for i, (k, v) in enumerate(top):
+        if k.startswith('src'):
+            out['src_lang'][k[4:]] = cols[i]
         else:
-            dfs = []
-        for key in diffs:
-            dfs.append(diffs[key])
+            out['tgt_lang'][k[4:]] = cols[i]
+    return out, top
 
-        dfs = [df.set_index('lang') for df in dfs]
-        comb = pd.concat(dfs, axis=1, join='inner')
-        comb = comb.drop(lang)
-        base_indexed = base_df.set_index('lang')
-        base_indexed = base_indexed.drop(lang)
-        
-        if order is not None:
-            comb = comb.reindex(index=order)
-            base_indexed = base_indexed.reindex(index=order)
+### Score Matrix Operations ###
+def form_matrix(df, metric, dataset, translator, order=ORDER):
+    '''
+    Forms a matrix from a dataframe.
+    '''
+    df = df[(df['dataset'] == dataset) & (df['translator'] == translator)]
+    matrix =  df.pivot_table(
+        index='src_lang',
+        columns='tgt_lang',
+        values=metric
+    )
+    return matrix.reindex(index=order, columns=order)
 
-        if plot == True:
-            self._create_plot(comb, base_indexed, mode, metric,
-                              with_base, colors, title, xlabel, ylabel, lang, label_map=label_map)
-        return comb
+def plot_matrix(matrix, vmin=0, vmax=60, annot=True, fmt=".1f", cmap="YlGnBu", cbar=True, xlabel='Target Language', ylabel='Source Language', figsize=None, **kwargs):
+    '''
+    Displays score matrix in heatmap format
+    '''
+    plt.figure(figsize=figsize)
+    sns.heatmap(matrix, annot=annot, fmt=fmt,
+                cmap=cmap, cbar=cbar, vmin=vmin, vmax=vmax, **kwargs)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.yticks(rotation=0)
+    plt.show()
+
+def form_matrices(df, metric, translators, datasets, order=ORDER):
+    '''
+    Creates a dictionary of score matrices using translators and datasets as keys.
+    '''
+    assert len(translators) == len(
+        datasets), 'Please provide same number of translators and datasets!'
+    matrices = {}
+    for tl, ds in zip(translators, datasets):
+        matrix = form_matrix(df, metric, ds, tl, order)
+        matrix = matrix.round(1)
+        matrices[(ds, tl)] = matrix
+    return matrices
+
+def matrix_merger(matrices, merge_on):
+    '''
+    Averages out matrices based on a what to be merged on.
+    '''
+    assert merge_on in ['dataset', 'translator', 'all']
+    datasets = [k[0] for k in matrices]
+    translators = [k[1] for k in matrices]
+    new = {}
+    if merge_on == 'dataset':
+        for d in set(datasets):
+            selected = [m for k, m in matrices.items() if k[0] == d]
+            new[d] = sum(selected) / len(selected)
+            new[d] = new[d].round(1)
+    elif merge_on == 'translator':
+        for t in set(translators):
+            selected = [m for k, m in matrices.items() if k[1] == t]
+            new[t] = sum(selected) / len(selected)
+            new[t] = new[t].round(1)
+    elif merge_on == 'all':
+        new['all'] = sum(matrices.values()) / len(matrices)
+        new['all'] = new['all'].round(1)
+    return new
+
+def mode2mean(mode, key, matrix):
+    '''
+    Returns mean over rows, columns or difference between them.
+    '''
+    assert mode in ['INTO', 'FROM', 'DIFF']
+    out = None
+    if mode == 'INTO':
+        # Mean over columns
+        out = matrix.mean().round(1)
+    elif mode == 'FROM':
+        # Mean over rows
+        out = matrix.mean(axis=1).round(1)
+    elif mode == 'DIFF':
+        out = matrix.mean(axis=1).round(1) - matrix.mean().round(1)
+
+    out = out.reset_index()
+    out.columns = ['lang', key]
+    return out
+
+def mode2vector(mode, key, lang, matrix):
+    assert mode in ['INTO', 'FROM', 'DIFF']
+    out = None
+    if mode == 'INTO':
+        # Mean over columns
+        out = matrix[lang]
+    elif mode == 'FROM':
+        # Mean over rows
+        out = matrix.loc[lang]
+    elif mode == 'DIFF':
+        out = matrix.loc[lang] - matrix[lang]
+
+    out = out.reset_index()
+    out.columns = ['lang', key]
+    return out
+
+
+def check_matrix(matrix):
+    '''
+    Confirms if matrix has 110 non-NaN values
+    '''
+    check = matrix.size - matrix.isna().sum().sum()
+    return check == 110
+
+
+def check_lang(matrix, lang, mode):
+    '''
+    Confirms if row, columns or both of chosen language has 10 non-NaN values
+    '''
+    if mode == 'INTO':
+        return matrix[lang].count() == 10
+    elif mode == 'FROM':
+        return matrix.loc[lang].count() == 10
+    elif mode == 'DIFF':
+        return (matrix[lang].count() == 10) and (matrix.loc[lang].count() == 10)
+
+
+def aggregate_matrices(matrices, mode='INTO', include_base=False):
+    # Filter out matrices that don't have 110 non-NaN values
+    matrices = {k: v for k, v in matrices.items() if check_matrix(v)}
+    # Aggregate
+    base = get_base_score_matrix(zero_matrix=(not include_base))
+    dfs = []
+    for key in matrices:
+        label = '-'.join(key) if type(key) == tuple else key
+        df = matrices[key] - base
+        df = mode2mean(mode, label, df)
+        dfs.append(df)
+    base = mode2mean(mode, 'base', base)
+    dfs.append(base)
+    dfs = [df.set_index('lang') for df in dfs]
+    comb = pd.concat(dfs, axis=1, join='inner')
+    return comb
+
+
+def extract_vectors(matrices, mode='INTO', lang='en', include_base=False):
+    base = get_base_score_matrix(zero_matrix=(not include_base))
+    dfs = []
+    # Filter out matrices that don't have 10 non-NaN values in the chosen language
+    matrices = {k: v for k, v in matrices.items() if check_lang(v, lang, mode)}
+    for key in matrices:
+        label = '-'.join(key) if type(key) == tuple else key
+        df = matrices[key] - base
+        df = mode2vector(mode, label, lang, df)
+        dfs.append(df)
+    base = mode2vector(mode, 'base', lang, base)
+    dfs.append(base)
+    dfs = [df.set_index('lang') for df in dfs]
+    comb = pd.concat(dfs, axis=1, join='inner')
+    comb = comb.drop(lang)
+    return comb
+
+
+def plot_vectors(df, label_map={}, color_map={}, include_base=False, linestyle=None, ylabel=None):
+    langs = df.index
+    x = range(len(langs))
+
+    if include_base:
+        plt.plot(
+            x, df['base'],
+            marker='o',
+            label=label_map.get('base', 'base'),
+            linestyle=linestyle,
+            color=color_map.get('base', None)
+        )
+    for col in df.columns:
+        if col == 'base':
+            continue
+        plt.plot(
+            x, df[col] + df['base'],
+            marker='o',
+            label=label_map.get(col, col),
+            linestyle=linestyle,
+            color=color_map.get(col, None)
+        )
+    plt.legend()
+    if ylabel:
+        plt.ylabel(ylabel)
+    plt.grid(True)
+    plt.xticks(ticks=x, labels=langs)
+    plt.show()
+

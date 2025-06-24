@@ -34,6 +34,8 @@ target/
 time_results/
 translations.zip
 
+final_results_old/
+
 aligned_results_no_sent_split/
 aligned_results_sent_split/
 aligned_triplets_no_sent_split/
