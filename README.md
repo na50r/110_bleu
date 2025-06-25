@@ -15,7 +15,7 @@ The translations obtained in this project and used for alignment and evaluation 
 * Contains a folder called `translations` which was created with notebook [Preparation.ipynb](https://github.com/na50r/110_bleu/blob/main/Preparation.ipynb)
 
 ## Scores
-* We recommend using [RQs.ipynb](https://github.com/na50r/110_bleu/blob/main/RQs.ipynb) as a guideline on how to use the scores to produce tables and visualizations
+* We recommend using [RQs.ipynb](https://github.com/na50r/110_bleu/blob/main/RQs.ipynb) and [Time_Analysis.ipynb](https://github.com/na50r/110_bleu/blob/main/Time_Analysis.ipynb) as guidelines how to use `final_results.csv` and `scripts/presentation.py` to produce tables and visualizations
 
 
 ## Notebooks
@@ -59,6 +59,10 @@ HUGGINGFACE_KEY=
 FLORES_STORE=
 OPUS_100_STORE=
 EUROPARL_STORE=
+
+# Path to folder after results were obtained
+TRIPLETS=
+RESULTS=
 ```
 
 * DeepL and OpenAI API keys are required for the translators to work.
@@ -164,7 +168,7 @@ for pair in pairs:
 * `procedure.py` just allows transparent use of `task.py` by creating the tasks for the selected procedure and allowing the user to run the task with CLI or Jupyter Notebook. It also accounts for loggings.
 * Note: `procedure.py` is never used directly, we inherit the Procedure class and define procedures outside the scripts folder
 * An example of a procedure could be:
-    - `P = {(x, y) | x ∈ L, y ∈ L, x = en ∨ y = en}`
+    - `P = {(x, y) | x ∈ L, y ∈ L, x = en ∨ y = en ∧ x ≠ y}`
     - `D = {europarl, opus-100}`
     - `T = {gpt-4.1-2025-04-14}`
 
