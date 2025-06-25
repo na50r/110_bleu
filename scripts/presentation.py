@@ -83,10 +83,8 @@ def prepare_variable(df, metric, datasets, translators, src_lang=None, tgt_lang=
 
 
 def correlations(df, config1, config2, show=False):
-    df1 = prepare_variable(df, config1['metric'], config1['datasets'],
-                           config1['translators'], config1['src_lang'], config1['tgt_lang'])
-    df2 = prepare_variable(df, config2['metric'], config2['datasets'],
-                           config2['translators'], config2['src_lang'], config2['tgt_lang'])
+    df1 = prepare_variable(df, **config1)
+    df2 = prepare_variable(df, **config2)
     merge_on = ['src_lang', 'tgt_lang']
     if len(config1['datasets']) > 1:
         merge_on.append('dataset')
@@ -106,11 +104,8 @@ def correlations(df, config1, config2, show=False):
 
 
 def linear_regression(df, config1, config2, x_label, y_label, color_by=None, custom_color=None, label_map=None, plot=True):
-    df1 = prepare_variable(df, config1['metric'], config1['datasets'],
-                           config1['translators'], config1['src_lang'], config1['tgt_lang'])
-
-    df2 = prepare_variable(df, config2['metric'], config2['datasets'],
-                           config2['translators'], config2['src_lang'], config2['tgt_lang'])
+    df1 = prepare_variable(df, **config1)
+    df2 = prepare_variable(df, **config2)
     merge_on = ['src_lang', 'tgt_lang']
 
     if len(config1['datasets']) > 1:
@@ -151,12 +146,12 @@ def customize_color(custom_color):
     for key in custom_color:
         if key == 'src_lang':
             for lang in custom_color[key]:
-                lbl = f'From {LANG_ISO[lang]}'
-                palette.update({lbl: custom_color[key][lang]})
+                label = f'From {LANG_ISO[lang]}'
+                palette.update({label: custom_color[key][lang]})
         elif key == 'tgt_lang':
             for lang in custom_color[key]:
-                lbl = f'Into {LANG_ISO[lang]}'
-                palette.update({lbl: custom_color[key][lang]})
+                label = f'Into {LANG_ISO[lang]}'
+                palette.update({label: custom_color[key][lang]})
         else:
             for k in custom_color[key]:
                 palette.update({k.upper(): custom_color[key][k]})
@@ -207,6 +202,7 @@ def mark_residual_by_src_or_tgt_freq(outliers, n=4):
     tmp = {**tmp1, **tmp2}
     top = sorted(tmp.items(), key=lambda x: x[1], reverse=True)[:n]
     out = {'src_lang': {}, 'tgt_lang': {}}
+    # ChatGPT Aided
     palette = sns.color_palette("YlGnBu", n)
     cols = palette[::-1]
     for i, (k, v) in enumerate(top):
