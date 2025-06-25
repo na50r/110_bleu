@@ -9,6 +9,7 @@ from scripts.util import LANG_ISO
 
 ORDER = ['da', 'sv', 'de', 'nl', 'en', 'es', 'fr', 'it', 'pt', 'el', 'fi']
 
+
 def get_base_score_matrix(order=ORDER, zero_matrix=False):
     '''
     Returns Koehn's BLEU scores
@@ -36,13 +37,14 @@ def get_base_score_matrix(order=ORDER, zero_matrix=False):
     base = base.reindex(index=order, columns=order)
     return base
 
+
 def parse_results_from_folder(results_folder):
     '''
     Parses a folder of CSV files into a single dataframe.
     Format of CSV files:
     Label, BLEU, chrF, BERT-F1, COMET
     de-en, 30.69, 60.47, 80.23, 90.36
-    
+
     Output dataframe format:
     BLEU, chrF, BERT-F1, COMET, dataset, translator, src_lang, tgt_lang
     30.69, 60.47, 80.23, 90.36, ep, deepl, de, en
@@ -61,14 +63,31 @@ def parse_results_from_folder(results_folder):
     df = pd.concat(dfs, ignore_index=True)
     return df
 
+
 def parse_results_from_file(results_file):
+    '''
+    Parses a folder of CSV files into a single dataframe.
+    Format of CSV files:
+    Label, BLEU, chrF, BERT-F1, COMET
+    de-en, 30.69, 60.47, 80.23, 90.36
+    '''
     df = pd.read_csv(results_file)
-    df[['dataset', 'translator', 'src_lang', 'tgt_lang']] = df['Label'].str.split('-', expand=True)
+    df[['dataset', 'translator', 'src_lang', 'tgt_lang']
+       ] = df['Label'].str.split('-', expand=True)
     del df['Label']
     return df
 
-### Correlations ###
+### NOTE ###
+# All the following functions apply operations on a pandas.DataFrame of format:
+# BLEU, chrF, BERT-F1, COMET, dataset, translator, src_lang, tgt_lang
+
+### METRIC CORRELATIONS AND LINEAR REGRESSION ###
+
+
 def prepare_variable(df, metric, datasets, translators, src_lang=None, tgt_lang=None):
+    '''
+    Selects the relevant rows from the data based on metric, datasets, translators, src_lang, and tgt_lang.
+    '''
     subset = df[
         df['dataset'].isin(datasets) &
         df['translator'].isin(translators)
@@ -83,6 +102,17 @@ def prepare_variable(df, metric, datasets, translators, src_lang=None, tgt_lang=
 
 
 def correlations(df, config1, config2, show=False):
+    '''
+    Excepts two configs of format:
+    config = {
+        'datasets': ['ep', 'flores'],
+        'translators': ['deepl', 'gpt'],
+        'src_lang': None,
+        'tgt_lang': None,
+        'metric': 'BLEU'
+    }
+    Computes the Pearson and Spearman correlations between selected data based on the configs.
+    '''
     df1 = prepare_variable(df, **config1)
     df2 = prepare_variable(df, **config2)
     merge_on = ['src_lang', 'tgt_lang']
@@ -95,15 +125,34 @@ def correlations(df, config1, config2, show=False):
         merged['score_x'], merged['score_y'])
     if show:
         print(f'Datasets: {config1["datasets"]} : {config2["datasets"]}')
-        print(f'Translators: {config1["translators"]} : {config2["translators"]}')
+        print(
+            f'Translators: {config1["translators"]} : {config2["translators"]}')
         print(f'Metric: {config1["metric"]} : {config2["metric"]}')
-        print(f"Pearson correlation: {pearson_corr:.2f} (p = {pearson_pval:.1e})")
+        print(
+            f"Pearson correlation: {pearson_corr:.2f} (p = {pearson_pval:.1e})")
         print(
             f"Spearman correlation: {spearman_corr:.2f} (p = {spearman_pval:.1e})")
     return pearson_corr, pearson_pval, spearman_corr, spearman_pval
 
 
 def linear_regression(df, config1, config2, x_label, y_label, color_by=None, custom_color=None, label_map=None, plot=True):
+    '''
+    Expects two configs of format:
+    config = {
+        'datasets': ['ep', 'flores'],
+        'translators': ['deepl', 'gpt'],
+        'src_lang': None,
+        'tgt_lang': None,
+        'metric': 'BLEU'
+    }
+    Plots a linear regression between selected data based on the configs.
+    If custom_colors are desired, requires format:
+    custom_color = {
+        'src_lang': {'da': 'red', 'de': 'blue'},
+        'tgt_lang': {'da': 'green', 'de': 'yellow'}
+        'dataset': {'ep': 'purple', 'flores': 'orange'}
+    }
+    '''
     df1 = prepare_variable(df, **config1)
     df2 = prepare_variable(df, **config2)
     merge_on = ['src_lang', 'tgt_lang']
@@ -142,6 +191,10 @@ def linear_regression(df, config1, config2, x_label, y_label, color_by=None, cus
 
 
 def customize_color(custom_color):
+    '''
+    Prepares colors and legend matching those colors
+    For src_lang/tgt_lang, 'src_lang: ['da', 'de'] becomes 'From Danish' and 'From German'
+    '''
     palette = {}
     for key in custom_color:
         if key == 'src_lang':
@@ -169,6 +222,7 @@ def customize_color(custom_color):
         return 'Other'
     return tag_color, palette
 
+
 def set_custom_colors(df, custom_color):
     tag_color, palette = customize_color(custom_color)
     df['marked'] = df.apply(tag_color, axis=1)
@@ -186,6 +240,7 @@ def set_custom_colors(df, custom_color):
     '''
     return df, palette
 
+
 def top_n_residuals(data, model, top_n=20):
     data = data.copy()
     data['predicted_y'] = np.poly1d(model)(data['score_x'])
@@ -194,7 +249,12 @@ def top_n_residuals(data, model, top_n=20):
         by='residual', ascending=False).head(top_n)
     return top_n_entries
 
+
 def mark_residual_by_src_or_tgt_freq(outliers, n=4):
+    '''
+    Computes the top n source and target languages based on the outliers
+    and returns a custom color dictionary for those languages.
+    '''
     src_lang_cnts = outliers['src_lang'].value_counts().to_dict()
     tgt_lang_cnts = outliers['tgt_lang'].value_counts().to_dict()
     tmp1 = {f'src-{k}': v for k, v in src_lang_cnts.items()}
@@ -212,18 +272,21 @@ def mark_residual_by_src_or_tgt_freq(outliers, n=4):
             out['tgt_lang'][k[4:]] = cols[i]
     return out, top
 
-### Score Matrix Operations ###
+### SCORE MATRIX OPERATIONS ###
+
+
 def form_matrix(df, metric, dataset, translator, order=ORDER):
     '''
     Forms a matrix from a dataframe.
     '''
     df = df[(df['dataset'] == dataset) & (df['translator'] == translator)]
-    matrix =  df.pivot_table(
+    matrix = df.pivot_table(
         index='src_lang',
         columns='tgt_lang',
         values=metric
     )
     return matrix.reindex(index=order, columns=order)
+
 
 def plot_matrix(matrix, vmin=0, vmax=60, annot=True, fmt=".1f", cmap="YlGnBu", cbar=True, xlabel='Target Language', ylabel='Source Language', figsize=None, **kwargs):
     '''
@@ -237,6 +300,7 @@ def plot_matrix(matrix, vmin=0, vmax=60, annot=True, fmt=".1f", cmap="YlGnBu", c
     plt.yticks(rotation=0)
     plt.show()
 
+
 def form_matrices(df, metric, translators, datasets, order=ORDER):
     '''
     Creates a dictionary of score matrices using translators and datasets as keys.
@@ -249,6 +313,7 @@ def form_matrices(df, metric, translators, datasets, order=ORDER):
         matrix = matrix.round(1)
         matrices[(ds, tl)] = matrix
     return matrices
+
 
 def matrix_merger(matrices, merge_on):
     '''
@@ -273,6 +338,7 @@ def matrix_merger(matrices, merge_on):
         new['all'] = new['all'].round(1)
     return new
 
+
 def mode2mean(mode, key, matrix):
     '''
     Returns mean over rows, columns or difference between them.
@@ -292,7 +358,11 @@ def mode2mean(mode, key, matrix):
     out.columns = ['lang', key]
     return out
 
+
 def mode2vector(mode, key, lang, matrix):
+    '''
+    Selects the row, column or difference between them for a given language.
+    '''
     assert mode in ['INTO', 'FROM', 'DIFF']
     out = None
     if mode == 'INTO':
@@ -330,6 +400,10 @@ def check_lang(matrix, lang, mode):
 
 
 def aggregate_matrices(matrices, mode='INTO', include_base=False):
+    '''
+    Given a dictionary of score matrices, aggregates them into a dataframe consisting of the mean over rows, mean over columns or mean difference between them.
+    Note: This dataframe can be considered as a 'list of vectors'
+    '''
     # Filter out matrices that don't have 110 non-NaN values
     matrices = {k: v for k, v in matrices.items() if check_matrix(v)}
     # Aggregate
@@ -348,6 +422,10 @@ def aggregate_matrices(matrices, mode='INTO', include_base=False):
 
 
 def extract_vectors(matrices, mode='INTO', lang='en', include_base=False):
+    '''
+    Given a dictionary of score matrices, extracts the row, column or difference between them for a given language.
+    Note: This dataframe can be considered as a 'list of vectors'
+    '''
     base = get_base_score_matrix(zero_matrix=(not include_base))
     dfs = []
     # Filter out matrices that don't have 10 non-NaN values in the chosen language
@@ -365,23 +443,23 @@ def extract_vectors(matrices, mode='INTO', lang='en', include_base=False):
     return comb
 
 
-def plot_vectors(df, label_map={}, color_map={}, include_base=False, linestyle=None, ylabel=None):
-    langs = df.index
+def plot_vectors(vectors, label_map={}, color_map={}, include_base=False, linestyle=None, ylabel=None):
+    langs = vectors.index
     x = range(len(langs))
 
     if include_base:
         plt.plot(
-            x, df['base'],
+            x, vectors['base'],
             marker='o',
             label=label_map.get('base', 'base'),
             linestyle=linestyle,
             color=color_map.get('base', None)
         )
-    for col in df.columns:
+    for col in vectors.columns:
         if col == 'base':
             continue
         plt.plot(
-            x, df[col] + df['base'],
+            x, vectors[col] + vectors['base'],
             marker='o',
             label=label_map.get(col, col),
             linestyle=linestyle,
@@ -393,4 +471,3 @@ def plot_vectors(df, label_map={}, color_map={}, include_base=False, linestyle=N
     plt.grid(True)
     plt.xticks(ticks=x, labels=langs)
     plt.show()
-
