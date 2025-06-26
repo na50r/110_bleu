@@ -15,6 +15,7 @@ def compute_chrf(ref: list[str], hyp: list[str]):
     return res.score
 
 def load_comet_model():
+    # Load model only if COMET is used
     from comet import download_model, load_from_checkpoint
     model_path = download_model("Unbabel/wmt22-comet-da")
     model = load_from_checkpoint(model_path)
@@ -24,7 +25,7 @@ def compute_comet(data: dict[str, str], model):
     model_output = model.predict(data, batch_size=8, gpus=1)
     return model_output
 
-def compute_bert_score(ref, hyp, lang, rescale_with_baseline=True, model_type=None):
+def compute_bert_score(ref: list[str], hyp: list[str], lang: str, rescale_with_baseline: bool=True, model_type: str=None):
     # Recale with Baseline set to True as specified in: https://github.com/Tiiiger/bert_score/blob/master/journal/rescale_baseline.md
     from bert_score import score
     P, R, F1 = score(hyp, ref, lang=lang, verbose=False,

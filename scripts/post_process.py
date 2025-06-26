@@ -2,7 +2,7 @@ import os
 import json
 from os.path import join, exists
 
-def normalize(text):
+def normalize(text: str):
     # Remove non-breaking space for FLORES+ French
     # Only for string-matching, should not be stored
     return text.replace('\xa0', ' ').strip()
@@ -26,7 +26,7 @@ def direct_triplet_align(mt_sents: list[str], ref_sents: list[str], src_sents: l
     return align_cnt
 
 
-def align_sents(src_sents: list[str], tgt_sents: list[str], folder_path: str, src_lang: str, tgt_lang: str, model: str = 'paraphrase-multilingual-MiniLM-L12-v2', filename=None, is_split=False, fix_side=None):
+def align_sents(src_sents: list[str], tgt_sents: list[str], folder_path: str, src_lang: str, tgt_lang: str, model: str = 'paraphrase-multilingual-MiniLM-L12-v2', filename: str=None, is_split: bool=False, fix_side=None):
     '''
     Uses bertalign to align source and target sentences
     Uses paraphrase-multilingual-MiniLM-L12-v2 as default sentence embedding model
@@ -86,7 +86,7 @@ def post_triplet_align(src_sents_org: list[str], src_sents_ali: list[str], ref_s
     norm2src = {norm(s): s for s in src_sents_org}
     src2mt = {norm(s): m
               for s, m in zip(src_sents_ali, mt_sents_ali)}
-    src2ref = {norm(s.strip()): r
+    src2ref = {norm(s): r
                for s, r in zip(src_sents_org, ref_sents_org)}
 
     check = frozenset(src2ref.keys())
