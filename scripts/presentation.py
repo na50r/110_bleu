@@ -443,7 +443,7 @@ def extract_vectors(matrices, mode='INTO', lang='en', include_base=False):
     return comb
 
 
-def plot_vectors(vectors, label_map={}, color_map={}, include_base=False, linestyle=None, ylabel=None):
+def plot_vectors(vectors, label_map={}, color_map={}, include_base=False, linestyle=None, ylabel=None, legend=plt.legend):
     langs = vectors.index
     x = range(len(langs))
 
@@ -465,7 +465,7 @@ def plot_vectors(vectors, label_map={}, color_map={}, include_base=False, linest
             linestyle=linestyle,
             color=color_map.get(col, None)
         )
-    plt.legend()
+    legend()
     if ylabel:
         plt.ylabel(ylabel)
     plt.grid(True)

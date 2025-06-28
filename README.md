@@ -5,10 +5,10 @@ This repository is accompanying a Bachelor thesis on machine translation evaluat
 Inspired by the BLEU score matrix shown in Phillip Koehn's [Europarl Statistical Machine Translation paper](https://aclanthology.org/2005.mtsummit-papers.11/), we try to recreate a similar matrix by obtaining translations from two modern machine translation systems, namely DeepL and GPT4.1 and evaluating them. 
 
 **NOTE**:
-This codebase is NOT an API nor a Python Package. Type annotation and docstrings were added merely for readability and intepretability's sake, for project evaluators. Only relevant functions/methods and classes received them, whereas private methods or utility function should be understandable by just reading the code (variable names, see how their used, etc.)
+This code base is NOT an API nor a Python Package. Type annotation and docstrings were added merely for readability and intepretability's sake, for project evaluators. Only relevant functions, methods and classes received them.
 
 ## Triplets
-The aligned translations used for evaluation can be found [here](https://drive.google.com/file/d/117-uAof7Us4snuyEZ8yhYfItN0pKn-BH/view?usp=sharing)
+The aligned translations used for evaluation can be found [here](https://drive.google.com/file/d/1QGs37d_czpQc799HMB6v_p4NuQ-GyJj3/view?usp=sharing)
 
 ## Translations
 The translations obtained in this project and used for alignment and evaluation can be found [here](https://drive.google.com/file/d/1EJDqTEjVNnDvU59E4sgTSeepkohJin3v/view?usp=sharing)
@@ -25,6 +25,13 @@ If you just want to inspect code and not run it, here the main notebooks used fo
 * [Evaluation.ipynb](https://github.com/na50r/110_bleu/blob/main/Evaluation.ipynb): Used to align and pre-evaluate the translations; goes over why the final alignment approach was chosen
 * [ProcDoc.ipynb](https://github.com/na50r/110_bleu/blob/main/ProcDoc.ipynb): Contains the documentation of the procedures ran to obtain the translations; analysis of logs
 * [Time_Analysis.ipynb](https://github.com/na50r/110_bleu/blob/main/Time_Analysis.ipynb): Used to analyze the time it took to run the procedures
+
+## Notes on how to use this repository
+* If you just want to create visualizations and tables using OUR results; you can do this right away, our results can be found in `final_results.csv`
+* If you want to access parallel corpora texts with this code, you have to set the environment variables suffixed with `_STORE`; create their corresponding folders
+    * Note: If you want to access FLORES+, you have to provide a HUGGINGFACE_KEY with an account that accepted their condition to not use the dataset for training.
+* If you want to re-run alignment, triplet formation or evaluation, set the corresponding environment variables; create their corresponding folders
+* If you want to re-run the procedures, you have to use your own API keys for DeepL and GPT-4.1
 
 ## Installation
 
@@ -63,11 +70,19 @@ EUROPARL_STORE=
 # Path to folder after results were obtained
 TRIPLETS=
 RESULTS=
+ALIGNMENTS=
+TMP_RESULTS=
 ```
 
 * DeepL and OpenAI API keys are required for the translators to work.
 * HuggingFace key is required to access Flores+ dataset for the first time, downloading it
 * Variables suffixed with `_STORE` are required to store dataset files locally on your machine, specify paths to folders, if you write:
+* The triplet, result and alignmet folders are used to store multiple files outside the repository
+    * Alignment folder [here](https://drive.google.com/drive/folders/1Oz5GYY3744BUldb4fZDTkoqw7Vseh38t?usp=sharing)
+    * Result folder stores results computed on Google Colab, [here](https://drive.google.com/drive/folders/1p1iLFtg1zi4-Aw5OcTivDtZ-ZqUFVOqQ?usp=sharing)
+        * Also contains files from older scores to demonstrate different cases for BERT-F1, older scores can be found [here](https://drive.google.com/drive/folders/1kVxEZKM8nx9MXzoJ-7-cTn9MldhRHTbD?usp=sharing)
+    * Triplet folder stores triplets that we generated using the aligned files; the final triplets can be found [here](https://drive.google.com/file/d/1QGs37d_czpQc799HMB6v_p4NuQ-GyJj3/view?usp=sharing)
+
 
 ```sh
 FLORES_STORE=C:\Files\Storage\Flores
