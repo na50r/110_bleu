@@ -2,12 +2,12 @@ import os
 import json
 from os.path import join, exists
 
-def normalize(text: str):
+def normalize(text: str) -> str:
     # Remove non-breaking space for FLORES+ French
     # Only for string-matching, should not be stored
     return text.replace('\xa0', ' ').strip()
 
-def direct_triplet_align(mt_sents: list[str], ref_sents: list[str], src_sents: list[str], folder_path: str, filename: str):
+def direct_triplet_align(mt_sents: list[str], ref_sents: list[str], src_sents: list[str], folder_path: str, filename: str) -> int:
     '''
     Aligns source, reference and machine translation in COMET format directly
     Assumes that mt_sents, ref_sents and src_sents are aligned with each other
@@ -73,7 +73,7 @@ def align_sents(src_sents: list[str], tgt_sents: list[str], folder_path: str, sr
             print(json.dumps(o), file=f)
 
 
-def post_triplet_align(src_sents_org: list[str], src_sents_ali: list[str], ref_sents_org: list[str], mt_sents_ali: list[str], folder_path: str, filename: str):
+def post_triplet_align(src_sents_org: list[str], src_sents_ali: list[str], ref_sents_org: list[str], mt_sents_ali: list[str], folder_path: str, filename: str) -> tuple[int, list[dict[str]]]:
     '''
     Alignes re-aligned source, reference and machine translation in COMET format
     Assumes that mt_sents, ref_sents and src_sents are aligned with each other
@@ -89,7 +89,7 @@ def post_triplet_align(src_sents_org: list[str], src_sents_ali: list[str], ref_s
     src2ref = {norm(s): r
                for s, r in zip(src_sents_org, ref_sents_org)}
 
-    check = frozenset(src2ref.keys())
+    check = set(src2ref.keys())
     keys = [k for k in src2mt if k in check]
     discarded = []
     with open(join(folder_path, out_file), 'w') as f:

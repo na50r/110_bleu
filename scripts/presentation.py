@@ -317,7 +317,8 @@ def form_matrices(df, metric, translators, datasets, order=ORDER):
 
 def matrix_merger(matrices, merge_on):
     '''
-    Averages out matrices based on a what to be merged on.
+    Averages out dimension based on what is provided in merge_on.
+    If merge_on=='dataset', then 'ep-deepl' and 'ep-gpt' become 'ep' 
     '''
     assert merge_on in ['dataset', 'translator', 'all']
     datasets = [k[0] for k in matrices]
@@ -444,6 +445,9 @@ def extract_vectors(matrices, mode='INTO', lang='en', include_base=False):
 
 
 def plot_vectors(vectors, label_map={}, color_map={}, include_base=False, linestyle=None, ylabel=None, legend=plt.legend):
+    '''
+    Plots vectors (a list of numbers in pd.DataFrame) with line plots
+    '''
     langs = vectors.index
     x = range(len(langs))
 
